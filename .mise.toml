@@ -1,0 +1,7 @@
+# Repo-local toolchain pin. Node 22 matches package.json `engines: node >=22` and
+# is the lowest LTS line that satisfies testcontainers@12 → undici@8, which binds
+# `worker_threads.markAsUncloneable` (a Node >=21 API) unconditionally at import.
+# On node 20 every testcontainers boot (integration suite + check-rls gate, once
+# those land) throws — so 22 is load-bearing for `pnpm verify:full`.
+[tools]
+node = "22"

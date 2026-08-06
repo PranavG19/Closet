@@ -1,0 +1,14 @@
+{
+  "name": "@closet/functions",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --build"
+  },
+  "dependencies": {
+    "@closet/db": "workspace:*",
+    "@closet/shared": "workspace:*",
+    "jose": "^6.2.3"
+  }
+}

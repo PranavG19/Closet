@@ -1,0 +1,23 @@
+{
+  "name": "@closet/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --build",
+    "start": "expo start --port 8081"
+  },
+  "dependencies": {
+    "@closet/shared": "workspace:*",
+    "@supabase/supabase-js": "2.110.8",
+    "@tanstack/react-query": "5.101.4",
+    "expo": "^57.0.7",
+    "expo-secure-store": "57.0.1",
+    "react": "^19.2.8",
+    "react-native": "^0.86.0",
+    "react-native-url-polyfill": "4.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17"
+  }
+}

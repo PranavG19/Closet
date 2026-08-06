@@ -1,0 +1,29 @@
+# deps
+node_modules/
+
+# secrets — never commit real env files; `.env.example` placeholders are allowed
+.env
+.env.*
+!.env.example
+
+# build outputs / incremental caches
+dist/
+build/
+*.tsbuildinfo
+
+# editor / OS noise
+.DS_Store
+
+# worktree isolation dirs (one per task agent)
+.worktrees/
+
+# expo / mobile
+packages/mobile/.expo/
+packages/mobile/web-build/
+
+# agent scratch — ephemeral output, never committed. A stray .mjs probe in one of
+# these also breaks `pnpm verify` at lint (eslint's project service rejects files
+# outside tsconfig), so ignoring them protects the gate too.
+*-scratch/
+.mutation/
+.crew/

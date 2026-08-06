@@ -1,0 +1,40 @@
+{
+  "name": "closet-app",
+  "private": true,
+  "version": "0.0.0",
+  "packageManager": "pnpm@9.15.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "gen": "node scripts/gen-conventions.mjs",
+    "gen:check": "node scripts/gen-conventions.mjs --check",
+    "verify": "node scripts/verify.mjs",
+    "verify:full": "node scripts/verify.mjs --full",
+    "typecheck": "tsc --build",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:integration": "vitest run --project integration",
+    "db:migrate": "node scripts/db-migrate.mjs up",
+    "db:migrate:down": "node scripts/db-migrate.mjs down",
+    "db:migrate:redo": "node scripts/db-migrate.mjs redo",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.20.0",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.18.0",
+    "fast-check": "^4.9.0",
+    "lefthook": "^2.1.10",
+    "node-pg-migrate": "8.0.4",
+    "pg": "^8.22.0",
+    "testcontainers": "^12.0.4",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.20.0",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

@@ -1,0 +1,12 @@
+# lefthook.yml — pre-commit hooks. HUMAN-OWNED (conventions.json humanOwnedPaths):
+# the agent must not edit this to unblock a commit. `pnpm install`'s `prepare` script
+# runs `lefthook install` to wire this in.
+#
+# Runs the fast verify wall on commit. The migration-guard (making out-of-dir DDL /
+# a stray migration unrepresentable at commit time) is added with the db package,
+# alongside its CI equivalent check-migration-drift.
+pre-commit:
+  parallel: true
+  commands:
+    verify:
+      run: pnpm verify

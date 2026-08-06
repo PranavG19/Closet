@@ -1,0 +1,45 @@
+{
+  "$comment": "SINGLE SOURCE OF TRUTH for cross-cutting conventions. Hand-edit THIS file, then run `pnpm gen` to regenerate every derived artifact (manifest.json, .github/CODEOWNERS, gate-budget.json, eslint FEATURE_ROOTS). `pnpm gen:check` (part of `pnpm verify`) fails if any generated file is stale. Adding a feature root / gate / owned path here — and ONLY here — is how those propagate without drift. Modeled on fitapp/conventions.json.",
+  "schemaVersion": 1,
+
+  "featureRoots": {
+    "$comment": "The mobile feature-domain roots (see docs/02-engineering-requirements.md §2). Each gets an eslint import/no-restricted-paths zone forbidding cross-feature imports. MUST match the directories under packages/mobile/features/. Adding a domain here is the ONLY place to declare it.",
+    "roots": [
+      "auth",
+      "laundry",
+      "monetization",
+      "navigation",
+      "onboarding",
+      "outfits",
+      "palette",
+      "suggestions",
+      "wardrobe",
+      "wearlog"
+    ]
+  },
+
+  "humanOwnedPaths": {
+    "$comment": "Paths requiring the human principal's approval. Generated into .github/CODEOWNERS. The agent token does NOT have write access here — this is the agent's own cage, so it must not be self-editable. PARKED until a remote + branch protection exist, but CODEOWNERS is generated so it's correct when activated.",
+    "owner": "@PranavG19",
+    "paths": [
+      { "path": "/.github/", "why": "Gate infrastructure — the meta-guarantee" },
+      { "path": "/scripts/", "why": "Gate + generator infrastructure — the meta-guarantee" },
+      { "path": "/eslint.config.mjs", "why": "Gate infrastructure — the meta-guarantee" },
+      { "path": "/tsconfig*.json", "why": "Gate infrastructure — the meta-guarantee" },
+      { "path": "/gate-budget.json", "why": "Gate budget registry (generated from conventions.json)" },
+      { "path": "/conventions.json", "why": "Single source of truth — drift here propagates everywhere" },
+      { "path": "/lefthook.yml", "why": "Pre-commit gate wiring — must not be self-editable" },
+      { "path": "/.claude/settings.json", "why": "Agent's own runtime cage — must not be self-editable" },
+      { "path": "/.claude/hooks/", "why": "Agent runtime guards — must not be self-editable" },
+      { "path": "/packages/db/migrations/approvals/", "why": "Migration approval tokens — human-only destructive-DDL approvals" }
+    ]
+  },
+
+  "gateBudget": {
+    "$comment": "Gate budget registry (agent-arch Rule 5). Sum of SYNCHRONOUS (async:false, commit-blocking) weights must be <= maxBudget. Weights: structural=0, mechanical=1, advisory=2. async=true gates run post-merge and do NOT count. This is the SCAFFOLD baseline: only gates whose target code exists yet are wired synchronously. DB-backed gates (check-rls, check-migration-drift) and code-shape gates (check-route-schema, check-unbounded-select) are declared here as they land with their subsystems — add them to this list AND scripts/verify.mjs in the same task that adds the code they guard, naming what each replaces.",
+    "maxBudget": 6,
+    "gates": [
+      { "name": "check-secrets", "tier": "mechanical", "weight": 1, "async": false, "replaces": "manual secret review" }
+    ]
+  }
+}
