@@ -1,12 +1,35 @@
 // parse_jobs repo. Per-photo idempotent create + the atomic single-winner claim.
 // Every "did this happen" decision rides on a RETURNING row count, never a driver
 // rowcount (the executor exposes only { rows }).
-import type { ParseJobRow, CreateParseJobRequest, WardrobeItemRow } from '@closet/shared';
+import type { ParseJobRow, ParseJobKind, WardrobeItemRow } from '@closet/shared';
 import type { QueryExecutor } from './index.js';
 
 const PROJECTION = `id, user_id, source_photo_hash, source_photo_path, kind, status,
   to_char(claimed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS claimed_at, error_reason,
   to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS updated_at`;
+
+// The crash lease. `claimed_at` older than this ⇒ the isolate that held the claim is
+// presumed dead and the job is re-claimable; newer ⇒ a LIVE claim that must not be
+// stolen. It is a SQL interval literal, never a caller-supplied value — it is
+// interpolated into the claim statement (a parameter cannot appear inside an INTERVAL
+// literal), so it MUST stay a module constant.
+//
+// WHY 10 MINUTES AND NOT THE ORIGINAL 2 (docs/06 §161 wrote `interval '2 min'`):
+// 2 minutes was safe only while 'processing' was excluded from the claim set, because
+// the lease then governed nothing that could still be in flight. Now that a
+// 'processing' row IS re-claimable, the lease is the ONLY thing standing between two
+// live isolates and a double charge to the paid providers — so it must exceed the real
+// worst-case duration of a single in-flight parse. Measured from the code, not
+// guessed: parse-photo makes 3 SEQUENTIAL requestWithRetry calls (vision, Photoroom
+// segment, Storage upload) and http.ts gives each maxRetries=2 ⇒ 3 attempts ×
+// timeoutMs=15s + up to 750ms jittered backoff ≈ 46s apiece ⇒ ~137s end to end,
+// already ABOVE 120s. A 2-minute lease with 'processing' claimable would therefore let
+// a healthy-but-slow parse be stolen mid-flight and charge both providers twice.
+// 10 minutes clears that 137s worst case with a wide margin (and still clears it if
+// PROVIDER_TIMEOUT_MS / PROVIDER_MAX_RETRIES are raised a few multiples via env),
+// while keeping the self-heal wait short enough that a crashed job recovers on a
+// user's next retry rather than needing the reaper docs/06 §234 declined.
+const CLAIM_LEASE = '10 minutes';
 
 // wardrobe_items projection — mirrors wardrobe.repo.ts EXACTLY (timestamptz->::text,
 // bigint phash->::text) so listItemsByJob rows satisfy WardrobeItemRow.
@@ -25,10 +48,14 @@ export interface CommitItemInput {
   readonly cutout_path: string | null;
 }
 
+// The job to resolve. `source_photo_path` is NOT a request field — the caller
+// derives it server-side from the verified sub (see sourcePhotoObjectKey in
+// @closet/functions); this interface is deliberately NOT `CreateParseJobRequest`,
+// so a handler cannot satisfy it by forwarding a parsed request body.
 export interface ResolveJobInput {
   readonly source_photo_hash: string;
   readonly source_photo_path: string;
-  readonly kind: CreateParseJobRequest['kind'];
+  readonly kind: ParseJobKind;
 }
 
 export type ResolveJobResult =
@@ -38,9 +65,10 @@ export type ResolveJobResult =
 export interface ParseJobsRepo {
   // ON CONFLICT (user_id, source_photo_hash) DO NOTHING: null = photo already
   // submitted (0 rows returned = conflict swallowed).
-  create(userId: string, input: CreateParseJobRequest): Promise<ParseJobRow | null>;
+  create(userId: string, input: ResolveJobInput): Promise<ParseJobRow | null>;
   // Atomic claim: null = claim lost (a live lease is held or the job is done). A
-  // job whose claimed_at is older than the 2-minute lease is re-claimable.
+  // job whose claimed_at is older than the crash lease is re-claimable — including
+  // one stuck at 'processing' by an isolate that died mid-parse (see CLAIM_LEASE).
   claim(userId: string, id: string): Promise<ParseJobRow | null>;
   getById(userId: string, id: string): Promise<ParseJobRow | null>;
   listByUser(userId: string): Promise<ParseJobRow[]>;
@@ -84,8 +112,8 @@ export function makeParseJobsRepo(exec: QueryExecutor): ParseJobsRepo {
         `UPDATE public.parse_jobs
          SET status = 'processing', claimed_at = now()
          WHERE id = $2 AND user_id = $1
-           AND status IN ('pending','failed')
-           AND (claimed_at IS NULL OR claimed_at < now() - interval '2 minutes')
+           AND status IN ('pending','failed','processing')
+           AND (claimed_at IS NULL OR claimed_at < now() - interval '${CLAIM_LEASE}')
          RETURNING ${PROJECTION}`,
         [userId, id],
       );

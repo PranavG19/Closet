@@ -66,13 +66,95 @@ describe('makeParseJobsRepo — idempotency + atomic claim', () => {
     expect(won?.status).toBe('processing');
     // Second claim while the lease is live → null.
     expect(await repo.claim(USER_A, jobId)).toBeNull();
-    // Backdate claimed_at past the 2-min lease via superuser → re-claimable.
+    // Backdate claimed_at past the CLAIM_LEASE (repo: 10 minutes) via superuser →
+    // re-claimable. The margin is deliberate: 3 minutes used to be "stale" under the
+    // old 2-minute lease, but the lease was widened to exceed the real worst-case
+    // in-flight parse (~137s) now that a 'processing' row is re-claimable at all.
     await superuser.query(
-      `UPDATE public.parse_jobs SET status='failed', claimed_at = now() - interval '3 minutes' WHERE id = $1`,
+      `UPDATE public.parse_jobs SET status='failed', claimed_at = now() - interval '20 minutes' WHERE id = $1`,
       [jobId],
     );
     const reclaimed = await repo.claim(USER_A, jobId);
     expect(reclaimed?.status).toBe('processing');
+  });
+
+  // ---- The stuck-'processing' reclaim law (Audit-R2 blocker A) -----------------
+  // An Edge isolate that dies between claim() and markFailed/commit (Deno eviction,
+  // wall-clock kill, OOM, deploy mid-request) leaves the row at status='processing'
+  // with a claimed_at that will never be refreshed. There is no reaper (docs/06 §234
+  // declines pg_cron), and UNIQUE(user_id, source_photo_hash) + resolveJob returning
+  // the existing row means that photo can NEVER be re-parsed by that user — every
+  // retry 409s forever. So 'processing' MUST be governed by the SAME crash lease as
+  // 'pending'/'failed': expired lease ⇒ reclaimable; LIVE lease ⇒ still refused.
+  //
+  // The two assertions are a matched pair and BOTH are load-bearing: the first proves
+  // a crashed job self-heals, the second proves the single-winner guarantee survived
+  // (a fix that merely added 'processing' with no lease check would pass #1 and fail
+  // #2, letting two live isolates double-charge the paid providers).
+  it("stuck 'processing' with an EXPIRED lease is re-claimable (crash self-heals)", async () => {
+    const repo = makeParseJobsRepo(execA);
+    const job = await repo.create(USER_A, {
+      source_photo_hash: 'STUCK-EXPIRED',
+      source_photo_path: 'a/stuck-expired.jpg',
+      kind: 'full',
+    });
+    const jobId = job!.id;
+    // Seed the exact state a crashed isolate leaves behind: 'processing' + a stale
+    // claimed_at. Not 'failed' — markFailed never ran, that is the whole point.
+    await superuser.query(
+      `UPDATE public.parse_jobs
+         SET status='processing', claimed_at = now() - interval '20 minutes'
+       WHERE id = $1`,
+      [jobId],
+    );
+    const reclaimed = await repo.claim(USER_A, jobId);
+    expect(reclaimed).not.toBeNull();
+    expect(reclaimed?.status).toBe('processing');
+  });
+
+  it("stuck 'processing' with a LIVE lease is still REFUSED (single-winner preserved)", async () => {
+    const repo = makeParseJobsRepo(execA);
+    const job = await repo.create(USER_A, {
+      source_photo_hash: 'STUCK-LIVE',
+      source_photo_path: 'a/stuck-live.jpg',
+      kind: 'full',
+    });
+    const jobId = job!.id;
+    // A genuinely IN-FLIGHT job: 'processing' with a fresh lease. Stealing this would
+    // double-charge the paid providers — the lease clause must still bite.
+    await superuser.query(
+      `UPDATE public.parse_jobs SET status='processing', claimed_at = now() WHERE id = $1`,
+      [jobId],
+    );
+    expect(await repo.claim(USER_A, jobId)).toBeNull();
+  });
+
+  it("concurrent burst over a STALE-lease 'processing' row → EXACTLY ONE winner", async () => {
+    const repo = makeParseJobsRepo(execA);
+    const job = await repo.create(USER_A, {
+      source_photo_hash: 'STUCK-BURST',
+      source_photo_path: 'a/stuck-burst.jpg',
+      kind: 'full',
+    });
+    const jobId = job!.id;
+    await superuser.query(
+      `UPDATE public.parse_jobs
+         SET status='processing', claimed_at = now() - interval '20 minutes'
+       WHERE id = $1`,
+      [jobId],
+    );
+
+    // 12 racers on independent app_user connections all see an expired lease in their
+    // pre-statement snapshot. The row-level write lock is what serializes them: the
+    // losers re-evaluate the WHERE against the winner's COMMITTED row (claimed_at is
+    // now fresh) and return zero rows. A 2-racer would pass on timing luck; 12 makes
+    // the race real.
+    const N = 12;
+    const results = await Promise.all(
+      Array.from({ length: N }, () => repo.claim(USER_A, jobId)),
+    );
+    const winners = results.filter((r) => r !== null).length;
+    expect(winners).toBe(1);
   });
 
   it('cross-tenant read control — B sees none of A jobs; B claim of A job → null', async () => {

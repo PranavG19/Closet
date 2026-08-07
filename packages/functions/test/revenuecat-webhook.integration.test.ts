@@ -305,6 +305,169 @@ describe('revenuecat-webhook — the entitlement write path (money, service_role
     expect(await countEvent('evt-client-mint')).toBe(0);
   });
 
+  // ---- 6. THE POISON-PILL LAW (Audit-R2 blocker B) -----------------------------
+  // Dedup and the entitlement write MUST commit or fail TOGETHER. The old handler
+  // recorded the event id in its OWN transaction first (one tx per query()), so a
+  // failed apply left the id durably "seen": RevenueCat's retry was classified a
+  // replay, discarded with a 200, and the entitlement NEVER flipped — a paying
+  // customer locked out silently, with the retry that should have healed it being the
+  // very thing that threw it away.
+  //
+  // The failure is injected at the EXECUTOR seam (the layer below the repo), so the
+  // real handler, the real repo and the real plpgsql fn all run unmodified — the
+  // failure is indistinguishable from the transient DB error / 42501 from a
+  // misconfigured pool that this is modelling. The oracle is always an independent
+  // SELECT, never the handler's response body.
+  it('poison pill — a FAILED apply consumes NOTHING, and a RevenueCat retry DOES flip entitlement', async () => {
+    const user = '88888888-8888-4888-8888-888888888888';
+    const fixture = makeEvent({
+      id: 'evt-poison-retry',
+      type: 'INITIAL_PURCHASE',
+      appUserId: user,
+      eventTimestampMs: T2,
+      expirationAtMs: T3,
+    });
+
+    // An executor that fails exactly once, on the apply call, then behaves normally.
+    // It delegates to the REAL service executor so the ONLY difference is the injected
+    // fault. The failure lands mid-statement, exactly like a dropped connection.
+    // The predicate matches the entitlement-write statement of EITHER design — the
+    // 0016 fn call OR a bare subscriptions INSERT — so this test is a valid probe
+    // against the old two-transaction handler as well as the fixed one. That is what
+    // makes its red run meaningful rather than tautological.
+    const isApplyStatement = (sql: string): boolean =>
+      sql.includes('apply_webhook_event') || sql.includes('INSERT INTO public.subscriptions');
+
+    let failNext = true;
+    const flakyExec: DbQueryExecutor = {
+      async query(sql, params) {
+        if (failNext && isApplyStatement(sql)) {
+          failNext = false;
+          throw new Error('injected transient DB failure');
+        }
+        return serviceExec.query(sql, params);
+      },
+    };
+    const flakyHandler = makeRevenueCatWebhook({
+      makeExec: () => flakyExec,
+      secret: SHARED_KEY_FIXTURE,
+      newCorrelationId: () => 'test-correlation',
+    });
+
+    // Delivery 1 fails mid-apply. The handler surfaces a 5xx (so RevenueCat KNOWS to
+    // retry — a 200 here would be the silent-loss bug in its purest form).
+    const failed = await flakyHandler(post(fixture, SHARED_KEY_FIXTURE));
+    expect(failed.status).toBeGreaterThanOrEqual(500);
+
+    // THE INVARIANT, by independent SELECT: nothing was consumed and nothing written.
+    // The ledger row must be ABSENT — if it survived the failed apply, the event is a
+    // poison pill and the retry below can never succeed.
+    expect(await countEvent('evt-poison-retry')).toBe(0);
+    expect(await selectSub(user)).toBeNull();
+
+    // Delivery 2 is RevenueCat's retry of the SAME event id. It must APPLY, not dedup.
+    const retried = await flakyHandler(post(fixture, SHARED_KEY_FIXTURE));
+    expect(retried.status).toBe(200);
+
+    // The money oracle: entitlement really flipped, read straight from the table.
+    const row = await selectSub(user);
+    expect(row?.entitlement_active).toBe(true);
+    expect(row?.event_ts).toBe('2023-11-14T22:15:00.000000Z'); // T2, the real event ts
+    expect(await countEvent('evt-poison-retry')).toBe(1);
+  });
+
+  it('CONCURRENT duplicate deliveries of one event id → entitlement applied EXACTLY once', async () => {
+    const user = '99999999-9999-4999-8999-999999999999';
+    const fixture = makeEvent({
+      id: 'evt-concurrent-dup',
+      type: 'INITIAL_PURCHASE',
+      appUserId: user,
+      eventTimestampMs: T2,
+      expirationAtMs: T3,
+    });
+
+    // 12 simultaneous in-flight deliveries of the SAME id, each on its own connection.
+    // The webhook_events PRIMARY KEY is the mutual exclusion: the losers BLOCK on the
+    // unique index (ON CONFLICT must resolve the in-doubt row), then see the conflict
+    // and return 'duplicate' without touching the money table. A 2-racer would pass on
+    // timing luck; 12 makes the race real.
+    const responses = await Promise.all(
+      Array.from({ length: 12 }, () => handler(post(fixture, SHARED_KEY_FIXTURE))),
+    );
+    for (const r of responses) expect(r.status).toBe(200);
+
+    const bodies = await Promise.all(responses.map((r) => r.json()));
+    // EXACTLY ONE delivery applied; every other is a dedup no-op.
+    expect(bodies.filter((b) => (b as { applied?: boolean }).applied === true)).toHaveLength(1);
+
+    // Independent oracle: one ledger row, one entitlement row, entitlement true.
+    expect(await countEvent('evt-concurrent-dup')).toBe(1);
+    const row = await selectSub(user);
+    expect(row?.entitlement_active).toBe(true);
+  });
+
+  // A DELIBERATE behaviour change that came with the atomic fix: an unmapped event
+  // type is now decided BEFORE the ledger claim, so it consumes NO dedup slot. The old
+  // order recorded the id first and then bailed on the unmapped type, permanently
+  // burning that id — meaning if we later taught the map to handle the type, a
+  // redelivery could never be applied. Entitlement must still be untouched either way.
+  it('unmapped event type → 200 ignored, entitlement untouched, and the id is NOT consumed', async () => {
+    const user = 'bbbbbbbb-0000-4000-8000-00000000000b';
+    const unmapped = makeEvent({
+      id: 'evt-unmapped-type',
+      type: 'SOME_FUTURE_RC_EVENT_TYPE',
+      appUserId: user,
+      eventTimestampMs: T2,
+      expirationAtMs: T3,
+    });
+    const res = await handler(post(unmapped, SHARED_KEY_FIXTURE));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ignored: true });
+
+    // Independent SELECTs: no money row, and no ledger row (the id stays available).
+    expect(await selectSub(user)).toBeNull();
+    expect(await countEvent('evt-unmapped-type')).toBe(0);
+  });
+
+  // ---- 6b. RED-FIRST money mutant: flip the entitlement condition --------------
+  // Re-derives that the entitlement decision is load-bearing. A handler that inverts
+  // the type→active map writes the WRONG entitlement, and the independent SELECT
+  // catches it. If this test could not go red, the oracle would be blind to the single
+  // most damaging possible mutation on the money path.
+  it('red-first — inverting the entitlement condition writes the WRONG entitlement (mutant is caught)', async () => {
+    const user = 'aaaaaaaa-0000-4000-8000-00000000000a';
+    const mutantHandler = makeRevenueCatWebhook({
+      makeExec: () => ({
+        // Invert the entitlement_active argument ($4) on its way into the fn — the
+        // mutation, applied below the handler so the real code path is untouched.
+        async query(sql, params) {
+          if (sql.includes('apply_webhook_event') && params !== undefined) {
+            const mutated = [...params];
+            mutated[3] = !(mutated[3] as boolean);
+            return serviceExec.query(sql, mutated);
+          }
+          return serviceExec.query(sql, params);
+        },
+      }),
+      secret: SHARED_KEY_FIXTURE,
+      newCorrelationId: () => 'test-correlation',
+    });
+
+    const purchase = makeEvent({
+      id: 'evt-mutant-invert',
+      type: 'INITIAL_PURCHASE', // maps to active=true
+      appUserId: user,
+      eventTimestampMs: T2,
+      expirationAtMs: T3,
+    });
+    expect((await mutantHandler(post(purchase, SHARED_KEY_FIXTURE))).status).toBe(200);
+
+    // The mutant granted the OPPOSITE of what the event means. The real handler's
+    // grant test (#1) asserts true on this same fixture shape — so this assertion
+    // going true here is exactly the red the mutant is supposed to produce.
+    expect((await selectSub(user))?.entitlement_active).toBe(false);
+  });
+
   // ---- 5a. Revoke on a newer EXPIRATION ----------------------------------------
   it('revoke — newer EXPIRATION (t2>t1) sets entitlement_active=false', async () => {
     const purchase = makeEvent({

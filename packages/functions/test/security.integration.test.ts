@@ -69,7 +69,14 @@ function makeCountingPorts(): ParsePorts & { visionCalls(): number } {
       return FAKE_CUTOUT;
     },
   };
-  return { vision: visionPort, cutout: cutoutPort, visionCalls: () => vision };
+  return {
+    vision: visionPort,
+    cutout: cutoutPort,
+    // The vendors receive a minted signed URL; the storage key is derived server-side
+    // from the verified sub and is never handed to a vendor raw.
+    mintSourcePhotoUrl: async (objectKey) => `https://storage.test/signed/${objectKey}?token=sig`,
+    visionCalls: () => vision,
+  };
 }
 
 // Adapt a pg Pool to the driver-free Sql seam makePgExecutor consumes (prod path).
@@ -407,10 +414,17 @@ describe('Tier-2 security gauntlet — cross-tenant, injected identity, money, a
 
   // ================================================================= 5. Never-uploads seam
   // Backend assertion of the privacy invariant (docs/05 Tier-2): an unapproved photo
-  // has NO representable server entry. parse-photo REQUIRES source_photo_hash +
-  // source_photo_path (CreateParseJobRequest is .strict()); a request lacking the
-  // hash is a 400 boundary reject — no job row, no provider call. There is no handler
-  // that accepts a raw camera-roll photo without a prior hash.
+  // has NO representable server entry. parse-photo REQUIRES source_photo_hash
+  // (CreateParseJobRequest is .strict()); a request lacking the hash is a 400 boundary
+  // reject — no job row, no provider call. There is no handler that accepts a raw
+  // camera-roll photo without a prior hash.
+  //
+  // `source_photo_path` is NOT a request field at all: the storage path is derived from
+  // the verified sub, because parse-photo hands the original to GPT-4o / Photoroom as a
+  // URL THEIR servers fetch — outside migration 0013's Storage RLS. A caller-named path
+  // would be a cross-tenant photo read and an SSRF sink, so sending it is now itself a
+  // .strict() rejection (asserted below and, end-to-end with the provider-count oracle,
+  // in parse-photo.integration.test.ts).
 
   it('never-uploads seam — parse-photo without source_photo_hash → 400, no job row, provider never called', async () => {
     const ports = makeCountingPorts();
@@ -418,20 +432,27 @@ describe('Tier-2 security gauntlet — cross-tenant, injected identity, money, a
     const caller = makeCaller(pool, USER_A);
 
     // Missing source_photo_hash entirely.
-    const noHash = await caller.call(handler, { body: { source_photo_path: 'a/raw.jpg', kind: 'teaser' } });
+    const noHash = await caller.call(handler, { body: { kind: 'teaser' } });
     expect(noHash.status).toBe(400);
 
     // Present but wrong-typed hash — still a boundary reject (parse-don't-cast).
     const badHash = await caller.call(handler, {
-      body: { source_photo_path: 'a/raw.jpg', source_photo_hash: 123, kind: 'teaser' },
+      body: { source_photo_hash: 123, kind: 'teaser' },
     });
     expect(badHash.status).toBe(400);
 
     // Extra raw-photo-ish key rejected by .strict() — no smuggling a camera-roll blob.
     const extraKey = await caller.call(handler, {
-      body: { source_photo_path: 'a/raw.jpg', source_photo_hash: 'H', kind: 'teaser', raw_photo: 'BASE64BLOB' },
+      body: { source_photo_hash: 'H', kind: 'teaser', raw_photo: 'BASE64BLOB' },
     });
     expect(extraKey.status).toBe(400);
+
+    // A caller-named storage path is rejected too — it is not a field the client may
+    // set, so naming another tenant's prefix is unrepresentable rather than filtered.
+    const namedPath = await caller.call(handler, {
+      body: { source_photo_hash: 'H2', kind: 'teaser', source_photo_path: `${USER_B}/job/photo.jpg` },
+    });
+    expect(namedPath.status).toBe(400);
 
     // Independent oracle: no parse job landed for A from any of these, and the paid
     // provider was never invoked (no unapproved photo ever reaches processing).

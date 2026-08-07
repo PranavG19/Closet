@@ -1,20 +1,25 @@
 // revenuecat-webhook — the SOLE writer of subscriptions.entitlement_active (the
 // money table; parse-photo only READS it). This is a server-to-server webhook:
 // there is NO end-user in the request, so it does NOT use withAuth/serveAuthed
-// (those verify a user JWT via JWKS). It authenticates a shared secret, dedups on
-// the RevenueCat event id for replay-idempotency, maps the event type to an
-// entitlement state, and writes under a service_role executor (RLS-exempt system
-// job). The two hard invariants (docs/06 §4):
+// (those verify a user JWT via JWKS). It authenticates a shared secret, maps the
+// event type to an entitlement state, then dedups-and-writes in ONE transaction under
+// a service_role executor (RLS-exempt system job). The three hard invariants
+// (docs/06 §4):
 //   1. Replay-safe — RevenueCat retries the same event id; a replay is a 200 no-op
-//      that writes nothing new (record() returns null → short-circuit).
+//      that writes nothing new (outcome 'duplicate' → short-circuit).
 //   2. Monotonic — a late-arriving OLDER event must NOT revoke a NEWER entitlement.
-//      The repo's `DO UPDATE ... WHERE excluded.event_ts >= existing.event_ts`
-//      guard enforces this, so the handler passes the REAL event timestamp (never
-//      now()) — otherwise the guard cannot bite.
+//      The `DO UPDATE ... WHERE excluded.event_ts >= existing.event_ts` guard
+//      enforces this, so the handler passes the REAL event timestamp (never now())
+//      — otherwise the guard cannot bite.
+//   3. Retryable — dedup and the entitlement write share ONE transaction (migration
+//      0016's apply_webhook_event), so a FAILED apply consumes nothing and
+//      RevenueCat's retry still heals the account. Recording the id in a separate
+//      earlier transaction (as this handler once did) made a mid-apply failure
+//      permanent AND invisible — see the note on step 4.
 //
 // NEVER logs the raw event body, the secret, or PII — only event id + type +
 // correlationId (a fixed, non-sensitive vocabulary).
-import { makeSubscriptionsRepo, makeWebhookEventsRepo, type QueryExecutor } from '@closet/db';
+import { makeWebhookEventsRepo, type QueryExecutor } from '@closet/db';
 import {
   RevenueCatWebhookBody,
   ENTITLEMENT_BY_EVENT_TYPE,
@@ -89,32 +94,41 @@ export function makeRevenueCatWebhook(deps: WebhookDeps): (req: Request) => Prom
       const rawBody: unknown = await req.json();
       const { event } = parseBoundary(RevenueCatWebhookBody, rawBody, 'revenuecat.webhook.body');
 
-      const exec = deps.makeExec();
-
-      // 3. Replay dedup on the RevenueCat event id. record() returns null when the
-      //    id was already seen — a 200 no-op that does NOT touch entitlement again.
-      const recorded = await makeWebhookEventsRepo(exec).record(event.id);
-      if (recorded === null) {
-        logger.info({ correlationId, event: 'revenuecat.replay', eventId: event.id, eventType: event.type });
-        return jsonResponse(200, { deduped: true });
-      }
-
-      // 4. Map the event type to an entitlement state. An unmapped type is an
-      //    acknowledged 200 no-op — never move entitlement on an event we do not
-      //    model (record() above still deduped it, so it is not re-seen).
+      // 3. Map the event type to an entitlement state BEFORE consuming the event id.
+      //    An unmapped type is an acknowledged 200 no-op, and it must NOT be recorded
+      //    as consumed: recording it would be a write whose only effect is to burn a
+      //    dedup slot for a decision we never made. Nothing is written on this path, so
+      //    a later redelivery of a type we have since learned to model still applies.
       const entitlementActive = ENTITLEMENT_BY_EVENT_TYPE[event.type];
       if (entitlementActive === undefined) {
         logger.info({ correlationId, event: 'revenuecat.unmapped_type', eventId: event.id, eventType: event.type });
         return jsonResponse(200, { ignored: true });
       }
 
-      // 5. Write under the service_role executor. applyEvent returns null when the
-      //    monotonic guard rejected a stale (older event_ts) event — a SUCCESS
-      //    no-op, still 200 (the newer entitlement stands).
-      const applied = await makeSubscriptionsRepo(exec).applyEvent(
+      const exec = deps.makeExec();
+
+      // 4. Dedup AND write, atomically (migration 0016's plpgsql fn, one query() = one
+      //    tx). This is ONE call on purpose: recording the id in its own transaction
+      //    first — as this handler used to — durably marks the event "seen" BEFORE the
+      //    entitlement write it was meant to guard. If that write then failed, every
+      //    RevenueCat retry was classified a replay and discarded, so the entitlement
+      //    never flipped and a paying customer was locked out silently, with a 200 on
+      //    the wire both times. Bound in one tx, a failed apply rolls the ledger row
+      //    back too, leaving the event unconsumed so the retry heals it.
+      const outcome = await makeWebhookEventsRepo(exec).applyEvent(
+        event.id,
         toApplyEventInput(event, entitlementActive),
       );
-      if (applied === null) {
+
+      // A replay: a COMMITTED prior delivery already applied this id. 200 no-op.
+      if (outcome === 'duplicate') {
+        logger.info({ correlationId, event: 'revenuecat.replay', eventId: event.id, eventType: event.type });
+        return jsonResponse(200, { deduped: true });
+      }
+
+      // The monotonic guard rejected an older event_ts — a SUCCESS no-op, still 200
+      // (the newer entitlement stands).
+      if (outcome === 'stale') {
         logger.info({ correlationId, event: 'revenuecat.stale_ignored', eventId: event.id, eventType: event.type });
         return jsonResponse(200, { stale: true });
       }

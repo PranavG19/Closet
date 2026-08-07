@@ -52,31 +52,50 @@ const FAKE_CUTOUT: CutoutResult = {
   height: 1200,
 };
 
+// The URL a fake minter hands the providers, so a test can tell "the vendor was given
+// the minted URL" apart from "the vendor was given a raw storage key".
+const FAKE_SIGNED_URL = 'https://storage.test/signed/original?token=sig';
+
 interface CountingPorts extends ParsePorts {
   visionCalls(): number;
   cutoutCalls(): number;
+  // Every storage key the minter was asked to sign — this is what proves the path
+  // handed toward the vendors was DERIVED from the caller's sub, not from the body.
+  mintedKeys(): readonly string[];
+  // Every imageUrl the providers actually received.
+  providerUrls(): readonly string[];
 }
 
 function makeCountingPorts(): CountingPorts {
   let vision = 0;
   let cutout = 0;
+  const mintedKeys: string[] = [];
+  const providerUrls: string[] = [];
   const visionPort: AIVisionPort = {
-    async extractAttributes() {
+    async extractAttributes({ imageUrl }) {
       vision += 1;
+      providerUrls.push(imageUrl);
       return FAKE_VISION;
     },
   };
   const cutoutPort: CutoutPort = {
-    async removeBackground() {
+    async removeBackground({ imageUrl }) {
       cutout += 1;
+      providerUrls.push(imageUrl);
       return FAKE_CUTOUT;
     },
   };
   return {
     vision: visionPort,
     cutout: cutoutPort,
+    async mintSourcePhotoUrl(objectKey: string) {
+      mintedKeys.push(objectKey);
+      return FAKE_SIGNED_URL;
+    },
     visionCalls: () => vision,
     cutoutCalls: () => cutout,
+    mintedKeys: () => mintedKeys,
+    providerUrls: () => providerUrls,
   };
 }
 
@@ -91,6 +110,9 @@ const THROWING_PORTS: ParsePorts = {
     async removeBackground(): Promise<CutoutResult> {
       throw new Error('unreached');
     },
+  },
+  async mintSourcePhotoUrl() {
+    return FAKE_SIGNED_URL;
   },
 };
 
@@ -160,7 +182,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     const ports = makeCountingPorts();
     const handler = makeParsePhoto(() => ports);
     const res = await callAs(handler, pool, USER_A, {
-      source_photo_path: 'a/happy.jpg',
       source_photo_hash: 'HAPPY-1',
       kind: 'teaser',
     });
@@ -188,7 +209,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     const handler = makeParsePhoto(() => ports);
 
     const denied = await callAs(handler, pool, user, {
-      source_photo_path: 'e/full.jpg',
       source_photo_hash: 'FULL-DENIED',
       kind: 'full',
     });
@@ -209,7 +229,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     );
 
     const allowed = await callAs(handler, pool, user, {
-      source_photo_path: 'e/full.jpg',
       source_photo_hash: 'FULL-ALLOWED',
       kind: 'full',
     });
@@ -225,7 +244,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     const ports = makeCountingPorts();
     const handler = makeParsePhoto(() => ports);
     const first = await callAs(handler, pool, USER_A, {
-      source_photo_path: 'a/replay.jpg',
       source_photo_hash: 'REPLAY-1',
       kind: 'teaser',
     });
@@ -235,7 +253,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     const countAfterFirst = await superuserItemCount(superuser, jobId);
 
     const replay = await callAs(handler, pool, USER_A, {
-      source_photo_path: 'a/replay.jpg',
       source_photo_hash: 'REPLAY-1',
       kind: 'teaser',
     });
@@ -255,7 +272,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     const handler = makeParsePhoto(() => ports);
 
     const first = await callAs(handler, pool, user, {
-      source_photo_path: 'f/resume.jpg',
       source_photo_hash: 'RESUME-1',
       kind: 'teaser',
     });
@@ -274,7 +290,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     expect(await superuserItemCount(superuser, jobId)).toBe(N + 1);
 
     const resume = await callAs(handler, pool, user, {
-      source_photo_path: 'f/resume.jpg',
       source_photo_hash: 'RESUME-1',
       kind: 'teaser',
     });
@@ -301,7 +316,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     const user = '11111111-1111-4111-8111-111111111111';
     const ports = makeCountingPorts();
     const handler = makeParsePhoto(() => ports);
-    const body = { source_photo_path: 'c/race.jpg', source_photo_hash: 'RACE-1', kind: 'teaser' as const };
+    const body = { source_photo_hash: 'RACE-1', kind: 'teaser' as const };
 
     const [r1, r2] = await Promise.all([
       callAs(handler, pool, user, body),
@@ -349,7 +364,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     expect(await superuserTeaserCount(superuser, user)).toBe(EXPECTED_CAP);
 
     const capped = await callAs(handler, pool, user, {
-      source_photo_path: 's/new.jpg',
       source_photo_hash: 'CAP-NEW',
       kind: 'teaser',
     });
@@ -379,8 +393,8 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     // Two DISTINCT new teaser photos race at the boundary. The repo's per-user
     // advisory-locked resolve serializes count-then-insert, so at most one lands.
     const [r1, r2] = await Promise.all([
-      callAs(handler, pool, user, { source_photo_path: 'b/x.jpg', source_photo_hash: 'BRACE-X', kind: 'teaser' }),
-      callAs(handler, pool, user, { source_photo_path: 'b/y.jpg', source_photo_hash: 'BRACE-Y', kind: 'teaser' }),
+      callAs(handler, pool, user, { source_photo_hash: 'BRACE-X', kind: 'teaser' }),
+      callAs(handler, pool, user, { source_photo_hash: 'BRACE-Y', kind: 'teaser' }),
     ]);
     const okCount = [r1, r2].filter((r) => r.status === 200).length;
     const cappedCount = [r1, r2].filter((r) => r.status === 402).length;
@@ -395,7 +409,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     const user = '44444444-4444-4444-8444-444444444444';
     const handler = makeParsePhoto(() => THROWING_PORTS);
     const res = await callAs(handler, pool, user, {
-      source_photo_path: 'x/fail.jpg',
       source_photo_hash: 'FAIL-1',
       kind: 'teaser',
     });
@@ -426,7 +439,6 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     const ports = makeCountingPorts();
     const handler = makeParsePhoto(() => ports);
     const res = await callAs(handler, pool, USER_A, {
-      source_photo_path: 'a/iso.jpg',
       source_photo_hash: 'ISO-1',
       kind: 'teaser',
     });
@@ -445,13 +457,143 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     // Identity from JWT, not body: A submits a body smuggling user_id:B. .strict()
     // rejects the unknown key → 400, and NO row owned by B is ever written.
     const smuggle = await callAs(handler, pool, USER_A, {
-      source_photo_path: 'a/smuggle.jpg',
       source_photo_hash: 'SMUGGLE-1',
       kind: 'teaser',
       user_id: USER_B,
     });
     expect(smuggle.status).toBe(400);
     expect(await superuserParseJobCount(superuser, USER_B)).toBe(0);
+  });
+
+  // ================================================================================
+  // Oracle 6: the SOURCE PHOTO PATH is server-derived — cross-tenant read + SSRF.
+  //
+  // The vulnerability this closes: source_photo_path used to be a free z.string() on
+  // the request, stored verbatim, and handed to BOTH paid providers as the URL THEIR
+  // servers fetch. Storage RLS (migration 0013) does not cover that fetch — it governs
+  // storage.objects access by app_user/authenticated, not a vendor pulling a URL we
+  // gave it. So A could name B's prefix and receive B's photo described back as garment
+  // attributes with the cutout persisted into A's own wardrobe; any absolute URL
+  // (including a cloud metadata endpoint) became an SSRF + unbounded-spend sink.
+  //
+  // The money oracle in every case below is the PROVIDER CALL COUNT, and every row
+  // claim is an independent SELECT — never the handler's own response body.
+  // ================================================================================
+  describe('source photo path is derived from the verified sub, never the body', () => {
+    it('A naming B’s prefix is REJECTED (400) with zero job rows and ZERO provider calls', async () => {
+      const attacker = '55555555-5555-4555-8555-555555555555';
+      const victim = '66666666-6666-4666-8666-666666666666';
+      const ports = makeCountingPorts();
+      const handler = makeParsePhoto(() => ports);
+
+      const attack = await callAs(handler, pool, attacker, {
+        source_photo_hash: 'XTENANT-1',
+        kind: 'teaser',
+        // The original attack payload, verbatim: the victim's own prefix.
+        source_photo_path: `${victim}/job/photo.jpg`,
+      });
+
+      expect(attack.status).toBe(400);
+      // THE money oracle: no paid provider was invoked, so no vendor ever fetched
+      // anything, and nothing was billed on an attacker-chosen object.
+      expect(ports.visionCalls()).toBe(0);
+      expect(ports.cutoutCalls()).toBe(0);
+      // ...and no URL was even minted toward storage.
+      expect(ports.mintedKeys()).toEqual([]);
+
+      // Independent SELECTs (not the response): no job row for EITHER party, so the
+      // rejection happened before resolveJob — nothing to resume or re-claim later.
+      expect(await superuserParseJobCount(superuser, attacker)).toBe(0);
+      expect(await superuserParseJobCount(superuser, victim)).toBe(0);
+      // And no garment was written anywhere for the attacker.
+      const items = await superuser.query<{ n: string }>(
+        `SELECT count(*)::text AS n FROM public.wardrobe_items WHERE user_id = ANY($1::uuid[])`,
+        [[attacker, victim]],
+      );
+      expect(items.rows[0]?.n).toBe('0');
+    });
+
+    // A scheme-bearing value, a traversal, a leading slash, a backslash and an
+    // over-long string are each refused. These ride on source_photo_hash because that
+    // is the ONLY caller-supplied component of the derived key — if a hash could carry
+    // a separator or a scheme the caller would steer the path again.
+    it.each([
+      ['a scheme (SSRF)', 'https://evil/x.jpg'],
+      ['a metadata endpoint', 'http://169.254.169.254/latest/meta-data/'],
+      ['a .. traversal', '../../66666666-6666-4666-8666-666666666666/job'],
+      ['a leading slash', '/etc/passwd'],
+      ['a backslash', 'a\\b'],
+      ['an over-long string', 'x'.repeat(600)],
+    ])('%s in source_photo_hash → 400, zero jobs, zero provider calls', async (_label, hash) => {
+      const user = '77777777-7777-4777-8777-777777777777';
+      const ports = makeCountingPorts();
+      const handler = makeParsePhoto(() => ports);
+
+      const res = await callAs(handler, pool, user, { source_photo_hash: hash, kind: 'teaser' });
+
+      expect(res.status).toBe(400);
+      expect(ports.visionCalls()).toBe(0);
+      expect(ports.cutoutCalls()).toBe(0);
+      expect(ports.mintedKeys()).toEqual([]);
+      expect(await superuserParseJobCount(superuser, user)).toBe(0);
+    });
+
+    it('happy path: the DERIVED path’s first segment is the caller’s user id, and the vendors get the minted URL', async () => {
+      // A hand-written literal user id and hash, with the expected key written out
+      // INDEPENDENTLY below — never computed from sourcePhotoObjectKey. A
+      // {hash}/{user_id} inversion inside the helper would pass a helper-computed
+      // expectation and fails here.
+      const user = '88888888-8888-4888-8888-888888888888';
+      const hash = 'DERIVED-1';
+      const EXPECTED_KEY = '88888888-8888-4888-8888-888888888888/DERIVED-1/original';
+
+      const ports = makeCountingPorts();
+      const handler = makeParsePhoto(() => ports);
+      const res = await callAs(handler, pool, user, { source_photo_hash: hash, kind: 'teaser' });
+      expect(res.status).toBe(200);
+
+      // Independent SELECT: the PERSISTED path is the derived key, owner-first.
+      const stored = await superuser.query<{ source_photo_path: string }>(
+        `SELECT source_photo_path FROM public.parse_jobs WHERE user_id = $1 AND source_photo_hash = $2`,
+        [user, hash],
+      );
+      expect(stored.rows[0]?.source_photo_path).toBe(EXPECTED_KEY);
+      // This is exactly what (storage.foldername(name))[1] evaluates to under 0013.
+      expect(stored.rows[0]?.source_photo_path.split('/')[0]).toBe(user);
+
+      // The minter was asked to sign that same derived key...
+      expect(ports.mintedKeys()).toEqual([EXPECTED_KEY]);
+      // ...and BOTH vendors received the MINTED URL, never a raw storage key. A raw
+      // key reaching a vendor is the bug class this whole oracle exists for.
+      expect(ports.providerUrls()).toEqual([FAKE_SIGNED_URL, FAKE_SIGNED_URL]);
+      for (const url of ports.providerUrls()) {
+        expect(url).not.toBe(EXPECTED_KEY);
+        expect(url).not.toContain(user);
+      }
+    });
+
+    it('two callers submitting the SAME photo hash get disjoint derived paths (no shared object)', async () => {
+      const userOne = '99999999-9999-4999-8999-999999999999';
+      const userTwo = 'aaaaaaaa-0000-4000-8000-aaaaaaaaaaaa';
+      const hash = 'SAMEHASH-1';
+      const ports = makeCountingPorts();
+      const handler = makeParsePhoto(() => ports);
+
+      expect((await callAs(handler, pool, userOne, { source_photo_hash: hash, kind: 'teaser' })).status).toBe(200);
+      expect((await callAs(handler, pool, userTwo, { source_photo_hash: hash, kind: 'teaser' })).status).toBe(200);
+
+      // Independent SELECT across both tenants: same hash, DIFFERENT owner-first keys.
+      const paths = await superuser.query<{ user_id: string; source_photo_path: string }>(
+        `SELECT user_id, source_photo_path FROM public.parse_jobs
+         WHERE source_photo_hash = $1 ORDER BY user_id`,
+        [hash],
+      );
+      expect(paths.rows).toHaveLength(2);
+      for (const row of paths.rows) {
+        expect(row.source_photo_path.split('/')[0]).toBe(row.user_id);
+      }
+      expect(paths.rows[0]!.source_photo_path).not.toBe(paths.rows[1]!.source_photo_path);
+    });
   });
 });
 

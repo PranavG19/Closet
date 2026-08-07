@@ -7,6 +7,8 @@ import {
   Uuid,
   Timestamptz,
   Json,
+  StorageObjectKey,
+  SourcePhotoHash,
   WardrobeCategory,
   Availability,
   ParseJobKind,
@@ -34,8 +36,13 @@ export type WardrobeItemRow = z.infer<typeof WardrobeItemRow>;
 export const ParseJobRow = z.object({
   id: Uuid,
   user_id: Uuid,
-  source_photo_hash: z.string(),
-  source_photo_path: z.string(),
+  source_photo_hash: SourcePhotoHash,
+  // A bucket-relative Storage KEY, server-derived as `{user_id}/{hash}/original`.
+  // Constrained on the way OUT of the DB too: this column is the only thing that
+  // ever names the ORIGINAL photo a paid provider reads, so a row that somehow
+  // holds a URL-shaped or traversing value must fail the boundary rather than be
+  // handed onward.
+  source_photo_path: StorageObjectKey,
   kind: ParseJobKind,
   status: ParseJobStatus,
   claimed_at: Timestamptz.nullable(),
@@ -59,11 +66,20 @@ export const CreateWardrobeItemRequest = z
   .strict();
 export type CreateWardrobeItemRequest = z.infer<typeof CreateWardrobeItemRequest>;
 
-// parse_jobs create request carries the per-photo idempotency key (source_photo_hash).
+// parse_jobs create request carries the per-photo idempotency key (source_photo_hash)
+// and NOTHING that names a storage location.
+//
+// `source_photo_path` is DELIBERATELY ABSENT (and .strict() rejects it if sent). The
+// path is a security boundary: parse-photo hands it to GPT-4o and Photoroom, whose
+// servers do the FETCH, so a client-named path is a cross-tenant photo read and an
+// SSRF sink that Storage RLS cannot stop — RLS governs `storage.objects` access by
+// app_user, not what a third party fetches from a URL we gave it. The server derives
+// the key from the verified JWT `sub` + this hash instead (sourcePhotoObjectKey), so
+// naming another tenant's object is not representable rather than merely rejected.
+// This mirrors the cutout path, which has always been composed server-side.
 export const CreateParseJobRequest = z
   .object({
-    source_photo_path: z.string(),
-    source_photo_hash: z.string(),
+    source_photo_hash: SourcePhotoHash,
     kind: ParseJobKind,
   })
   .strict();

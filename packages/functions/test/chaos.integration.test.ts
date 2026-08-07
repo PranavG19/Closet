@@ -106,6 +106,11 @@ interface CountingPorts extends ParsePorts {
 // A ports pair that REJECTS (models a provider timeout/5xx) whenever the photo path
 // matches `failWhen`, and otherwise succeeds. The counter is only bumped on a real
 // (successful-path) invocation so "was the paid provider hit" stays observable.
+//
+// The vendors now receive a MINTED signed URL rather than the storage key (the key is
+// server-derived from the verified sub and never handed to a vendor raw). The fake
+// minter embeds the key it was asked to sign so `failWhen` can still select which
+// photo degrades — the per-photo `source_photo_hash` is the discriminator.
 function makePorts(failWhen: (imageUrl: string) => boolean): CountingPorts {
   let vision = 0;
   const visionPort: AIVisionPort = {
@@ -123,7 +128,12 @@ function makePorts(failWhen: (imageUrl: string) => boolean): CountingPorts {
       return FAKE_CUTOUT;
     },
   };
-  return { vision: visionPort, cutout: cutoutPort, visionCalls: () => vision };
+  return {
+    vision: visionPort,
+    cutout: cutoutPort,
+    mintSourcePhotoUrl: async (objectKey) => `https://storage.test/signed/${objectKey}?token=sig`,
+    visionCalls: () => vision,
+  };
 }
 
 describe('Tier-4 chaos — adversarial temporal + scale conditions, state-oracled', () => {
@@ -317,20 +327,20 @@ describe('Tier-4 chaos — adversarial temporal + scale conditions, state-oracle
       );
       const caller = makeCaller(pool, USER);
 
-      // 6 distinct photos; the two whose path contains 'fail' make the provider throw.
+      // 6 distinct photos; the two whose hash marks them FAN-FAIL make the provider
+      // throw. The hash is the discriminator now that the storage path is derived from
+      // it server-side (it is the only caller-chosen component of the derived key).
       const OK = [0, 1, 2, 3].map((i) => ({
-        source_photo_path: `fan/ok-${i}.jpg`,
         source_photo_hash: `FAN-OK-${i}`,
         kind: 'full' as const,
       }));
       const FAIL = [0, 1].map((i) => ({
-        source_photo_path: `fan/fail-${i}.jpg`,
         source_photo_hash: `FAN-FAIL-${i}`,
         kind: 'full' as const,
       }));
       const batch = [...OK, ...FAIL];
 
-      const ports = makePorts((imageUrl) => imageUrl.includes('fail'));
+      const ports = makePorts((imageUrl) => imageUrl.includes('FAN-FAIL'));
       const handler = makeParsePhoto(() => ports);
 
       // Fan out in-process. Promise.all resolving at all is itself the "never hangs"
@@ -382,7 +392,7 @@ describe('Tier-4 chaos — adversarial temporal + scale conditions, state-oracle
       const healthyPorts = makePorts(() => false);
       const healthyHandler = makeParsePhoto(() => healthyPorts);
       const resume = await caller.call(healthyHandler, {
-        body: { source_photo_path: 'fan/fail-0.jpg', source_photo_hash: 'FAN-FAIL-0', kind: 'full' },
+        body: { source_photo_hash: 'FAN-FAIL-0', kind: 'full' },
       });
       expect(resume.status).toBe(200);
       const resumeBody = (await resume.json()) as ParseBody;
@@ -398,7 +408,7 @@ describe('Tier-4 chaos — adversarial temporal + scale conditions, state-oracle
       const shortCircuitPorts = makePorts(() => false);
       const shortCircuitHandler = makeParsePhoto(() => shortCircuitPorts);
       const replay = await caller.call(shortCircuitHandler, {
-        body: { source_photo_path: 'fan/ok-0.jpg', source_photo_hash: 'FAN-OK-0', kind: 'full' },
+        body: { source_photo_hash: 'FAN-OK-0', kind: 'full' },
       });
       expect(replay.status).toBe(200);
       expect(((await replay.json()) as ParseBody).job.status).toBe('done');

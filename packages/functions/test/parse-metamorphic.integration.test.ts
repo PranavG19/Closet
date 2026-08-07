@@ -75,6 +75,9 @@ function makeFixedPorts(): CountingPorts {
         return FIXED_CUTOUT;
       },
     },
+    // The vendors receive a minted signed URL; the storage key itself is derived
+    // server-side from the verified sub and is never handed to a vendor raw.
+    mintSourcePhotoUrl: async (objectKey) => `https://storage.test/signed/${objectKey}?token=sig`,
     visionCalls: () => vision,
   };
 }
@@ -167,7 +170,7 @@ describe('parse-photo — Tier-1 metamorphic relations (attribute stability, cap
     const user = 'aa000000-0000-4000-8000-000000000001';
     const ports = makeFixedPorts();
     const handler = makeParsePhoto(() => ports);
-    const body = { source_photo_path: 'm/stable.jpg', source_photo_hash: 'STABLE-1', kind: 'teaser' as const };
+    const body = { source_photo_hash: 'STABLE-1', kind: 'teaser' as const };
 
     const first = await callAs(handler, pool, user, body);
     expect(first.status).toBe(200);
@@ -208,7 +211,6 @@ describe('parse-photo — Tier-1 metamorphic relations (attribute stability, cap
     const handler = makeParsePhoto(() => ports);
 
     const teaserRes = await callAs(handler, pool, teaserUser, {
-      source_photo_path: 'm/same.jpg',
       source_photo_hash: 'SAME-PHOTO',
       kind: 'teaser',
     });
@@ -223,7 +225,6 @@ describe('parse-photo — Tier-1 metamorphic relations (attribute stability, cap
       [fullUser],
     );
     const fullRes = await callAs(handler, pool, fullUser, {
-      source_photo_path: 'm/same.jpg',
       source_photo_hash: 'SAME-PHOTO',
       kind: 'full',
     });
@@ -271,10 +272,10 @@ describe('parse-photo — Tier-1 metamorphic relations (attribute stability, cap
     const handler = makeParsePhoto(() => ({
       vision: makeParsingVisionPort(rejectedPayload),
       cutout: OK_CUTOUT_PORT,
+      mintSourcePhotoUrl: async (objectKey: string) => `https://storage.test/signed/${objectKey}?token=sig`,
     }));
 
     const res = await callAs(handler, pool, user, {
-      source_photo_path: 'm/lowconf.jpg',
       source_photo_hash: 'LOWCONF-1',
       kind: 'teaser',
     });
@@ -300,7 +301,6 @@ describe('parse-photo — Tier-1 metamorphic relations (attribute stability, cap
     const goodHandler = makeParsePhoto(() => goodPorts);
     const goodUser = 'ee000000-0000-4000-8000-000000000005';
     const okRes = await callAs(goodHandler, pool, goodUser, {
-      source_photo_path: 'm/lowconf.jpg',
       source_photo_hash: 'LOWCONF-1',
       kind: 'teaser',
     });

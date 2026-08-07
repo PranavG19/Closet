@@ -79,6 +79,12 @@ function makeCountingPorts(): CountingPorts {
   return {
     vision: visionPort,
     cutout: cutoutPort,
+    // The handler mints a signed URL for the SERVER-DERIVED object key and hands the
+    // vendors that, never a raw key. Unmetered here: this file's oracle is the throttle,
+    // and the minter's own prefix guard is proven in supabase-storage.reader.test.ts.
+    async mintSourcePhotoUrl() {
+      return 'https://signed.example/original';
+    },
     visionCalls: () => vision,
     cutoutCalls: () => cutout,
   };
@@ -153,8 +159,9 @@ async function superuserStatusCounts(
   return Object.fromEntries(rows.map((r) => [r.status, Number(r.n)]));
 }
 
+// The request carries NO source_photo_path: the server derives the storage key from
+// the verified sub, so a client cannot name one (CreateParseJobRequest is .strict()).
 const teaser = (hash: string): Record<string, string> => ({
-  source_photo_path: `t/${hash}.jpg`,
   source_photo_hash: hash,
   kind: 'teaser',
 });
@@ -320,7 +327,6 @@ describe('parse-photo provider-spend throttle — money oracle', () => {
     const handler = makeParsePhoto(() => ports, limiter.provide);
 
     const denied = await callAs(handler, pool, user, {
-      source_photo_path: 'e/full.jpg',
       source_photo_hash: 'FULL-DENIED',
       kind: 'full',
     });

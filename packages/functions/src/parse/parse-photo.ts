@@ -9,6 +9,15 @@
 // Identity is ALWAYS ctx.userId (the verified JWT sub) — the request body carries
 // no user_id (.strict() rejects it). The handler opens no connection, sets no
 // role, holds no service_role: RLS confines every write to the caller (docs/06 §4).
+//
+// The SOURCE PHOTO PATH is likewise never a request field. It is derived here from
+// the verified sub, because the paid providers do not receive image bytes from us —
+// they receive a URL that THEIR servers fetch, which puts the fetch outside migration
+// 0013's Storage RLS entirely. A body-named path would therefore be a cross-tenant
+// photo read (A names B's prefix and gets B's photo described back plus its cutout
+// persisted into A's wardrobe), an SSRF sink, and unbounded spend on an
+// attacker-chosen URL. Deriving it makes naming another tenant's object
+// unrepresentable rather than merely rejected — the same move the cutout path made.
 import { makeParseJobsRepo, makeSubscriptionsRepo, type CommitItemInput } from '@closet/db';
 import {
   CreateParseJobRequest,
@@ -26,6 +35,7 @@ import { jsonResponse, errorResponse, errorFromThrown } from '../auth/respond.js
 import { logger } from '../auth/logger.js';
 import { envValue } from '../auth/env.js';
 import { makeProviderPorts } from '../adapters/index.js';
+import { sourcePhotoObjectKey, type SourcePhotoUrlMinter } from '../adapters/supabase-storage.reader.js';
 import { TEASER_JOB_CAP } from './teaser-cap.js';
 import {
   PARSE_SPEND_BUCKET,
@@ -51,18 +61,30 @@ export type ParseResultResponse = z.infer<typeof ParseResultResponse>;
 // provider message or image bytes (PII rule) — a provider fault is a fixed code.
 const PROVIDER_FAILURE_REASON = 'provider_failed';
 
-// The two paid providers, injected so the integration oracle can substitute
-// deterministic fakes with an observable call counter (the double-charge guard).
+// The two paid providers plus the source-photo URL minter, injected so the
+// integration oracle can substitute deterministic fakes with an observable call
+// counter (the double-charge guard).
+//
+// `mintSourcePhotoUrl` is part of the port set precisely so no raw storage key ever
+// reaches a vendor: the adapters are handed the minted short-lived signed URL, never
+// the key. The production minter is bound to the caller and refuses a key outside
+// their own prefix (supabase-storage.reader.ts).
 export interface ParsePorts {
   readonly vision: AIVisionPort;
   readonly cutout: CutoutPort;
+  readonly mintSourcePhotoUrl: SourcePhotoUrlMinter;
 }
 
 // The cutout port must upload bytes AS THE CALLER (Storage RLS binds auth.uid()), so
 // the provider is handed the caller's verified token to build that port with. A test
 // fake ignores the argument — `() => fakePorts` stays assignable.
+//
+// `userId` (the verified sub) rides along so the URL minter can be bound to this
+// caller and refuse a key outside their prefix. It is NOT a second identity source:
+// it is the same ctx.userId every write already uses.
 export interface PortsRequestContext {
   readonly accessToken: string;
+  readonly userId: string;
 }
 export type ProvidePorts = (ctx: PortsRequestContext) => ParsePorts;
 
@@ -137,11 +159,17 @@ export function makeParsePhoto(
       // 2. Idempotent job resolve + atomic teaser cap (teaser only, inside the
       //    repo's per-user advisory-locked fn). A new teaser photo past the cap is
       //    refused; an already-submitted hash lands on its existing row (no charge).
+      //    The path is DERIVED from the verified sub here — the request cannot name
+      //    it (see the header note), so the persisted row can only ever point inside
+      //    the caller's own prefix.
       const resolved = await parseJobs.resolveJob(
         userId,
         {
           source_photo_hash: request.source_photo_hash,
-          source_photo_path: request.source_photo_path,
+          source_photo_path: sourcePhotoObjectKey({
+            userId,
+            sourcePhotoHash: request.source_photo_hash,
+          }),
           kind: request.kind,
         },
         TEASER_JOB_CAP,
@@ -171,13 +199,20 @@ export function makeParsePhoto(
       //    commit deletes partials first, a later resubmit cleanly reprocesses.
       let items: readonly CommitItemInput[];
       try {
-        const ports = providePorts({ accessToken });
-        const vision = await ports.vision.extractAttributes({ imageUrl: claimed.source_photo_path });
+        const ports = providePorts({ accessToken, userId });
+        // Mint ONE short-lived signed URL for the original and hand THAT to both
+        // vendors — never claimed.source_photo_path itself. The vendors' own servers
+        // do the fetch, so what we hand them must be a URL we composed for one object
+        // we own; the minter re-checks the key against this caller's prefix and fails
+        // closed, which also bounds the blast radius of any future path-composition
+        // bug. Minted once so a re-parse cannot double the signing round-trip.
+        const sourcePhotoUrl = await ports.mintSourcePhotoUrl(claimed.source_photo_path);
+        const vision = await ports.vision.extractAttributes({ imageUrl: sourcePhotoUrl });
         // userId is the verified JWT sub and claimed.id is the row THIS request won
         // the claim on — the cutout's Storage path is composed from these (never from
         // the request body), so it lands under the caller's own RLS-permitted prefix.
         const cutout = await ports.cutout.removeBackground({
-          imageUrl: claimed.source_photo_path,
+          imageUrl: sourcePhotoUrl,
           userId,
           parseJobId: claimed.id,
         });
@@ -209,6 +244,5 @@ export function makeParsePhoto(
 // The spend limiter is the REAL DB-backed one (migration 0015's consume_rate_token
 // via the @closet/db repo, under the caller's own RLS context). Limits come from
 // envValue with defaults, so a missing env tightens to the default rather than
-// disabling the throttle — a missing env must never serve an unthrottled paid
-// endpoint.
+// disabling the throttle.
 export const parsePhoto: AuthedHandler = makeParsePhoto(makeProviderPorts, dbSpendLimiter);

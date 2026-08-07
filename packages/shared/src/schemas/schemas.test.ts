@@ -40,6 +40,17 @@ const arbJson: fc.Arbitrary<unknown> = fc
   .jsonValue()
   .filter((v) => !JSON.stringify(v).includes('__proto__'));
 
+// A per-photo idempotency key: one opaque token, no separators (SourcePhotoHash).
+const arbSourcePhotoHash = fc
+  .stringMatching(/^[A-Za-z0-9_-]+$/)
+  .filter((s) => s.length > 0 && s.length <= 128);
+// A bucket-relative Storage KEY (StorageObjectKey): owner-first segments, no scheme,
+// no traversal, no leading slash. Built from the real shape parse-photo derives —
+// `{user_id}/{hash}/original` — so the property covers what production stores.
+const arbStorageObjectKey = fc
+  .tuple(arbUuid, arbSourcePhotoHash)
+  .map(([owner, hash]) => `${owner}/${hash}/original`);
+
 const arbWardrobeItemRow = fc.record({
   id: arbUuid,
   user_id: arbUuid,
@@ -58,8 +69,8 @@ const arbWardrobeItemRow = fc.record({
 const arbParseJobRow = fc.record({
   id: arbUuid,
   user_id: arbUuid,
-  source_photo_hash: fc.string(),
-  source_photo_path: fc.string(),
+  source_photo_hash: arbSourcePhotoHash,
+  source_photo_path: arbStorageObjectKey,
   kind: fc.constantFrom('teaser', 'full'),
   status: fc.constantFrom('pending', 'processing', 'done', 'failed'),
   claimed_at: fc.option(arbTs, { nil: null }),
@@ -168,7 +179,7 @@ const arbLogWear = fc.record(
 
 const REQUEST_CASES: ReadonlyArray<[string, z.ZodType, fc.Arbitrary<unknown>]> = [
   ['CreateWardrobeItemRequest', CreateWardrobeItemRequest, arbCreateWardrobeItem],
-  ['CreateParseJobRequest', CreateParseJobRequest, fc.record({ source_photo_path: fc.string(), source_photo_hash: fc.string(), kind: fc.constantFrom('teaser', 'full') })],
+  ['CreateParseJobRequest', CreateParseJobRequest, fc.record({ source_photo_hash: arbSourcePhotoHash, kind: fc.constantFrom('teaser', 'full') })],
   ['CreateOutfitRequest', CreateOutfitRequest, arbCreateOutfit],
   ['LogWearRequest', LogWearRequest, arbLogWear],
   ['UpdateAvailabilityRequest', UpdateAvailabilityRequest, fc.record({ item_id: arbUuid, availability: fc.constantFrom('clean', 'dirty', 'unavailable') })],
@@ -241,6 +252,73 @@ describe('invariant — user_id never appears on a request schema', () => {
       expect(Object.keys(schema.shape)).not.toContain('user_id');
     });
   }
+});
+
+// ---- the source-photo path is not a client-nameable field --------------------
+// parse-photo hands the ORIGINAL to GPT-4o / Photoroom as a URL their OWN servers
+// fetch, so Storage RLS (migration 0013) does not govern that fetch at all: a
+// client-named path is a cross-tenant photo read, an SSRF sink, and unbounded spend.
+// The structural fix is that the field does not exist on the request, and that the
+// row-level type refuses anything that is not a bucket-relative key.
+describe('invariant — source_photo_path is server-derived, never client-named', () => {
+  it('CreateParseJobRequest has NO source_photo_path key at all', () => {
+    expect(Object.keys(CreateParseJobRequest.shape)).not.toContain('source_photo_path');
+  });
+
+  it('a smuggled source_photo_path is REJECTED, not ignored (.strict())', () => {
+    const res = parseBoundarySafe(CreateParseJobRequest, {
+      source_photo_hash: 'HASH1',
+      kind: 'teaser',
+      // Another tenant's prefix — the whole attack, in one key.
+      source_photo_path: 'b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2/job/photo.jpg',
+    });
+    expect(res.ok).toBe(false);
+  });
+
+  // A hash is a path SEGMENT once derived, so a hash carrying a separator would let
+  // the caller steer the derived key. Each of these must fail on the way IN.
+  it.each([
+    ['a slash (would add a path segment)', '../../b2b2b2b2/job'],
+    ['a traversal', '..'],
+    ['a scheme', 'https://evil/x.jpg'],
+    ['a leading slash', '/etc/passwd'],
+    ['a backslash', 'a\\b'],
+    ['an empty string', ''],
+    ['an over-long token', 'x'.repeat(129)],
+  ])('CreateParseJobRequest rejects a source_photo_hash containing %s', (_label, hash) => {
+    expect(parseBoundarySafe(CreateParseJobRequest, { source_photo_hash: hash, kind: 'teaser' }).ok).toBe(false);
+  });
+
+  // The row type is the second control: even if a row somehow held a URL-shaped
+  // value, it must not survive the boundary and reach a vendor.
+  const validRow = {
+    id: '550e8400-e29b-41d4-a716-446655440000',
+    user_id: '550e8400-e29b-41d4-a716-446655440000',
+    source_photo_hash: 'HASH1',
+    source_photo_path: '550e8400-e29b-41d4-a716-446655440000/HASH1/original',
+    kind: 'teaser',
+    status: 'pending',
+    claimed_at: null,
+    error_reason: null,
+    created_at: '2026-01-01T00:00:00Z',
+    updated_at: '2026-01-01T00:00:00Z',
+  };
+
+  it('the derived-shape row is accepted (the control — these rejections are not vacuous)', () => {
+    expect(parseBoundarySafe(ParseJobRow, validRow).ok).toBe(true);
+  });
+
+  it.each([
+    ['an http scheme', 'https://evil.example/x.jpg'],
+    ['a bare scheme separator', 'a://b'],
+    ['a traversal segment', 'a/../../b/original'],
+    ['a leading slash', '/550e8400-e29b-41d4-a716-446655440000/HASH1/original'],
+    ['a backslash', 'a\\b\\original'],
+    ['a metadata-endpoint url', 'http://169.254.169.254/latest/meta-data/'],
+    ['an over-long key', `${'a'.repeat(513)}/original`],
+  ])('ParseJobRow.source_photo_path rejects %s', (_label, path) => {
+    expect(parseBoundarySafe(ParseJobRow, { ...validRow, source_photo_path: path }).ok).toBe(false);
+  });
 });
 
 describe('invariant — idempotency-key placement', () => {
