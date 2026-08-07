@@ -45,6 +45,9 @@ export type OutfitItemInput = z.infer<typeof OutfitItemInput>;
 
 export const CreateOutfitRequest = z
   .object({
+    // Client-minted outfit id for idempotent create (D-001): a retry with the same
+    // id resolves onto the same row via UNIQUE(user_id, id) — no client_id column.
+    id: Uuid.optional(),
     name: z.string().nullable().optional(),
     items: z.array(OutfitItemInput),
   })
