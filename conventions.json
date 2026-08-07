@@ -39,7 +39,8 @@
     "$comment": "Gate budget registry (agent-arch Rule 5). Sum of SYNCHRONOUS (async:false, commit-blocking) weights must be <= maxBudget. Weights: structural=0, mechanical=1, advisory=2. async=true gates run post-merge and do NOT count. This is the SCAFFOLD baseline: only gates whose target code exists yet are wired synchronously. DB-backed gates (check-rls, check-migration-drift) and code-shape gates (check-route-schema, check-unbounded-select) are declared here as they land with their subsystems — add them to this list AND scripts/verify.mjs in the same task that adds the code they guard, naming what each replaces.",
     "maxBudget": 6,
     "gates": [
-      { "name": "check-secrets", "tier": "mechanical", "weight": 1, "async": false, "replaces": "manual secret review" }
+      { "name": "check-secrets", "tier": "mechanical", "weight": 1, "async": false, "replaces": "manual secret review" },
+      { "name": "check-rls", "tier": "structural", "weight": 0, "async": false, "replaces": "manual 'does every tenant table have RLS FORCE' review — the sovereign-structural tenancy guarantee (docs/06 §3)" }
     ]
   }
 }

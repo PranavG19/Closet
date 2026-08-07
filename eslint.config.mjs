@@ -49,6 +49,7 @@ export default tseslint.config(
       "**/node_modules/**",
       "**/*.tsbuildinfo",
       ".worktrees/**",
+      ".claude/worktrees/**",
       "packages/mobile/.expo/**",
     ],
   },

@@ -7,6 +7,13 @@
       "replaces": "manual secret review",
       "tier": "mechanical",
       "weight": 1
+    },
+    {
+      "async": false,
+      "name": "check-rls",
+      "replaces": "manual 'does every tenant table have RLS FORCE' review — the sovereign-structural tenancy guarantee (docs/06 §3)",
+      "tier": "structural",
+      "weight": 0
     }
   ],
   "generatedBy": "scripts/gen-conventions.mjs",

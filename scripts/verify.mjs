@@ -34,14 +34,15 @@ const STEPS = [
   { name: "check-secrets", cmd: "node", args: ["scripts/gates/check-secrets.mjs"] },
   { name: "typecheck", cmd: "pnpm", args: ["-w", "exec", "tsc", "--build"] },
   { name: "lint", cmd: "pnpm", args: ["-w", "exec", "eslint", "."] },
-  // ── added with their subsystems (kept here as a checklist, commented until live) ──
+  // DB-backed structural gate — full only (self-boots Postgres via testcontainers).
+  { name: "check-rls", cmd: "node", args: ["scripts/gates/check-rls.mjs"], full: true },
+  // Tests: unit runs in both modes (fast, pure); integration is full only (real Postgres).
+  { name: "test:unit", cmd: "pnpm", args: ["-w", "exec", "vitest", "run", "--project", "unit"] },
+  { name: "test:integration", cmd: "pnpm", args: ["-w", "exec", "vitest", "run", "--project", "integration"], full: true },
+  // ── added with their subsystems (kept as a checklist, commented until live) ──
   // { name: "check-route-schema", cmd: "node", args: ["scripts/gates/check-route-schema.mjs"] },
   // { name: "check-unbounded-select", cmd: "node", args: ["scripts/gates/check-unbounded-select.mjs"] },
-  // { name: "check-rls", cmd: "node", args: ["scripts/gates/check-rls.mjs"], full: true },
   // { name: "check-migration-drift", cmd: "node", args: ["scripts/gates/check-migration-drift.mjs"], full: true },
-  // { name: "check-tests", cmd: "node", args: ["scripts/gates/check-tests.mjs"] },
-  // { name: "test:fast", cmd: "pnpm", args: ["-w", "exec", "vitest", "run", "--changed"], fastOnly: true },
-  // { name: "test:full", cmd: "pnpm", args: ["-w", "exec", "vitest", "run"], full: true },
 ];
 
 console.log(`\n▶ verify (${MODE} mode)\n`);
