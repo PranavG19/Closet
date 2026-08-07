@@ -82,15 +82,15 @@ A simple clean / in-the-wash / unavailable state per item fixes this. When sugge
 
 ### 4. A wear log — to find the pieces you never touch
 
-If there's one feature that turns a capsule from an aspiration into an honest, improving system, it's a **wear log**: a one-tap "I wore this today."
+If there's one feature that turns a capsule from an aspiration into an honest, improving system, it's a **wear log**: a one-tap "I wore this today." What the app ships is exactly that — a timestamped record of what you actually wore, nothing more complicated.
 
-It sounds trivial. It's the opposite. Over a few weeks, the log quietly answers the questions a capsule is supposed to answer and usually can't:
+It sounds trivial. It's the opposite. That plain record is enough to answer, just by reading it back, the questions a capsule is supposed to answer and usually can't:
 
 - Which pieces am I actually wearing — and which have I not touched since I built this?
 - Which "essential" earns its spot, and which is dead weight I keep out of guilt?
 - Am I genuinely getting more wear out of less, or just rotating the same six?
 
-That record is what lets a capsule *tighten* over time instead of drifting. The unworn piece isn't a moral failing — it's a signal. Maybe it needs a combination you haven't tried; maybe it should leave. Either way, you now know, instead of guessing. (Full cost-per-wear analytics — the charts and the "you've re-worn this X times" scoring — are on our roadmap, not in the app today. But the log that would power them is here from day one, and it's useful on its own the moment you start tapping it.)
+That record is what lets a capsule *tighten* over time instead of drifting. The unworn piece isn't a moral failing — it's a signal. Maybe it needs a combination you haven't tried; maybe it should leave. Either way, you now know, instead of guessing. (The richer analytics a record like this could eventually power — cost-per-wear, dead-stock breakdowns, most- and least-worn charts — are on our roadmap, not in the app today. What ships now is the log itself, and it's useful the moment you start tapping it.)
 
 ### 5. It respects your taste — it doesn't boss you
 

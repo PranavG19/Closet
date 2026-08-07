@@ -1,15 +1,17 @@
 ---
 title: "Landing Page Copy — Draft"
 slug: landing-page
-metaDescription: "Point it at your camera roll and your real closet is digitized in seconds. A premium wardrobe app that answers what to wear every morning."
-targetKeyword: "digitize my closet app"
-secondaryKeywords: ["outfit ideas from my own closet", "what to wear today app", "wardrobe organizer app", "outfit planner app"]
-canonical: "{{CANONICAL_URL}}"
+metaDescription: "Point it at your camera roll and see a preview of your real closet in seconds. A premium wardrobe app that answers what to wear every morning."
+targetKeyword: "[App Name]"
+robots: noindex
+canonical: "{{CANONICAL_URL}}/blog/premium-closet-app"
 ---
 
 # Landing Page Copy (Marketing Draft)
 
 > Working notes for the human-owned page build. Voice: warm, confident, concise — a stylish friend, never preachy or salesy. The clothes are the hero; copy recedes. Every claim traces to a shipping MVP feature.
+>
+> **This is the CONVERSION page, not an SEO page.** It carries no organic-ranking ambition — set `robots: noindex` and canonicalize to the indexable article (`/blog/premium-closet-app`), which owns the "digitize your closet" search intent. This page's only job is to convert visitors who already arrived.
 
 ---
 
@@ -56,15 +58,15 @@ See what goes together, and add a self-identified color palette *(beta)* if you 
 
 ## PRIVACY — the on-device gate, as a feature
 
-### Your photos stay yours
+### Nothing you didn't hand-pick ever leaves your phone
 
-We check your photos **on your device first.** Only the clothing photos you approve are ever uploaded — nothing else leaves your phone.
+The very first thing the app does happens **on your device** — before a single upload. It sorts the clothing shots from everything else in your camera roll, and you approve the ones that become your closet. Intimate photos, screenshots, and pictures that aren't clothing simply never travel.
 
-- We never scan or analyze your body.
-- Color and palette guidance is **self-identified** — you tell us, we never guess from a photo.
-- Intimate photos, screenshots, and pictures that aren't clothing are filtered out before anything is sent anywhere.
+- **Your body is never in the picture.** We digitize garments, not you — no scanning, no measuring, nothing about your appearance.
+- **Color is something you choose, not something we read.** The optional palette comes from a swatch quiz you fill in — never from a photo.
+- **You are the filter.** The approve step is yours; we only ever receive what you've said yes to.
 
-*Privacy isn't the fine print here. It's the first thing that happens.*
+*You can't leak what never leaves the device. That's the whole design, not a promise buried in a policy.*
 
 ---
 
@@ -87,7 +89,7 @@ Free closet apps exist. Most of them hand you an empty grid and ask you to photo
 ## FAQ
 
 ### How does the scan work?
-You point the app at your camera roll. It finds the photos with your clothes in them, digitizes each garment into a clean cutout, and organizes them into a browsable wardrobe — in seconds, not an afternoon of photographing.
+You point the app at your camera roll. It finds the photos with your clothes in them and, in seconds, shows you a preview of your real closet — a handful of your own garments cut out cleanly, so you can see it working before you commit. After you unlock, it builds out the full wardrobe from the rest of your approved photos. No afternoon of photographing, either way.
 
 ### Do I have to photograph every item?
 No. That's the whole point. If you've taken photos wearing your clothes, we can build your closet from those. You can also import specific photos if you'd rather hand-pick.

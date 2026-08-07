@@ -34,19 +34,19 @@ Once you have the anchor, the questions get answerable one at a time:
 
 You've turned an infinite question into three small ones. This is also the trick that makes a smaller, more intentional wardrobe feel bigger—the logic behind the [capsule wardrobe](/blog/capsule-wardrobe-app-guide) approach, where a handful of anchors quietly recombine into weeks of outfits.
 
-## Use the rule of thirds for proportion
+## Play with proportion to change the feel
 
-If an outfit ever feels *off* but you can't say why, proportion is usually the culprit—not the pieces.
+If an outfit feels fine but not quite *you* today, proportion is a lever worth trying—and it costs nothing to experiment with.
 
-A quick, forgiving guideline: avoid splitting yourself in half. A top and bottom of equal visual weight (think a hip-length top over full trousers) can read as two blocks stacked evenly, which flattens the whole line. Breaking the body closer to a **one-third / two-thirds split** tends to look more considered.
+Here's the idea: where the visual break falls between your top and bottom half changes the whole mood of an outfit. A top and bottom of roughly equal visual weight reads as calm and even; shifting the break higher or lower reads as more relaxed, or more deliberate, depending on the day. Neither is "right." It's just a dial you can turn.
 
-In practice that's easy to do with clothes you already own:
+Easy ways to move that break, all with clothes you already own:
 
-- **Tuck** (full or a loose front tuck) to raise the waistline and lengthen the leg.
-- **Crop the top half** with a shorter jacket or a top that hits at the hip bone rather than mid-thigh.
-- **Add a belt** to place the visual break where you want it instead of where the hem happens to fall.
+- **Tuck** (full, or a loose front tuck) to raise where the line sits.
+- **Swap the top half** for a shorter jacket or a top that hits higher, and see how it changes.
+- **Add a belt** to place the break wherever you feel like it that morning, instead of wherever the hem happens to land.
 
-None of this requires new clothes. It's the same shirt and the same trousers—just divided differently.
+None of this requires new clothes. It's the same shirt and the same trousers—just divided differently. Try a couple of versions in the mirror and keep whichever one you like.
 
 ## Mix textures so a simple palette still has depth
 
@@ -87,7 +87,7 @@ Put together, the method is short:
 
 1. **Pick your anchor** — the one piece you want to wear.
 2. **Complete the pair** — the other half, weather- and setting-appropriate.
-3. **Check the proportion** — tuck, crop, or belt so you're not split in half.
+3. **Play with the proportion** — tuck, swap, or belt, and keep the version you like best.
 4. **Add depth** — a second texture, or one statement against neutrals.
 5. **Sanity-check color** — two neutrals plus an accent, or a pairing you've been meaning to try.
 
@@ -112,7 +112,7 @@ Start with one piece you want to wear (the anchor) and build around it one decis
 Any single item you actually want to wear today—trousers, a blouse, a coat, a pair of shoes. Building *from* one chosen piece is far easier than building *into* the blank question of "what should I wear," which has too many answers to be useful.
 
 ### Why do my outfits feel boring even though the clothes are nice?
-Usually it's proportion or texture, not the pieces. Try breaking your silhouette closer to a one-third / two-thirds split (tuck, crop, or belt), and pair different fabric families—knit with smooth, matte with sheen—so a simple palette still has depth.
+Usually it's proportion or texture, not the pieces. Try shifting where the visual break falls (tuck, swap the top half, or add a belt) to change the feel, and pair different fabric families—knit with smooth, matte with sheen—so a simple palette still has depth.
 
 ### What's the easiest color combination to get right?
 Two neutrals plus one accent. Neutrals (black, white, cream, gray, navy, tan, denim) mix with each other endlessly, and a single accent color gives the outfit a point without any risk of clashing.

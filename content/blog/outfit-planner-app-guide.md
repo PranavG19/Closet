@@ -49,7 +49,7 @@ Ask before you commit:
 
 There's a fair tradeoff hiding here: **the free apps are usually the ones that make you do all the manual work.** That's not an accident — automated digitization is genuinely hard and costs money to run, so it tends to sit behind a paid product. Whether that's worth paying for depends entirely on whether you'll actually finish the manual version. Be honest with yourself. A free app you abandon at item forty costs more than a paid one you use every morning.
 
-(If you want to go deeper on setup methods specifically, we compared them in [how to organize your wardrobe](/blog/how-to-organize-your-wardrobe).)
+(If you want to go deeper on setup methods specifically, we compared them in [how to digitize your closet](/blog/how-to-digitize-your-closet).)
 
 ### 2. Suggestion quality: are the outfits actually wearable?
 

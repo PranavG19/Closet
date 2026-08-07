@@ -8,7 +8,7 @@ secondaryKeywords:
   - digitize wardrobe
   - closet inventory app privacy
   - photograph clothes for closet app
-canonical: "https://REPLACE-WITH-CANONICAL-DOMAIN/blog/how-to-digitize-your-closet"
+canonical: "{{CANONICAL_URL}}/blog/how-to-digitize-your-closet"
 ---
 
 # How to Digitize Your Closet: 3 Methods Compared (and What Happens to Your Photos)

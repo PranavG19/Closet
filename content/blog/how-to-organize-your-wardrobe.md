@@ -6,9 +6,6 @@ targetKeyword: "how to organize your wardrobe"
 secondaryKeywords:
   - "how to organize my closet"
   - "wear what you own"
-  - "digitize my closet"
-  - "outfit planner"
-  - "capsule wardrobe"
   - "color pairing clothes"
 canonical: "{{CANONICAL_URL}}"
 ---
@@ -46,35 +43,15 @@ Taking stock means getting *everything* in front of you — or at least in front
 
 You don't need to make decisions yet. The goal of this step is just **honest visibility** — seeing the whole wardrobe, not the worn-smooth groove of your daily habits. That "I wear a fraction of what I own" feeling has a name and a cause, and naming it is the first real step.
 
-→ Read next: [What to wear when you have "nothing to wear"](/what-to-wear-nothing-to-wear) — why a full closet can still feel empty, and how to fix the *feeling*, not just the shelf.
+→ Read next: [What to wear when you have "nothing to wear"](/blog/what-to-wear-nothing-to-wear) — why a full closet can still feel empty, and how to fix the *feeling*, not just the shelf.
 
 ---
 
-## Step 2 — Digitize your closet (three ways, and the privacy tradeoffs)
+## Step 2 — Digitize your closet
 
-Once you can see your wardrobe, the next leap is being able to see it *anywhere* — on your phone, on the train, while packing, while deciding whether you really need to buy another white shirt. That's digitizing: turning your physical closet into a browsable, searchable version you carry with you.
+Once you can see your wardrobe, the next leap is being able to see it *anywhere* — on your phone, on the train, while packing. That's digitizing: turning your physical closet into a browsable, searchable version you carry with you. There are three honest ways to do it — a spreadsheet, photographing each item one by one, or scanning your camera roll — and they trade off effort, quality, and (crucially) where your photos go. The one question that should decide it is *where the filtering happens*: a trustworthy tool checks your photos on your device first and uploads only the clothing shots you approve.
 
-There are three honest ways to do it, and they trade off effort against how much of your day they cost.
-
-### Method 1 — Photograph items one at a time
-
-The manual route. Lay each piece flat or hang it, take a clean photo, tag it. It works, and it gives you a tidy library. The catch is obvious the moment you try it: a real wardrobe is a hundred-plus items, and photographing them one by one is an afternoon you'll probably abandon halfway through the sweaters.
-
-### Method 2 — Scan your camera roll
-
-Here's the shortcut most people miss: **you've already photographed most of your wardrobe.** Every outfit selfie, every mirror shot, every "does this look okay?" text — your camera roll is a years-deep archive of your clothes on your actual body. Scanning it turns that archive into a closet in seconds, not an afternoon. This is the approach [our app](/premium-closet-app) is built around, and it's why the first sixty seconds feel like magic instead of homework.
-
-### Method 3 — A hybrid
-
-Scan the camera roll for the bulk of it, then photograph the few pieces that never made it into a picture. Most people land here.
-
-### The privacy tradeoff — and how to think about it
-
-Any method that touches your camera roll deserves a hard question: *where do my photos go?* Your camera roll is one of the most personal things you own. It holds far more than clothes.
-
-The line that matters is **where the filtering happens.** A trustworthy tool checks your photos *on your device first* and only ever uploads the clothing photos you approve — intimate images, screenshots, and photos that aren't of your wardrobe never leave your phone. That's the standard we hold ourselves to, and it's the question you should ask of any app before you grant it access. Convenience is never a reason to send your whole camera roll to someone's server.
-
-→ Read next: [How to digitize your closet](/how-to-digitize-your-closet) — the three methods compared in detail, plus exactly what to look for in an app's privacy promise.
+→ Read next: [How to digitize your closet](/blog/how-to-digitize-your-closet) — the three methods compared in detail, plus exactly what to look for in an app's privacy promise.
 
 ---
 
@@ -90,7 +67,7 @@ Building outfits from what you own works two ways, and you'll use both.
 
 The quiet win of both is that you start seeing *combinations*, not just items — and combinations are where a wardrobe actually lives. The jacket you thought was boring turns out to be the anchor of four outfits you never tried.
 
-→ Read next: [Outfit ideas from your own closet](/outfit-ideas-from-your-own-closet) — how to find new combinations in clothes you already own, without buying a thing.
+→ Read next: [Outfit ideas from your own closet](/blog/outfit-ideas-from-your-own-closet) — how to find new combinations in clothes you already own, without buying a thing.
 
 ---
 
@@ -102,7 +79,7 @@ The fix is to let weather do that reconciling for you. When your outfit suggesti
 
 It's a small thing that removes a real daily tax. Good organization isn't just knowing what you own; it's having the right *subset* surfaced at the right moment.
 
-→ Read more in the [outfit planner app guide](/outfit-planner-app-guide) — how weather-aware planning works and how to build a rhythm around it.
+→ Read more in the [outfit planner app guide](/blog/outfit-planner-app-guide) — how weather-aware planning works and how to build a rhythm around it.
 
 ---
 
@@ -156,7 +133,7 @@ There's a difference between colors that go with *each other* and colors that fl
 
 Our take: any color guidance about *you* should be **self-identified** — you tell us your undertones and the shades you feel great in, from swatches you choose — and it should be **advisory, never prescriptive.** We'll gently highlight pieces that align. We will never hide, block, or nag you about anything for being "off-palette." Your closet, your call. (We offer this as an optional beta, and it stays quiet unless you want it.)
 
-→ Read more about pairing and palettes in the [capsule wardrobe app guide](/capsule-wardrobe-app-guide) — building a small, cohesive wardrobe where nearly everything goes together.
+→ Read more about pairing and palettes in the [capsule wardrobe app guide](/blog/capsule-wardrobe-app-guide) — building a small, cohesive wardrobe where nearly everything goes together.
 
 ---
 
@@ -185,13 +162,13 @@ The physical taking-stock is an afternoon if you do it in one go, or fifteen min
 No. Organizing is about *visibility and access*, not volume. Decluttering can follow naturally once you can see what you never wear — but it's a consequence, not a prerequisite. Plenty of people keep a large wardrobe and simply use far more of it.
 
 **Is it safe to let an app scan my camera roll?**
-It depends entirely on *where the filtering happens.* The standard to insist on: photos are checked on your device first, and only the clothing photos you approve are ever uploaded. Intimate images and everything unrelated should never leave your phone. If an app can't clearly promise that, don't grant it access. [More on how to evaluate this here.](/how-to-digitize-your-closet)
+It depends entirely on *where the filtering happens.* The standard to insist on: photos are checked on your device first, and only the clothing photos you approve are ever uploaded. Intimate images and everything unrelated should never leave your phone. If an app can't clearly promise that, don't grant it access. [More on how to evaluate this here.](/blog/how-to-digitize-your-closet)
 
 **What's the difference between a capsule wardrobe and just organizing what I have?**
-Organizing makes your *whole* wardrobe usable. A capsule is a smaller, deliberately cohesive subset where nearly everything mixes. They're compatible — many people organize first, notice their real "greatest hits" through the wear log, and let a capsule emerge from that. See the [capsule wardrobe app guide](/capsule-wardrobe-app-guide).
+Organizing makes your *whole* wardrobe usable. A capsule is a smaller, deliberately cohesive subset where nearly everything mixes. They're compatible — many people organize first, notice their real "greatest hits" through the wear log, and let a capsule emerge from that. See the [capsule wardrobe app guide](/blog/capsule-wardrobe-app-guide).
 
 **Do I need an app at all?**
-Not strictly. Pen, paper, and discipline can do a lot. An app earns its place by removing the tedious parts — the photographing, the "is it clean," the remembering — so the system survives contact with a real, busy week. That's the case for a [premium closet app](/premium-closet-app) that works on day one rather than one more thing to maintain.
+Not strictly. Pen, paper, and discipline can do a lot. An app earns its place by removing the tedious parts — the photographing, the "is it clean," the remembering — so the system survives contact with a real, busy week. That's the case for a [premium closet app](/blog/premium-closet-app) that works on day one rather than one more thing to maintain.
 
 ---
 
