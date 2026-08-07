@@ -1,0 +1,48 @@
+# Supabase project config — Edge Functions deploy contract only. Every function
+# below sets `verify_jwt = false` because auth is owned by the HANDLER layer, not
+# the Supabase gateway:
+#   * the 8 user-JWT functions verify the caller's token against the asymmetric
+#     JWKS (JWKS_URL) inside withAuth — a stronger, no-shared-secret check than the
+#     gateway's symmetric verify. Leaving the gateway verify on would double-guard
+#     with a different (shared-secret) scheme and can reject a valid asymmetric JWT.
+#   * revenuecat-webhook has no end-user JWT at all — it authenticates a shared
+#     secret in constant time inside the handler.
+# The import map (npm: specifiers for pg/jose + the built @closet/* dist) is shared.
+
+project_id = "closet-app"
+
+[functions.wardrobe-list]
+verify_jwt = false
+import_map = "./import_map.json"
+
+[functions.wardrobe-availability]
+verify_jwt = false
+import_map = "./import_map.json"
+
+[functions.wardrobe-dedupe]
+verify_jwt = false
+import_map = "./import_map.json"
+
+[functions.outfits-create]
+verify_jwt = false
+import_map = "./import_map.json"
+
+[functions.outfits-list]
+verify_jwt = false
+import_map = "./import_map.json"
+
+[functions.wear-log]
+verify_jwt = false
+import_map = "./import_map.json"
+
+[functions.palette-upsert]
+verify_jwt = false
+import_map = "./import_map.json"
+
+[functions.parse-photo]
+verify_jwt = false
+import_map = "./import_map.json"
+
+[functions.revenuecat-webhook]
+verify_jwt = false
+import_map = "./import_map.json"

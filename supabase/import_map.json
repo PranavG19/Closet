@@ -1,0 +1,9 @@
+{
+  "imports": {
+    "pg": "npm:pg@8.13.1",
+    "jose": "npm:jose@6.2.8",
+    "@closet/shared": "../packages/shared/dist/index.js",
+    "@closet/db": "../packages/db/dist/index.js",
+    "@closet/functions/": "../packages/functions/dist/"
+  }
+}

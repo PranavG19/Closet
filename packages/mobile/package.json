@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "main": "index.ts",
   "scripts": {
     "build": "tsc --build",
     "start": "expo start --port 8081"
