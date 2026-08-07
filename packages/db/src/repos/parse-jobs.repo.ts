@@ -1,12 +1,39 @@
 // parse_jobs repo. Per-photo idempotent create + the atomic single-winner claim.
 // Every "did this happen" decision rides on a RETURNING row count, never a driver
 // rowcount (the executor exposes only { rows }).
-import type { ParseJobRow, CreateParseJobRequest } from '@closet/shared';
+import type { ParseJobRow, CreateParseJobRequest, WardrobeItemRow } from '@closet/shared';
 import type { QueryExecutor } from './index.js';
 
 const PROJECTION = `id, user_id, source_photo_hash, source_photo_path, kind, status,
   to_char(claimed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS claimed_at, error_reason,
   to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS updated_at`;
+
+// wardrobe_items projection — mirrors wardrobe.repo.ts EXACTLY (timestamptz->::text,
+// bigint phash->::text) so listItemsByJob rows satisfy WardrobeItemRow.
+const ITEM_PROJECTION = `id, user_id, category, color, pattern, attributes, availability,
+  cutout_path, parse_job_id, phash::text AS phash,
+  to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS updated_at`;
+
+// The garments a full/teaser parse produced, ready to persist. Carries no user_id
+// or parse_job_id — the repo stamps both from the caller-supplied args (identity is
+// never trusted from the payload), matching CreateWardrobeItemRequest's shape.
+export interface CommitItemInput {
+  readonly category: string;
+  readonly color: string | null;
+  readonly pattern: string | null;
+  readonly attributes: unknown;
+  readonly cutout_path: string | null;
+}
+
+export interface ResolveJobInput {
+  readonly source_photo_hash: string;
+  readonly source_photo_path: string;
+  readonly kind: CreateParseJobRequest['kind'];
+}
+
+export type ResolveJobResult =
+  | { readonly outcome: 'resolved'; readonly job: ParseJobRow }
+  | { readonly outcome: 'cap_reached'; readonly job: null };
 
 export interface ParseJobsRepo {
   // ON CONFLICT (user_id, source_photo_hash) DO NOTHING: null = photo already
@@ -17,6 +44,26 @@ export interface ParseJobsRepo {
   claim(userId: string, id: string): Promise<ParseJobRow | null>;
   getById(userId: string, id: string): Promise<ParseJobRow | null>;
   listByUser(userId: string): Promise<ParseJobRow[]>;
+  // Idempotent create with a teaser-count cap, serialized per user by a
+  // pg_advisory_xact_lock so count-then-insert can't race two connections past the
+  // cap. An already-submitted hash returns 'resolved' and does NOT count against the
+  // cap; kind='full' skips the cap entirely.
+  resolveJob(
+    userId: string,
+    input: ResolveJobInput,
+    teaserCap: number,
+  ): Promise<ResolveJobResult>;
+  // Persist a parse job's garments in ONE data-modifying CTE: delete this job's
+  // existing items first (so reprocessing a failed/processing job can't double the
+  // garments), re-insert, then flip status='done'. Returns the inserted count.
+  commit(
+    userId: string,
+    jobId: string,
+    items: readonly CommitItemInput[],
+  ): Promise<{ itemCount: number }>;
+  markFailed(userId: string, jobId: string, reason: string): Promise<void>;
+  listItemsByJob(userId: string, jobId: string): Promise<WardrobeItemRow[]>;
+  countTeaserJobs(userId: string): Promise<number>;
 }
 
 export function makeParseJobsRepo(exec: QueryExecutor): ParseJobsRepo {
@@ -60,6 +107,81 @@ export function makeParseJobsRepo(exec: QueryExecutor): ParseJobsRepo {
         [userId],
       );
       return rows;
+    },
+
+    async resolveJob(userId, input, teaserCap) {
+      // Serialize count-then-insert per user through the resolve_teaser_job plpgsql
+      // fn (migration 0012). A single CTE cannot do this: under READ COMMITTED the
+      // statement's snapshot is fixed BEFORE an in-CTE advisory lock is granted, so
+      // the cap-count reads a stale pre-lock snapshot and every racer inserts (the
+      // cap is blown). Inside plpgsql each statement re-snapshots after the lock, so
+      // lock -> count -> insert sees a prior racer's committed row. The fn returns
+      // the job id (existing photo = idempotent, does NOT count against the cap; new
+      // photo under cap = the inserted id) or NULL iff a NEW teaser photo hit the cap.
+      const resolved = await exec.query<{ id: string | null }>(
+        `SELECT public.resolve_teaser_job($1, $2, $3, $4, $5) AS id`,
+        [userId, input.source_photo_hash, input.source_photo_path, input.kind, teaserCap],
+      );
+      const jobId = resolved.rows[0]?.id ?? null;
+      if (jobId === null) return { outcome: 'cap_reached', job: null };
+
+      const readBack = await exec.query<ParseJobRow>(
+        `SELECT ${PROJECTION} FROM public.parse_jobs WHERE user_id = $1 AND id = $2`,
+        [userId, jobId],
+      );
+      const job = readBack.rows[0];
+      if (!job) return { outcome: 'cap_reached', job: null };
+      return { outcome: 'resolved', job };
+    },
+
+    async commit(userId, jobId, items) {
+      const { rows } = await exec.query<{ item_count: number }>(
+        `WITH del AS (
+           DELETE FROM public.wardrobe_items
+           WHERE user_id = $1 AND parse_job_id = $2
+         ), ins AS (
+           INSERT INTO public.wardrobe_items
+             (user_id, category, color, pattern, attributes, cutout_path, parse_job_id)
+           SELECT $1, x.category, x.color, x.pattern, x.attributes, x.cutout_path, $2
+           FROM jsonb_to_recordset($3::jsonb)
+             AS x(category text, color text, pattern text, attributes jsonb, cutout_path text)
+           RETURNING 1
+         )
+         UPDATE public.parse_jobs SET status = 'done'
+         WHERE user_id = $1 AND id = $2
+         RETURNING (SELECT count(*) FROM ins)::int AS item_count`,
+        [userId, jobId, JSON.stringify(items)],
+      );
+      const row = rows[0];
+      if (!row) throw new Error('commit: parse job not found or not owned');
+      return { itemCount: row.item_count };
+    },
+
+    async markFailed(userId, jobId, reason) {
+      await exec.query(
+        `UPDATE public.parse_jobs SET status = 'failed', error_reason = $3
+         WHERE user_id = $1 AND id = $2`,
+        [userId, jobId, reason],
+      );
+    },
+
+    async listItemsByJob(userId, jobId) {
+      const { rows } = await exec.query<WardrobeItemRow>(
+        `SELECT ${ITEM_PROJECTION} FROM public.wardrobe_items
+         WHERE user_id = $1 AND parse_job_id = $2
+         ORDER BY created_at, id`,
+        [userId, jobId],
+      );
+      return rows;
+    },
+
+    async countTeaserJobs(userId) {
+      const { rows } = await exec.query<{ n: number }>(
+        `SELECT count(*)::int AS n FROM public.parse_jobs
+         WHERE user_id = $1 AND kind = 'teaser'`,
+        [userId],
+      );
+      return rows[0]?.n ?? 0;
     },
   };
 }
