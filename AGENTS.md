@@ -16,7 +16,7 @@ Router only (≤~500 tokens). The module map is `manifest.json`, not here.
 ## STOP — human review (rule 5)
 
 Do not proceed autonomously when the change touches:
-- **Money / entitlement path** — subscriptions, RevenueCat webhook, paywall, StoreKit / Play Billing.
+- ~~Money / entitlement path~~ — **AUTONOMY GRANTED 2026-08-06** (see CLAUDE.md). The owner authorized building, verifying, committing, and merging the RevenueCat/entitlement path and all gates until explicitly revoked. Build it; keep the real-webhook verification bar. No longer a STOP item.
 - **Destructive migration** — DROP, TRUNCATE, narrowing ALTER TYPE, or any DDL without a tested down.
 - **The privacy gate** — anything that could cause a non-approved photo or body geometry to leave the device.
 - **Unobservable visual output** — a UI change you cannot verify by screenshot through the real simulator.
