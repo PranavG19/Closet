@@ -19,9 +19,9 @@ triggers from docs/04, and they are the human's 20%.
 | Specs (docs 00–06 + roadmap) | ✅ done, committed | — |
 | Monorepo scaffold + gates + hooks | ✅ done, committed, `verify:full` green | — |
 | Backend design + test taxonomy | ✅ done (docs 05/06) | — |
-| **Backend decomposition** | ▶ running (wf_3427de72-828, resumed after transient ENOTFOUND) | specs exist |
-| **SEO launch content** (pillar + 6 posts + landing copy) | ▶ running (wf_8b42ab5e-854) | needs only product story; **publish = human-gated** |
-| Backend **build** (wave 1: migrations + RLS + check-rls) | ⏳ queued | needs the wave plan from decomposition; then parallel worktrees, one-writer-per-file |
+| **Backend decomposition** | ✅ done (workflow stalled twice on Rule-1 overload → planned INLINE in tasks/WAVE-PLAN.md; 8 W1+W2 task files authored + committed) | — |
+| **SEO launch content** (pillar + 6 posts + landing copy) | ✅ done → `content/` (publish human-gated); self-critique in content/README.md | — |
+| Backend **build** W1 (packages/db) + W2 (packages/shared) | ▶ running (wf_b8de6bae-08a, 2 worktree agents) | task files exist; disjoint packages; real-Postgres + property oracles |
 | Frontend scaffold (Expo shell + `useTokens()`) | ⏳ queued | **collision:** writes `packages/mobile` + churns `pnpm-lock.yaml` — must NOT run while backend-build agents install deps. Sequence after wave-1 dep install settles. Visual taste = human. |
 | Endpoint/contract testing + the gauntlet build | ⛔ blocked | no endpoints exist yet — build them first |
 | Marketing-creator research + outreach drafts | ⚠️ partial | needs live web for real creator lists; drafting is doable, **sending = human-gated** |
