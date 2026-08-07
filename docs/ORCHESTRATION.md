@@ -28,6 +28,12 @@ triggers from docs/04, and they are the human's 20%.
 | Money/entitlement path (wave 5) | ⛔ human-gated | authored but parked for human review before ship (Rule 6) |
 | App Store assets / ASO | ⏳ later | needs real sim screenshots (frontend phase) |
 
+## Workflow authoring lessons (learned the hard way)
+
+1. **Author phases must WRITE their own task files to disk, not return strings.** The W3 workflow put author + build in one workflow; author agents returned markdown strings that the orchestrator writes to disk only *after the workflow ends* — but the in-workflow build agent started immediately and couldn't find 09a/11/13. Fix: an author agent should `Write` its file to `tasks/` itself (some did — 09b/10/12/14 — those were found; the string-returners weren't). For future waves: author agents write files; or split author (workflow 1)から build (workflow 2) so files are on disk + committed before any builder starts.
+2. **Build agents read task INPUTS from the main working-copy absolute path** (uncommitted-but-present is fine) and **write only inside their own worktree.** Never write into the main checkout from a worktree agent — the orchestrator integrates worktrees and two writers into main collide.
+3. **Rule-1 overload stalls agents.** One agent reading ~8 files + emitting a nested plan = 700k tokens, no progress. Plan coupled work inline; fan out only independent per-item authoring with patterns pre-extracted (docs/PATTERNS.md).
+
 ## Collision rules in force
 
 - **One `pnpm-lock.yaml` writer at a time.** Backend-build dep installs and the frontend
