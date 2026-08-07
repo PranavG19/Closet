@@ -45,6 +45,13 @@ export interface WearLogRepo {
 
 export function makeWearLogRepo(exec: QueryExecutor): WearLogRepo {
   const appendWear = async (args: AppendWearArgs): Promise<WearLogRow> => {
+    // The INSERT statement returns the row ONLY when this call won the insert; on a
+    // conflict (a duplicate client_id — the retry/jitter case) ON CONFLICT DO NOTHING
+    // yields no row. The flip-to-dirty happens ONLY here, gated on EXISTS(ins), so a
+    // duplicate never re-flips. (No in-statement fallback SELECT: under READ COMMITTED
+    // the loser's snapshot is taken before the winner commits, so a UNION-ALL fallback
+    // would see zero rows and 500 on truly-simultaneous taps. DO UPDATE isn't an option
+    // either — app_user has SELECT+INSERT only on this append-only moat, no UPDATE grant.)
     const { rows } = await exec.query<WearLogRow>(
       `WITH ins AS (
          INSERT INTO public.wear_log (user_id, item_id, outfit_id, client_id)
@@ -58,13 +65,21 @@ export function makeWearLogRepo(exec: QueryExecutor): WearLogRepo {
            AND EXISTS (SELECT 1 FROM ins)
          RETURNING 1
        )
-       SELECT ${COLS_PASSTHROUGH} FROM ins
-       UNION ALL
-       SELECT ${COLS} FROM public.wear_log
-       WHERE user_id = $1 AND client_id = $4 AND NOT EXISTS (SELECT 1 FROM ins)`,
+       SELECT ${COLS_PASSTHROUGH} FROM ins`,
       [args.userId, args.itemId, args.outfitId ?? null, args.clientId, args.flipToDirty],
     );
-    const row = rows[0];
+    const inserted = rows[0];
+    if (inserted) return inserted;
+
+    // Lost the insert race (duplicate client_id): the winner's row is committed. A
+    // FRESH query() is a new transaction with a new snapshot, so this SELECT sees it —
+    // making the append response-idempotent under simultaneous retries (F8), not just
+    // data-idempotent. SELECT-only, so the append-only grant matrix is unchanged.
+    const { rows: existing } = await exec.query<WearLogRow>(
+      `SELECT ${COLS} FROM public.wear_log WHERE user_id = $1 AND client_id = $2`,
+      [args.userId, args.clientId],
+    );
+    const row = existing[0];
     if (!row) throw new Error('wear_log append returned no canonical row');
     return row;
   };
