@@ -32,6 +32,7 @@ const STEPS = [
   { name: "gen:check", cmd: "node", args: ["scripts/gen-conventions.mjs", "--check"] },
   { name: "check-budget", cmd: "node", args: ["scripts/gates/check-budget.mjs"] },
   { name: "check-secrets", cmd: "node", args: ["scripts/gates/check-secrets.mjs"] },
+  { name: "check-definer-search-path", cmd: "node", args: ["scripts/gates/check-definer-search-path.mjs"] },
   { name: "typecheck", cmd: "pnpm", args: ["-w", "exec", "tsc", "--build"] },
   { name: "lint", cmd: "pnpm", args: ["-w", "exec", "eslint", "."] },
   // DB-backed structural gate — full only (self-boots Postgres via testcontainers).

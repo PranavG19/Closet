@@ -14,6 +14,13 @@
       "replaces": "manual 'does every tenant table have RLS FORCE' review — the sovereign-structural tenancy guarantee (docs/06 §3)",
       "tier": "structural",
       "weight": 0
+    },
+    {
+      "async": false,
+      "name": "check-definer-search-path",
+      "replaces": "manual 'does every SECURITY DEFINER fn pin search_path' review — closes the definer privilege-escalation vector (introduced by migration 0011 dedupe_keep_one)",
+      "tier": "structural",
+      "weight": 0
     }
   ],
   "generatedBy": "scripts/gen-conventions.mjs",

@@ -40,7 +40,8 @@
     "maxBudget": 6,
     "gates": [
       { "name": "check-secrets", "tier": "mechanical", "weight": 1, "async": false, "replaces": "manual secret review" },
-      { "name": "check-rls", "tier": "structural", "weight": 0, "async": false, "replaces": "manual 'does every tenant table have RLS FORCE' review — the sovereign-structural tenancy guarantee (docs/06 §3)" }
+      { "name": "check-rls", "tier": "structural", "weight": 0, "async": false, "replaces": "manual 'does every tenant table have RLS FORCE' review — the sovereign-structural tenancy guarantee (docs/06 §3)" },
+      { "name": "check-definer-search-path", "tier": "structural", "weight": 0, "async": false, "replaces": "manual 'does every SECURITY DEFINER fn pin search_path' review — closes the definer privilege-escalation vector (introduced by migration 0011 dedupe_keep_one)" }
     ]
   }
 }
