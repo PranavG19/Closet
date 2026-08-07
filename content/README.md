@@ -28,3 +28,30 @@ The eight workflow self-critique items below have been applied to the drafts (ed
 
 ## Verdict
 Solid, on-brand drafts overall — warm/confident voice holds, privacy on-device gate is described accurately everywhere (no privacy misstatements), no post promises try-on/shopping/social as shipping, and all metaDescriptions are within the 155-char limit. No high-severity defects. The real risks are structural rather than voice: (1) landing-page and premium-closet-app are near-duplicate product pages competing for the same intent, and the pillar duplicates the how-to-digitize three-methods comparison — both cannibalization risks; (2) internal links use inconsistent /blog vs no-prefix paths and one mis-anchored link, which will break the hub-and-spoke; (3) minor overclaim where 'digitized in seconds' reads as the whole closet rather than the teaser preview; (4) one low inclusivity nudge in the proportion/'lengthen the leg' styling advice to soften toward advisory. Fix the cannibalization pair, normalize link paths/canonicals, and trim the pillar's digitize section, then this set is publish-ready. **(Update 2026-08-07: all eight fixes above are now applied — see the "self-critique fixes (all APPLIED)" section. Remaining before publish: resolve the `[App Name]` token and run live keyword-volume validation.)**
+
+---
+
+## App Store + Play listing pack → `store/`
+
+Added 2026-08-07 (`docs/LAUNCH-READINESS.md` §7 step 10). See **`store/README.md`** for the file
+guide, the counted-character table, what is blocked and on whom, and the pre-submission checklist.
+
+- `store/app-store-listing.md` — App Store Connect field pack (every field labelled with its real
+  store limit and a counted length), category + age-rating recommendations, URLs.
+- `store/google-play-listing.md` — the Play equivalent; Play's real differences (full description is
+  indexed, 500-char release notes, 80-char short description, feature graphic, public web deletion URL).
+- `store/app-privacy-nutrition-label.md` — App Privacy + Play Data safety answers derived from
+  `docs/legal/privacy-policy.md`; names every third party, including the two that receive photos.
+- `store/aso-keyword-plan.md` — ranked keyword hypotheses + field mapping. **No volumes or difficulty
+  scores** (no keyword tool was available); §5 is the validation protocol; §6 cross-references the
+  blog targets above so the two channels don't collide.
+- `store/screenshot-plan.md` — the 8-frame shot list with counted captions. **A list, not assets:**
+  no screen has ever been rendered (`docs/LAUNCH-READINESS.md` §3).
+
+The store pack follows the same conventions as the drafts above — the single `{{CANONICAL_URL}}`
+token and the literal `[App Name]` token — and adds two constraints specific to it: the App Store
+name and subtitle fields are **30 characters each**, so the unknown real length of `[App Name]` makes
+every name-bearing count provisional; and the "screened on your device" line **cannot go live** until
+the on-device classifier exists and clears its recall floor (`docs/LAUNCH-READINESS.md` §3,
+`docs/legal/README.md` §3 tension T2). Counted fallback strings claiming only the approval tap are
+provided in each file.
