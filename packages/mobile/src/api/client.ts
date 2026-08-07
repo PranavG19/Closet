@@ -25,7 +25,14 @@ import {
   PaletteProfileRow,
   EntitlementResponse,
 } from '@closet/shared';
-import { WardrobeListResult, DedupeResolveResult, ParseResultResponse } from './schemas.js';
+import {
+  WardrobeListResult,
+  DedupeResolveResult,
+  ParseResultResponse,
+  DeleteAccountRequest,
+  DeleteAccountResult,
+  ExportDocument,
+} from './schemas.js';
 import { ROUTES, type RouteName } from './routes.js';
 import { loadConfig, type AppConfig } from './config.js';
 import { z } from 'zod';
@@ -198,6 +205,30 @@ export class ApiClient {
     return this.request('parsePhoto', (res) => parseBoundary(ParseResultResponse, res, 'parsePhoto'), {
       body,
     });
+  }
+
+  // --- account (self-service) ----------------------------------------------
+  // IRREVERSIBLE. `confirm` is typed as the literal 'DELETE' AND re-parsed through
+  // the .strict() request schema, so a wrong value throws SYNCHRONOUSLY — before any
+  // network call — rather than reaching the purge endpoint. Identity is the bearer's
+  // verified `sub`; there is deliberately no user-id argument, so "delete someone
+  // else's account" is not a representable call.
+  deleteAccount(confirm: 'DELETE'): Promise<DeleteAccountResult> {
+    const body = parseBoundary(DeleteAccountRequest, { confirm }, 'deleteAccount.request');
+    return this.request(
+      'deleteAccount',
+      (res) => parseBoundary(DeleteAccountResult, res, 'deleteAccount'),
+      { body },
+    );
+  }
+
+  // The GDPR Art. 15 subject-access document. Parsed through ExportDocument so a
+  // malformed export is a thrown error, not a half-typed JSON blob handed to a
+  // Share sheet as though it were complete.
+  exportMyData(): Promise<ExportDocument> {
+    return this.request('exportMyData', (res) =>
+      parseBoundary(ExportDocument, res, 'exportMyData'),
+    );
   }
 }
 

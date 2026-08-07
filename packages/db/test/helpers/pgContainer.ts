@@ -59,9 +59,26 @@ export async function startPg(): Promise<PgHarness> {
 
   await waitForAccepting(pool);
 
+  // Teardown-only error sink. Stopping the container makes Postgres send 57P01
+  // ("terminating connection due to administrator command") to any connection the
+  // pool has not finished closing. pg re-emits that as a pool 'error' event with no
+  // listener, so it surfaced as an UNHANDLED exception that failed the whole run
+  // even though every assertion passed — observed intermittently (~1 run in 2)
+  // under the parallel integration project, and it migrated between test files,
+  // which is what proved it teardown-generic rather than any one suite's bug.
+  //
+  // The guard is deliberately narrow: it swallows errors ONLY after stop() has
+  // begun. Before that, `stopping` is false and the error is re-thrown, so a real
+  // mid-test connection failure still fails the test loudly.
+  let stopping = false;
+  pool.on('error', (error: Error) => {
+    if (!stopping) throw error;
+  });
+
   return {
     pool,
     async stop(): Promise<void> {
+      stopping = true;
       await pool.end();
       await container.stop();
     },

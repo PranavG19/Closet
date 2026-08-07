@@ -21,7 +21,13 @@ import type {
   PaletteProfileRow,
   EntitlementResponse,
 } from '@closet/shared';
-import type { WardrobeListResult, DedupeResolveResult, ParseResultResponse } from './schemas.js';
+import type {
+  WardrobeListResult,
+  DedupeResolveResult,
+  ParseResultResponse,
+  DeleteAccountResult,
+  ExportDocument,
+} from './schemas.js';
 import type { ListWardrobeParams, DedupeResolveParams, ApiClient } from './client.js';
 import { useApiClient } from './ApiProvider.js';
 
@@ -117,6 +123,34 @@ export function useParsePhoto(): UseMutationResult<ParseResultResponse, Error, C
     mutationFn: (request: CreateParseJobRequest) => client.parsePhoto(request),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['wardrobe'] });
+    },
+  });
+}
+
+// --- account (self-service) -------------------------------------------------
+// The export is a MUTATION, not a useQuery: it must fire only when she taps
+// "Export my data". As a query it would auto-fetch on mount (and refetch on focus),
+// pulling her entire wardrobe history down every time the Account tab is opened.
+export function useExportMyData(): UseMutationResult<ExportDocument, Error, void> {
+  const client = useApiClient();
+  return useMutation({ mutationFn: () => client.exportMyData() });
+}
+
+// IRREVERSIBLE. `retry: 0` is deliberate: react-query's default retry would re-POST
+// the purge after a timeout whose request may well have SUCCEEDED server-side, and
+// the second call would 500 on an already-emptied account — turning a completed
+// deletion into a scary error. One attempt; she re-taps if it genuinely failed.
+//
+// On success the whole cache is cleared before sign-out, so no wardrobe page from
+// the deleted account can be re-rendered from cache by the next user on the device.
+export function useDeleteAccount(): UseMutationResult<DeleteAccountResult, Error, 'DELETE'> {
+  const client = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    retry: 0,
+    mutationFn: (confirm: 'DELETE') => client.deleteAccount(confirm),
+    onSuccess: () => {
+      qc.clear();
     },
   });
 }

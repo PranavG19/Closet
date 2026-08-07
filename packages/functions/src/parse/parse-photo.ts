@@ -24,6 +24,7 @@ import { z } from 'zod';
 import type { AuthedHandler } from '../auth/withAuth.js';
 import { jsonResponse, errorResponse, errorFromThrown } from '../auth/respond.js';
 import { logger } from '../auth/logger.js';
+import { makeProviderPorts } from '../adapters/index.js';
 import { TEASER_JOB_CAP } from './teaser-cap.js';
 
 // Success body — composed from the shared row schemas (no new row schema authored;
@@ -147,13 +148,9 @@ export function makeParsePhoto(providePorts: ProvidePorts): AuthedHandler {
   };
 }
 
-// Production port provider. Real GPT-4o / Photoroom adapters (secret handling via
-// envValue, per-call timeout, bounded concurrency) are a SEPARATE adapter task
-// (docs/06 §5), not built here — until they land this throws, surfacing as the
-// req-9 failure path (502 parse_provider_failed) rather than untyped data into the
-// domain. See the Deno-shim / adapter follow-up.
-function unwiredPorts(): ParsePorts {
-  throw new Error('parse-photo provider adapters are not wired in this build');
-}
-
-export const parsePhoto: AuthedHandler = makeParsePhoto(unwiredPorts);
+// Production port provider. makeProviderPorts builds the REAL GPT-4o / Photoroom
+// adapters (secret handling via requireEnv, per-call timeout + bounded retry,
+// parse-don't-cast at the vendor boundary). A missing key or a garbage vendor
+// payload throws on the provider call, surfacing as the req-9 failure path (502
+// parse_provider_failed) rather than untyped data into the domain (docs/06 §5).
+export const parsePhoto: AuthedHandler = makeParsePhoto(makeProviderPorts);
