@@ -1,0 +1,132 @@
+[
+  {
+    "category": "top",
+    "cutout": {
+      "aspectRatioBucket": "portrait",
+      "hasAlpha": true
+    },
+    "formality": "casual",
+    "id": "g01",
+    "material": "linen",
+    "pattern": "solid",
+    "primaryColor": "#ffffff",
+    "season": "summer"
+  },
+  {
+    "category": "bottom",
+    "cutout": {
+      "aspectRatioBucket": "portrait",
+      "hasAlpha": true
+    },
+    "formality": "smart-casual",
+    "id": "g02",
+    "material": "denim",
+    "pattern": "striped",
+    "primaryColor": "#1a1a2e",
+    "season": "autumn"
+  },
+  {
+    "category": "dress",
+    "cutout": {
+      "aspectRatioBucket": "portrait",
+      "hasAlpha": true
+    },
+    "formality": "formal",
+    "id": "g03",
+    "material": "silk",
+    "pattern": "floral",
+    "primaryColor": "#c81e5a",
+    "season": "spring"
+  },
+  {
+    "category": "outerwear",
+    "cutout": {
+      "aspectRatioBucket": "portrait",
+      "hasAlpha": true
+    },
+    "formality": "casual",
+    "id": "g04",
+    "material": "wool",
+    "pattern": "solid",
+    "primaryColor": "#2e2e2e",
+    "season": "winter"
+  },
+  {
+    "category": "shoes",
+    "cutout": {
+      "aspectRatioBucket": "landscape",
+      "hasAlpha": true
+    },
+    "formality": "smart-casual",
+    "id": "g05",
+    "material": "leather",
+    "pattern": "solid",
+    "primaryColor": "#8b4513",
+    "season": "all-season"
+  },
+  {
+    "category": "accessory",
+    "cutout": {
+      "aspectRatioBucket": "square",
+      "hasAlpha": true
+    },
+    "formality": "formal",
+    "id": "g06",
+    "material": "metal",
+    "pattern": "graphic",
+    "primaryColor": "#d4af37",
+    "season": "all-season"
+  },
+  {
+    "category": "top",
+    "cutout": {
+      "aspectRatioBucket": "portrait",
+      "hasAlpha": true
+    },
+    "formality": "casual",
+    "id": "g07",
+    "material": "cotton",
+    "pattern": "checked",
+    "primaryColor": "#4169e1",
+    "season": "spring"
+  },
+  {
+    "category": "bottom",
+    "cutout": {
+      "aspectRatioBucket": "portrait",
+      "hasAlpha": true
+    },
+    "formality": "casual",
+    "id": "g08",
+    "material": "cotton",
+    "pattern": "solid",
+    "primaryColor": "#556b2f",
+    "season": "summer"
+  },
+  {
+    "category": "dress",
+    "cutout": {
+      "aspectRatioBucket": "portrait",
+      "hasAlpha": true
+    },
+    "formality": "formal",
+    "id": "g09",
+    "material": "velvet",
+    "pattern": "solid",
+    "primaryColor": "#000000",
+    "season": "winter"
+  },
+  {
+    "category": "accessory",
+    "cutout": {
+      "aspectRatioBucket": "square",
+      "hasAlpha": true
+    },
+    "formality": "casual",
+    "id": "g10",
+    "material": "canvas",
+    "pattern": "other",
+    "primaryColor": "#ff6347",
+    "season": "summer"
+  }
+]

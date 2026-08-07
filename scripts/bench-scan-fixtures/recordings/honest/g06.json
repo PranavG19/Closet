@@ -1,0 +1,18 @@
+{
+  "id": "g06",
+  "vision": {
+    "category": "accessory",
+    "primaryColor": "#d4af37",
+    "secondaryColors": [],
+    "material": "metal",
+    "pattern": "graphic",
+    "formality": "formal",
+    "season": "all-season"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g06.png",
+    "hasAlpha": true,
+    "width": 1200,
+    "height": 1200
+  }
+}

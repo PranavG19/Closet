@@ -1,0 +1,62 @@
+{
+  "floors": {
+    "aggregate": 0.75,
+    "category": 0.7,
+    "cutout": 0.7,
+    "formality": 0.7,
+    "pattern": 0.7,
+    "primaryColor": 0.7,
+    "season": 0.7
+  },
+  "replay": {
+    "aggregate": 0.9,
+    "misses": [
+      {
+        "actual": "solid",
+        "attribute": "pattern",
+        "expected": "striped",
+        "id": "g02"
+      },
+      {
+        "actual": "casual",
+        "attribute": "formality",
+        "expected": "smart-casual",
+        "id": "g02"
+      },
+      {
+        "actual": "gray",
+        "attribute": "primaryColor",
+        "expected": "brown",
+        "id": "g05"
+      },
+      {
+        "actual": "summer",
+        "attribute": "season",
+        "expected": "all-season",
+        "id": "g05"
+      },
+      {
+        "actual": "solid",
+        "attribute": "pattern",
+        "expected": "checked",
+        "id": "g07"
+      },
+      {
+        "actual": "shoes",
+        "attribute": "category",
+        "expected": "accessory",
+        "id": "g10"
+      }
+    ],
+    "n": 10,
+    "perAttribute": {
+      "category": 0.9,
+      "cutout": 1,
+      "formality": 0.9,
+      "pattern": 0.8,
+      "primaryColor": 0.9,
+      "season": 0.9
+    }
+  },
+  "sourceFingerprint": "6f99831a30b2cf2ec8a50249e7f96ea758159fa4ec533cf039a040c6c1742630"
+}

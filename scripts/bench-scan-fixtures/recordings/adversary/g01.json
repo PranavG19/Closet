@@ -1,0 +1,18 @@
+{
+  "id": "g01",
+  "vision": {
+    "category": "bottom",
+    "primaryColor": "#000000",
+    "secondaryColors": [],
+    "material": "linen",
+    "pattern": "striped",
+    "formality": "smart-casual",
+    "season": "autumn"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g01.png",
+    "hasAlpha": false,
+    "width": 1600,
+    "height": 1200
+  }
+}

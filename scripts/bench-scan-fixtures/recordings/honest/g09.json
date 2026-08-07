@@ -1,0 +1,18 @@
+{
+  "id": "g09",
+  "vision": {
+    "category": "dress",
+    "primaryColor": "#000000",
+    "secondaryColors": [],
+    "material": "velvet",
+    "pattern": "solid",
+    "formality": "formal",
+    "season": "winter"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g09.png",
+    "hasAlpha": true,
+    "width": 1200,
+    "height": 1600
+  }
+}

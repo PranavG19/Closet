@@ -1,0 +1,18 @@
+{
+  "id": "g03",
+  "vision": {
+    "category": "dress",
+    "primaryColor": "#c81e5a",
+    "secondaryColors": [],
+    "material": "silk",
+    "pattern": "floral",
+    "formality": "formal",
+    "season": "spring"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g03.png",
+    "hasAlpha": true,
+    "width": 1200,
+    "height": 1600
+  }
+}

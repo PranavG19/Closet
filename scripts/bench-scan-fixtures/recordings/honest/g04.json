@@ -1,0 +1,18 @@
+{
+  "id": "g04",
+  "vision": {
+    "category": "outerwear",
+    "primaryColor": "#2e2e2e",
+    "secondaryColors": [],
+    "material": "wool",
+    "pattern": "solid",
+    "formality": "casual",
+    "season": "winter"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g04.png",
+    "hasAlpha": true,
+    "width": 1200,
+    "height": 1600
+  }
+}

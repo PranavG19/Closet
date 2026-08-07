@@ -1,0 +1,18 @@
+{
+  "id": "g07",
+  "vision": {
+    "category": "top",
+    "primaryColor": "#4169e1",
+    "secondaryColors": [],
+    "material": "cotton",
+    "pattern": "solid",
+    "formality": "casual",
+    "season": "spring"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g07.png",
+    "hasAlpha": true,
+    "width": 1200,
+    "height": 1600
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "id": "g05",
+  "vision": {
+    "category": "accessory",
+    "primaryColor": "#ffffff",
+    "secondaryColors": [],
+    "material": "leather",
+    "pattern": "striped",
+    "formality": "formal",
+    "season": "spring"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g05.png",
+    "hasAlpha": false,
+    "width": 1200,
+    "height": 1600
+  }
+}

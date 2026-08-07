@@ -1,0 +1,18 @@
+{
+  "id": "g07",
+  "vision": {
+    "category": "bottom",
+    "primaryColor": "#000000",
+    "secondaryColors": [],
+    "material": "cotton",
+    "pattern": "floral",
+    "formality": "smart-casual",
+    "season": "summer"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g07.png",
+    "hasAlpha": false,
+    "width": 1600,
+    "height": 1200
+  }
+}

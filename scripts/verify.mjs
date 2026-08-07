@@ -40,6 +40,12 @@ const STEPS = [
   // Tests: unit runs in both modes (fast, pure); integration is full only (real Postgres).
   { name: "test:unit", cmd: "pnpm", args: ["-w", "exec", "vitest", "run", "--project", "unit"] },
   { name: "test:integration", cmd: "pnpm", args: ["-w", "exec", "vitest", "run", "--project", "integration"], full: true },
+  // Parse-quality replay oracle (docs/05 Tier-1 bench-scan): keyless, byte-deterministic,
+  // ~0.1s. Runs on every merge (full) — needs packages/shared/dist, built by typecheck above.
+  // NOT a budgeted gate: it is a test-class check (a corpus scored against pinned floors),
+  // not a structural/mechanical commit-gate, so it does not count against the Rule-5 ceiling.
+  // The adversary + differential tiers run nightly (cost/latency), not here.
+  { name: "bench-scan:replay", cmd: "node", args: ["scripts/bench-scan.mjs", "--tier=replay"], full: true },
   // ── added with their subsystems (kept as a checklist, commented until live) ──
   // { name: "check-route-schema", cmd: "node", args: ["scripts/gates/check-route-schema.mjs"] },
   // { name: "check-unbounded-select", cmd: "node", args: ["scripts/gates/check-unbounded-select.mjs"] },

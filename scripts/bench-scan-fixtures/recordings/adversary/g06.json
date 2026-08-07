@@ -1,0 +1,18 @@
+{
+  "id": "g06",
+  "vision": {
+    "category": "top",
+    "primaryColor": "#000000",
+    "secondaryColors": [],
+    "material": "metal",
+    "pattern": "other",
+    "formality": "casual",
+    "season": "spring"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g06.png",
+    "hasAlpha": false,
+    "width": 1200,
+    "height": 1200
+  }
+}

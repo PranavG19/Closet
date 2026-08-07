@@ -1,0 +1,205 @@
+{
+  "images": [
+    {
+      "id": "g01",
+      "width": 1200,
+      "height": 1600,
+      "sha256": "deadbeefg01"
+    },
+    {
+      "id": "g02",
+      "width": 1200,
+      "height": 1600,
+      "sha256": "deadbeefg02"
+    },
+    {
+      "id": "g03",
+      "width": 1200,
+      "height": 1600,
+      "sha256": "deadbeefg03"
+    },
+    {
+      "id": "g04",
+      "width": 1200,
+      "height": 1600,
+      "sha256": "deadbeefg04"
+    },
+    {
+      "id": "g05",
+      "width": 1600,
+      "height": 1200,
+      "sha256": "deadbeefg05"
+    },
+    {
+      "id": "g06",
+      "width": 1200,
+      "height": 1200,
+      "sha256": "deadbeefg06"
+    },
+    {
+      "id": "g07",
+      "width": 1200,
+      "height": 1600,
+      "sha256": "deadbeefg07"
+    },
+    {
+      "id": "g08",
+      "width": 1200,
+      "height": 1600,
+      "sha256": "deadbeefg08"
+    },
+    {
+      "id": "g09",
+      "width": 1200,
+      "height": 1600,
+      "sha256": "deadbeefg09"
+    },
+    {
+      "id": "g10",
+      "width": 1200,
+      "height": 1200,
+      "sha256": "deadbeefg10"
+    }
+  ],
+  "labels": [
+    {
+      "id": "g01",
+      "category": "top",
+      "primaryColor": "#ffffff",
+      "pattern": "solid",
+      "formality": "casual",
+      "season": "summer",
+      "material": "linen",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "portrait"
+      }
+    },
+    {
+      "id": "g02",
+      "category": "bottom",
+      "primaryColor": "#1a1a2e",
+      "pattern": "striped",
+      "formality": "smart-casual",
+      "season": "autumn",
+      "material": "denim",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "portrait"
+      }
+    },
+    {
+      "id": "g03",
+      "category": "dress",
+      "primaryColor": "#c81e5a",
+      "pattern": "floral",
+      "formality": "formal",
+      "season": "spring",
+      "material": "silk",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "portrait"
+      }
+    },
+    {
+      "id": "g04",
+      "category": "outerwear",
+      "primaryColor": "#2e2e2e",
+      "pattern": "solid",
+      "formality": "casual",
+      "season": "winter",
+      "material": "wool",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "portrait"
+      }
+    },
+    {
+      "id": "g05",
+      "category": "shoes",
+      "primaryColor": "#8b4513",
+      "pattern": "solid",
+      "formality": "smart-casual",
+      "season": "all-season",
+      "material": "leather",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "landscape"
+      }
+    },
+    {
+      "id": "g06",
+      "category": "accessory",
+      "primaryColor": "#d4af37",
+      "pattern": "graphic",
+      "formality": "formal",
+      "season": "all-season",
+      "material": "metal",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "square"
+      }
+    },
+    {
+      "id": "g07",
+      "category": "top",
+      "primaryColor": "#4169e1",
+      "pattern": "checked",
+      "formality": "casual",
+      "season": "spring",
+      "material": "cotton",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "portrait"
+      }
+    },
+    {
+      "id": "g08",
+      "category": "bottom",
+      "primaryColor": "#556b2f",
+      "pattern": "solid",
+      "formality": "casual",
+      "season": "summer",
+      "material": "cotton",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "portrait"
+      }
+    },
+    {
+      "id": "g09",
+      "category": "dress",
+      "primaryColor": "#000000",
+      "pattern": "solid",
+      "formality": "formal",
+      "season": "winter",
+      "material": "velvet",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "portrait"
+      }
+    },
+    {
+      "id": "g10",
+      "category": "accessory",
+      "primaryColor": "#ff6347",
+      "pattern": "other",
+      "formality": "casual",
+      "season": "summer",
+      "material": "canvas",
+      "cutout": {
+        "hasAlpha": true,
+        "aspectRatioBucket": "square"
+      }
+    }
+  ],
+  "floors": {
+    "category": 0.7,
+    "primaryColor": 0.7,
+    "pattern": 0.7,
+    "formality": 0.7,
+    "season": 0.7,
+    "cutout": 0.7,
+    "aggregate": 0.75
+  }
+}

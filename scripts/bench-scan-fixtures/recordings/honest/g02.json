@@ -1,0 +1,18 @@
+{
+  "id": "g02",
+  "vision": {
+    "category": "bottom",
+    "primaryColor": "#1a1a2e",
+    "secondaryColors": [],
+    "material": "denim",
+    "pattern": "solid",
+    "formality": "casual",
+    "season": "autumn"
+  },
+  "cutout": {
+    "imageUrl": "cutouts/g02.png",
+    "hasAlpha": true,
+    "width": 1200,
+    "height": 1600
+  }
+}
