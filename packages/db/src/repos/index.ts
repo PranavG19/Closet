@@ -23,3 +23,4 @@ export * from './subscriptions.repo.js';
 export * from './webhook-events.repo.js';
 export * from './account.repo.js';
 export * from './export.repo.js';
+export * from './rate-limit.repo.js';

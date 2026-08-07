@@ -24,8 +24,17 @@ import { z } from 'zod';
 import type { AuthedHandler } from '../auth/withAuth.js';
 import { jsonResponse, errorResponse, errorFromThrown } from '../auth/respond.js';
 import { logger } from '../auth/logger.js';
+import { envValue } from '../auth/env.js';
 import { makeProviderPorts } from '../adapters/index.js';
 import { TEASER_JOB_CAP } from './teaser-cap.js';
+import {
+  PARSE_SPEND_BUCKET,
+  dbSpendLimiter,
+  parseRateLimitConfig,
+  rateLimitedResponse,
+  unthrottledSpendLimiter,
+  type ProvideSpendLimiter,
+} from './rate-limit.js';
 
 // Success body — composed from the shared row schemas (no new row schema authored;
 // this task cannot touch @closet/shared). parseBoundary validates it on the way
@@ -77,7 +86,14 @@ function toItem(vision: AIVisionResult, cutout: CutoutResult): CommitItemInput {
 // The handler is built over a port provider so the test injects fakes. The
 // exported `parsePhoto` binds the production provider; a test builds its own via
 // makeParsePhoto(fakeProvider) — the SAME code path, only the ports differ.
-export function makeParsePhoto(providePorts: ProvidePorts): AuthedHandler {
+export function makeParsePhoto(
+  providePorts: ProvidePorts,
+  // The provider-spend throttle seam. The production export below binds the real
+  // (DB-backed, fail-closed) limiter; the default keeps the pre-existing parse
+  // oracles — which assert claim/cap/entitlement behaviour, not rate behaviour —
+  // running unthrottled so a 429 never masks what they measure.
+  provideLimiter: ProvideSpendLimiter = unthrottledSpendLimiter,
+): AuthedHandler {
   return async (req, { userId, exec, correlationId, accessToken }) => {
     try {
       const body: unknown = await req.json();
@@ -95,6 +111,27 @@ export function makeParsePhoto(providePorts: ProvidePorts): AuthedHandler {
         if (entitlement_active !== true) {
           return errorResponse(402, 'entitlement_required', 'An active subscription is required for a full parse.');
         }
+      }
+
+      // 1b. Provider-spend throttle — keyed on `userId` (the verified JWT sub) and
+      //    NOTHING else; the body carries no identity (.strict()). It sits AFTER the
+      //    entitlement gate (a 402 can never reach a provider, so it must not burn
+      //    the caller's budget) and BEFORE resolveJob, because resolveJob is the
+      //    first statement that WRITES: past it a refusal would consume a teaser-cap
+      //    slot and strand a pending/processing row. Here a 429 costs zero provider
+      //    dollars, zero cap, and zero rows. The cost: an idempotent replay of an
+      //    already-done photo also spends a token — accepted, since moving the guard
+      //    below the replay short-circuit would require doing the write first.
+      const rate = parseRateLimitConfig(envValue);
+      const decision = await provideLimiter(exec).consume({
+        userId,
+        bucket: PARSE_SPEND_BUCKET,
+        limit: rate.limit,
+        windowSeconds: rate.windowSeconds,
+      });
+      if (!decision.allowed) {
+        logger.warn({ correlationId, event: 'parse.rate_limited', limit: rate.limit });
+        return rateLimitedResponse(decision.retryAfterSeconds);
       }
 
       // 2. Idempotent job resolve + atomic teaser cap (teaser only, inside the
@@ -169,4 +206,9 @@ export function makeParsePhoto(providePorts: ProvidePorts): AuthedHandler {
 // missing key or a garbage vendor payload throws on the provider call, surfacing as
 // the req-9 failure path (502 parse_provider_failed) rather than untyped data into
 // the domain (docs/06 §5).
-export const parsePhoto: AuthedHandler = makeParsePhoto(makeProviderPorts);
+// The spend limiter is the REAL DB-backed one (migration 0015's consume_rate_token
+// via the @closet/db repo, under the caller's own RLS context). Limits come from
+// envValue with defaults, so a missing env tightens to the default rather than
+// disabling the throttle — a missing env must never serve an unthrottled paid
+// endpoint.
+export const parsePhoto: AuthedHandler = makeParsePhoto(makeProviderPorts, dbSpendLimiter);
