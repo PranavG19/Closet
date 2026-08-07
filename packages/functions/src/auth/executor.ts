@@ -25,6 +25,39 @@ export interface Sql {
   connect(): Promise<SqlConnection>;
 }
 
+// makeServiceExecutor — the ONLY sanctioned RLS-bypass seam in the codebase.
+// Same one-tx-per-query() shape as makePgExecutor, but it deliberately does NOT
+// `SET LOCAL ROLE app_user` and binds NO sub: every statement runs as the injected
+// connection's OWN identity (the service_role in production, the RLS-exempt
+// container superuser in tests — the test harness's superuser executor is the
+// analog). That RLS-exempt identity is what lets `applyEvent`/`record` write the
+// money + ledger tables that app_user has no grant on.
+//
+// This is a SYSTEM-JOB seam only — the revenuecat-webhook (there is no end-user in
+// that request) and, later, the parse worker. It is NEVER used on a user request:
+// a user request carries a verified JWT sub and MUST go through makePgExecutor so
+// RLS confines it. Because the pool is already the service_role, no `SET LOCAL
+// ROLE` is issued — setting no role runs as the connection's identity in both
+// runtimes; atomicity stays inside the single repo statement (one tx per query).
+export function makeServiceExecutor(sql: Sql): QueryExecutor {
+  return {
+    async query<Row = unknown>(text: string, params?: readonly unknown[]): Promise<{ rows: Row[] }> {
+      const conn = await sql.connect();
+      try {
+        await conn.query('BEGIN');
+        const result = await conn.query<Row>(text, params ? [...params] : undefined);
+        await conn.query('COMMIT');
+        return { rows: result.rows };
+      } catch (error) {
+        await conn.query('ROLLBACK').catch(() => undefined);
+        throw error;
+      } finally {
+        conn.release();
+      }
+    },
+  };
+}
+
 // The sub is bound via set_config($1,$2,true) — a parameter, never string
 // interpolation, so a hostile sub cannot break out of the claim value. The role
 // name is a fixed literal (`app_user`); it is never derived from input.
