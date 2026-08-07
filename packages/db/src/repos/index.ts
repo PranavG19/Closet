@@ -21,3 +21,5 @@ export * from './wear-log.repo.js';
 export * from './palette.repo.js';
 export * from './subscriptions.repo.js';
 export * from './webhook-events.repo.js';
+export * from './account.repo.js';
+export * from './export.repo.js';
