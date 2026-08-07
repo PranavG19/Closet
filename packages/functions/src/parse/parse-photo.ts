@@ -48,7 +48,14 @@ export interface ParsePorts {
   readonly vision: AIVisionPort;
   readonly cutout: CutoutPort;
 }
-export type ProvidePorts = () => ParsePorts;
+
+// The cutout port must upload bytes AS THE CALLER (Storage RLS binds auth.uid()), so
+// the provider is handed the caller's verified token to build that port with. A test
+// fake ignores the argument — `() => fakePorts` stays assignable.
+export interface PortsRequestContext {
+  readonly accessToken: string;
+}
+export type ProvidePorts = (ctx: PortsRequestContext) => ParsePorts;
 
 // Map the Zod-validated provider results into a single garment row. phash is
 // on-device-only and stays null on the server path (the repo omits it).
@@ -71,7 +78,7 @@ function toItem(vision: AIVisionResult, cutout: CutoutResult): CommitItemInput {
 // exported `parsePhoto` binds the production provider; a test builds its own via
 // makeParsePhoto(fakeProvider) — the SAME code path, only the ports differ.
 export function makeParsePhoto(providePorts: ProvidePorts): AuthedHandler {
-  return async (req, { userId, exec, correlationId }) => {
+  return async (req, { userId, exec, correlationId, accessToken }) => {
     try {
       const body: unknown = await req.json();
       const request = parseBoundary(CreateParseJobRequest, body, 'parse.request');
@@ -127,9 +134,16 @@ export function makeParsePhoto(providePorts: ProvidePorts): AuthedHandler {
       //    commit deletes partials first, a later resubmit cleanly reprocesses.
       let items: readonly CommitItemInput[];
       try {
-        const ports = providePorts();
+        const ports = providePorts({ accessToken });
         const vision = await ports.vision.extractAttributes({ imageUrl: claimed.source_photo_path });
-        const cutout = await ports.cutout.removeBackground({ imageUrl: claimed.source_photo_path });
+        // userId is the verified JWT sub and claimed.id is the row THIS request won
+        // the claim on — the cutout's Storage path is composed from these (never from
+        // the request body), so it lands under the caller's own RLS-permitted prefix.
+        const cutout = await ports.cutout.removeBackground({
+          imageUrl: claimed.source_photo_path,
+          userId,
+          parseJobId: claimed.id,
+        });
         items = [toItem(vision, cutout)];
       } catch {
         await parseJobs.markFailed(userId, claimed.id, PROVIDER_FAILURE_REASON);
@@ -150,7 +164,9 @@ export function makeParsePhoto(providePorts: ProvidePorts): AuthedHandler {
 
 // Production port provider. makeProviderPorts builds the REAL GPT-4o / Photoroom
 // adapters (secret handling via requireEnv, per-call timeout + bounded retry,
-// parse-don't-cast at the vendor boundary). A missing key or a garbage vendor
-// payload throws on the provider call, surfacing as the req-9 failure path (502
-// parse_provider_failed) rather than untyped data into the domain (docs/06 §5).
+// parse-don't-cast at the vendor boundary) with the cutout wired to the REAL Supabase
+// Storage writer, uploading as the caller so Storage RLS confines the write. A
+// missing key or a garbage vendor payload throws on the provider call, surfacing as
+// the req-9 failure path (502 parse_provider_failed) rather than untyped data into
+// the domain (docs/06 §5).
 export const parsePhoto: AuthedHandler = makeParsePhoto(makeProviderPorts);

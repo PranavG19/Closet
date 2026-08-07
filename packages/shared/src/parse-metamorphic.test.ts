@@ -196,6 +196,14 @@ function makeIdempotentCutoutPort(): CutoutPort {
   };
 }
 
+// Identity scope for the port calls below. The idempotence relation is a property of
+// the cutout TRANSFORM, so both passes run under the SAME owner/job — varying them
+// would change the composed path and stop testing idempotence.
+const CUT_SCOPE = {
+  userId: '33333333-3333-4333-8333-333333333333',
+  parseJobId: '44444444-4444-4444-8444-444444444444',
+} as const;
+
 describe('CutoutPort idempotence: cut(cut(x)) is a near-identity of cut(x)', () => {
   it('pure relation: second pass preserves alpha and geometry within tolerance', () => {
     fc.assert(
@@ -218,12 +226,12 @@ describe('CutoutPort idempotence: cut(cut(x)) is a near-identity of cut(x)', () 
     const port = makeIdempotentCutoutPort();
     const first = parseBoundary(
       CutoutResultSchema,
-      await port.removeBackground({ imageUrl: 'approved/original.jpg' }),
+      await port.removeBackground({ imageUrl: 'approved/original.jpg', ...CUT_SCOPE }),
       'cutout.first',
     );
     const second = parseBoundary(
       CutoutResultSchema,
-      await port.removeBackground({ imageUrl: first.imageUrl }),
+      await port.removeBackground({ imageUrl: first.imageUrl, ...CUT_SCOPE }),
       'cutout.second',
     );
     expect(first.hasAlpha).toBe(true);

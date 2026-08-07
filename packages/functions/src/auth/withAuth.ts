@@ -21,6 +21,15 @@ export interface AuthContext {
   readonly exec: QueryExecutor;
   // Opaque id threaded through structured logs for one request.
   readonly correlationId: string;
+  // The caller's own VERIFIED bearer token, carried so a handler can act as the
+  // caller against Supabase Storage's HTTP API — where authority comes from the JWT
+  // and `auth.uid()` is what the Storage RLS policies bind (migration 0013). The
+  // alternative was a service_role key, which BYPASSES those policies and would let
+  // a path-composition bug write into another tenant's prefix; carrying the user's
+  // token keeps the write fail-closed under the real control. It is NOT an identity
+  // source — tenant identity is `userId` (the verified sub) and nothing else. Never
+  // log it and never forward it anywhere but Supabase.
+  readonly accessToken: string;
 }
 
 export type AuthedHandler = (req: Request, ctx: AuthContext) => Promise<Response>;
@@ -95,7 +104,8 @@ export function withAuth(handler: AuthedHandler, deps: WithAuthDeps): (req: Requ
       return unauthorized();
     }
     const exec = deps.makeExecutor(userId);
-    return handler(req, { userId, exec, correlationId });
+    // `token` is the same string that just passed verification above.
+    return handler(req, { userId, exec, correlationId, accessToken: token });
   };
 }
 

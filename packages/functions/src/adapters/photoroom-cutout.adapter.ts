@@ -5,14 +5,13 @@
 // parseBoundary(CutoutResultSchema) — a bad/partial result (e.g. non-positive
 // dimension) becomes a BoundaryParseError, never untyped data into the domain.
 //
-// DEPLOY-WIRING SEAM (docs/06 §5): docs say parse-photo writes the cutout to
-// Storage at {user_id}/{parse_job_id}/... That path is composed from identity the
-// CutoutInput deliberately does NOT carry (only imageUrl crosses the port), so the
-// actual byte-upload + path composition + image-dimension decode is a deploy-wired
-// concern behind `storeCutout`. The default writer THROWS (like the old
-// unwiredPorts) so an unconfigured deploy surfaces as a clean 502 rather than a
-// fabricated cutout — the real writer (Supabase Storage bucket via a repo/storage
-// seam) is supplied at deploy time. No bucket URL is hardcoded here.
+// The writer receives the identity SCOPE alongside the bytes so it can compose the
+// RLS-satisfying path {user_id}/{parse_job_id}/cutout.png (migration 0013 binds path
+// segment 1 to auth.uid()). The scope crosses the port on CutoutInput — see the WHY
+// note on CutoutInput. The default writer still THROWS so a build that forgot to
+// wire storage surfaces as a clean 502 rather than a fabricated cutout; the real
+// writer is makeSupabaseStorageWriter (supabase-storage.writer.ts). No bucket URL is
+// hardcoded in THIS file — the vendor call and the byte-persistence stay separable.
 import { parseBoundary, CutoutResultSchema, type CutoutPort, type CutoutResult, type CutoutInput } from '@closet/shared';
 import { requireEnv, envValue } from '../auth/env.js';
 import {
@@ -40,10 +39,14 @@ export interface CutoutBytes {
   readonly contentType: string | null;
 }
 
-export type CutoutStorageWriter = (cutout: CutoutBytes) => Promise<StoredCutout>;
+// The identity scope the path is composed from. Structurally a subset of CutoutInput
+// so the adapter forwards it without re-deriving (or inventing) either field.
+export type CutoutScope = Pick<CutoutInput, 'userId' | 'parseJobId'>;
 
-// Default = unwired. Deploy supplies the real writer; until then a cutout attempt
-// throws clearly and parse-photo turns it into the req-9 502 (never a fake result).
+export type CutoutStorageWriter = (cutout: CutoutBytes, scope: CutoutScope) => Promise<StoredCutout>;
+
+// Default = unwired. A build with no storage writer throws clearly and parse-photo
+// turns it into the req-9 502 (never a fake result).
 function unwiredStorageWriter(): Promise<StoredCutout> {
   throw new Error('photoroom cutout storage-writer is not wired in this build');
 }
@@ -85,7 +88,10 @@ export function makePhotoroomCutoutAdapter(deps?: PhotoroomCutoutDeps): CutoutPo
         throw new ProviderRequestError('empty cutout response');
       }
 
-      const stored = await storeCutout({ bytes, contentType });
+      const stored = await storeCutout(
+        { bytes, contentType },
+        { userId: input.userId, parseJobId: input.parseJobId },
+      );
       // Boundary: a bad/partial stored cutout → BoundaryParseError, never coerced.
       return parseBoundary(CutoutResultSchema, stored, 'photoroom-cutout.result');
     },

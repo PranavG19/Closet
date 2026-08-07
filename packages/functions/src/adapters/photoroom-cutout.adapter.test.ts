@@ -8,8 +8,14 @@ import { BoundaryParseError } from '@closet/shared';
 import { makePhotoroomCutoutAdapter, type StoredCutout } from './photoroom-cutout.adapter.js';
 import type { FetchFn } from './http.js';
 
+const CUT_INPUT = {
+  imageUrl: 'https://s/x.jpg',
+  userId: '9f1d5c2a-7b3e-4a1f-8c6d-2e5b4a3f1c90',
+  parseJobId: '3c7e1b48-52a9-4d6c-9f21-8b0a7e4d5c63',
+} as const;
+
 const GOOD_STORED: StoredCutout = {
-  imageUrl: 'user-1/job-1/cutout.png',
+  imageUrl: `${CUT_INPUT.userId}/${CUT_INPUT.parseJobId}/cutout.png`,
   hasAlpha: true,
   width: 1024,
   height: 1536,
@@ -39,15 +45,18 @@ describe('photoroom-cutout adapter — happy path', () => {
       ...fastTransport,
     });
 
-    const result = await adapter.removeBackground({ imageUrl: 'https://s/x.jpg' });
+    const result = await adapter.removeBackground(CUT_INPUT);
 
     expect(result).toEqual(GOOD_STORED);
     expect(fetchFn).toHaveBeenCalledTimes(1);
     expect(storeCutout).toHaveBeenCalledTimes(1);
     // The writer receives the vendor bytes + content-type, never a bucket URL.
-    const [passed] = storeCutout.mock.calls[0]!;
+    const [passed, scope] = storeCutout.mock.calls[0]!;
     expect(passed.bytes.byteLength).toBeGreaterThan(0);
     expect(passed.contentType).toBe('image/png');
+    // The identity scope is forwarded VERBATIM — the writer cannot compose an
+    // RLS-satisfying path without it, and the adapter must not invent either field.
+    expect(scope).toEqual({ userId: CUT_INPUT.userId, parseJobId: CUT_INPUT.parseJobId });
   });
 });
 
@@ -62,7 +71,7 @@ describe('photoroom-cutout adapter — parse-don\'t-cast', () => {
       ...fastTransport,
     });
 
-    await expect(adapter.removeBackground({ imageUrl: 'https://s/x.jpg' })).rejects.toBeInstanceOf(
+    await expect(adapter.removeBackground(CUT_INPUT)).rejects.toBeInstanceOf(
       BoundaryParseError,
     );
   });
@@ -79,7 +88,7 @@ describe('photoroom-cutout adapter — parse-don\'t-cast', () => {
       ...fastTransport,
     });
 
-    await expect(adapter.removeBackground({ imageUrl: 'https://s/x.jpg' })).rejects.toBeInstanceOf(
+    await expect(adapter.removeBackground(CUT_INPUT)).rejects.toBeInstanceOf(
       BoundaryParseError,
     );
   });
@@ -94,7 +103,7 @@ describe('photoroom-cutout adapter — parse-don\'t-cast', () => {
       ...fastTransport,
     });
 
-    await expect(adapter.removeBackground({ imageUrl: 'https://s/x.jpg' })).rejects.toBeTruthy();
+    await expect(adapter.removeBackground(CUT_INPUT)).rejects.toBeTruthy();
     expect(storeCutout).not.toHaveBeenCalled();
   });
 });
@@ -113,7 +122,7 @@ describe('photoroom-cutout adapter — timeout', () => {
       ...fastTransport,
     });
 
-    await expect(adapter.removeBackground({ imageUrl: 'https://s/x.jpg' })).rejects.toBeTruthy();
+    await expect(adapter.removeBackground(CUT_INPUT)).rejects.toBeTruthy();
   });
 });
 
@@ -131,7 +140,7 @@ describe('photoroom-cutout adapter — bounded retry', () => {
       ...fastTransport,
     });
 
-    const result = await adapter.removeBackground({ imageUrl: 'https://s/x.jpg' });
+    const result = await adapter.removeBackground(CUT_INPUT);
 
     expect(result).toEqual(GOOD_STORED);
     expect(fetchFn).toHaveBeenCalledTimes(2);
@@ -147,7 +156,7 @@ describe('photoroom-cutout adapter — bounded retry', () => {
       ...fastTransport,
     });
 
-    await expect(adapter.removeBackground({ imageUrl: 'https://s/x.jpg' })).rejects.toBeTruthy();
+    await expect(adapter.removeBackground(CUT_INPUT)).rejects.toBeTruthy();
     expect(fetchFn).toHaveBeenCalledTimes(3);
   });
 });
@@ -164,7 +173,7 @@ describe('photoroom-cutout adapter — key + storage-writer wiring', () => {
         ...fastTransport,
       });
 
-      await expect(adapter.removeBackground({ imageUrl: 'https://s/x.jpg' })).rejects.toThrow(
+      await expect(adapter.removeBackground(CUT_INPUT)).rejects.toThrow(
         /missing required env: PHOTOROOM_API_KEY/,
       );
       expect(fetchFn).not.toHaveBeenCalled();
@@ -178,6 +187,6 @@ describe('photoroom-cutout adapter — key + storage-writer wiring', () => {
     // No storeCutout injected → the default unwired writer throws.
     const adapter = makePhotoroomCutoutAdapter({ apiKey: 'pr-test', fetchFn, ...fastTransport });
 
-    await expect(adapter.removeBackground({ imageUrl: 'https://s/x.jpg' })).rejects.toBeTruthy();
+    await expect(adapter.removeBackground(CUT_INPUT)).rejects.toBeTruthy();
   });
 });
