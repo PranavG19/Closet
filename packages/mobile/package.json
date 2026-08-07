@@ -6,7 +6,9 @@
   "main": "index.ts",
   "scripts": {
     "build": "tsc --build",
-    "start": "expo start --port 8081"
+    "start": "expo start --port 8081",
+    "ios": "expo start --port 8081 --ios",
+    "start:clear": "expo start --port 8081 --clear"
   },
   "dependencies": {
     "@closet/shared": "workspace:*",

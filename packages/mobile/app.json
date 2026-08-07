@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "closet-app",
+    "slug": "closet-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.example.closetapp",
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Your photos are checked on this device to find the clothes in them. Only the clothing photos you approve are ever uploaded — everything else never leaves your phone."
+      }
+    },
+    "android": {
+      "package": "com.example.closetapp"
+    }
+  }
+}
