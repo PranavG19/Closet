@@ -230,7 +230,7 @@ describe('account data export — completeness, tenant isolation, schema validit
     // Storage PATHS are present (the documented limitation is that the BYTES are not).
     expect(doc.parse_jobs[0]?.source_photo_path).toBe(`photos/${USER_A}/original.jpg`);
     const cutouts = doc.wardrobe_items
-      .map((r) => (r as { cutout_path: string | null }).cutout_path)
+      .map((r) => r.cutout_path)
       .filter((p): p is string => p !== null)
       .sort();
     expect(cutouts).toEqual([
@@ -264,11 +264,11 @@ describe('account data export — completeness, tenant isolation, schema validit
     for (const id of seedB.itemIds) expect(allIds(doc)).not.toContain(id);
 
     const userIds = new Set([
-      ...doc.wardrobe_items.map((r) => (r as { user_id: string }).user_id),
-      ...doc.parse_jobs.map((r) => (r as { user_id: string }).user_id),
-      ...doc.outfits.map((r) => (r as { user_id: string }).user_id),
-      ...doc.outfit_items.map((r) => (r as { user_id: string }).user_id),
-      ...doc.wear_log.map((r) => (r as { user_id: string }).user_id),
+      ...doc.wardrobe_items.map((r) => r.user_id),
+      ...doc.parse_jobs.map((r) => r.user_id),
+      ...doc.outfits.map((r) => r.user_id),
+      ...doc.outfit_items.map((r) => r.user_id),
+      ...doc.wear_log.map((r) => r.user_id),
     ]);
     expect([...userIds]).toEqual([USER_A]);
     expect(doc.user_id).toBe(USER_A);
