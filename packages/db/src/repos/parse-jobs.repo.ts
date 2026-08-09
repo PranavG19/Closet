@@ -186,8 +186,17 @@ export function makeParseJobsRepo(exec: QueryExecutor): ParseJobsRepo {
     },
 
     async markFailed(userId, jobId, reason) {
+      // claimed_at MUST be cleared here. `claim()` admits a row only when claimed_at IS NULL or
+      // is older than CLAIM_LEASE — that staleness check exists for a CRASHED isolate, which
+      // never gets to call markFailed. A job that fails cleanly (a provider 500, a timeout) is
+      // finished and idle, so leaving the lease set made it unretryable for the full 10 minutes:
+      // claim() refused it, and with UNIQUE(user_id, source_photo_hash) the retry could not
+      // create a new row either, so she got a permanent-looking 409 "already being parsed" for a
+      // photo that was sitting there failed and idle. Releasing the lease is what makes "try
+      // again" mean try again.
       await exec.query(
-        `UPDATE public.parse_jobs SET status = 'failed', error_reason = $3
+        `UPDATE public.parse_jobs
+         SET status = 'failed', claimed_at = NULL, error_reason = $3
          WHERE user_id = $1 AND id = $2`,
         [userId, jobId, reason],
       );

@@ -224,6 +224,42 @@ describe('parse-jobs W4 methods — resolveJob / commit / markFailed / listItems
     expect(row?.error_reason).toBe('segmentation_timeout');
   });
 
+  it('markFailed RELEASES the claim lease, so a failed parse is retryable immediately', async () => {
+    // THE BUG THIS PINS: markFailed used to set status + error_reason and leave `claimed_at`
+    // exactly where claim() put it. claim() admits a row only when claimed_at IS NULL or is
+    // older than CLAIM_LEASE (10 minutes) — a staleness check that exists for a CRASHED isolate,
+    // which by definition never reaches markFailed. So a job that failed CLEANLY (provider 500,
+    // timeout) sat there failed and idle while claim() refused it for ten full minutes; and
+    // because of UNIQUE(user_id, source_photo_hash) the retry could not create a fresh row
+    // either, so she got a permanent-looking 409 "already being parsed" on a dead job.
+    //
+    // This test is red on the parent commit: markFailed leaves claimed_at set, so the second
+    // claim() below returns null.
+    const repo = makeParseJobsRepo(execA);
+    const job = await repo.resolveJob(
+      USER_A,
+      { source_photo_hash: 'RETRY-AFTER-FAIL', source_photo_path: 'a/retry.jpg', kind: 'full' },
+      100,
+    );
+    const jobId = job.job!.id;
+
+    // Claim it — this is what sets claimed_at — then fail it the way a provider fault does.
+    expect(await repo.claim(USER_A, jobId)).not.toBeNull();
+    await repo.markFailed(USER_A, jobId, 'provider_unavailable');
+
+    // Independent check on the column itself, not on claim()'s behaviour: the lease is gone.
+    const { rows } = await superuser.query<{ claimed_at: string | null }>(
+      `SELECT claimed_at FROM public.parse_jobs WHERE id = $1`,
+      [jobId],
+    );
+    expect(rows[0]?.claimed_at).toBeNull();
+
+    // And the behaviour that actually matters to her: retry works NOW, with no wait.
+    const reclaimed = await repo.claim(USER_A, jobId);
+    expect(reclaimed, 'a failed job must be immediately re-claimable').not.toBeNull();
+    expect(reclaimed?.status).toBe('processing');
+  });
+
   it('cross-tenant control: rows exist (superuser) but a B-executor SELECT of A items returns 0 (RLS isolation, not empty table)', async () => {
     const repo = makeParseJobsRepo(execA);
     const job = await repo.resolveJob(
