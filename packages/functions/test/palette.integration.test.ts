@@ -11,6 +11,7 @@ import {
   applyMigrations,
   makeCaller,
   makeSuperuserExecutor,
+  makeTenantExecutor,
   startPg,
   type Caller,
   type PgHarness,
@@ -54,17 +55,41 @@ describe('palette + entitlement endpoints', () => {
   });
 
   it('palette is RLS-scoped — A never sees B palette', async () => {
+    // THIS TEST WAS VACUOUS. It used to upsert as B, read B's row with the SUPERUSER (which
+    // bypasses RLS and therefore proves nothing about isolation), then upsert as A and assert
+    // A's own echo — never once having A ATTEMPT TO READ B. It would have passed with RLS
+    // entirely disabled, while its name and comments claimed to prove the opposite.
     await callerB.call(upsertPalette, { body: { hues: ['bsecret'] } });
-    // A reads its own via the DB, B's row invisible.
-    const bRow = await superuser.query<{ hues: string[] }>(
+    await callerA.call(upsertPalette, { body: { hues: ['aonly'] } });
+
+    // Confirm both rows genuinely exist, via the superuser — this is the ONLY legitimate use
+    // of the RLS-bypassing executor here: establishing that the negative result below is real
+    // isolation and not simply an empty table.
+    const all = await superuser.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM public.palette_profile WHERE user_id IN ($1, $2)`,
+      [USER_A, USER_B],
+    );
+    expect(all.rows[0]?.n).toBe('2');
+
+    // THE ACTUAL ORACLE: A reaches for B's row under A's OWN tenant context.
+    // makeTenantExecutor is the SAME executor withAuth hands a real request — it sets
+    // LOCAL ROLE app_user plus the request.jwt claim for USER_A — so this has exactly the
+    // privilege a live request has, not the superuser's RLS bypass. RLS must return zero rows.
+    const asA = makeTenantExecutor(pool, USER_A);
+    const crossTenant = await asA.query<{ hues: string[] }>(
       `SELECT hues FROM public.palette_profile WHERE user_id = $1`,
       [USER_B],
     );
-    expect(bRow.rows[0]?.hues).toEqual(['bsecret']);
-    // Prove A cannot read B by scoping: A's palette is not B's.
-    const aRes = await callerA.call(upsertPalette, { body: { hues: ['aonly'] } });
-    const aBody = (await aRes.json()) as { hues: string[] };
-    expect(aBody.hues).toEqual(['aonly']);
+    expect(crossTenant.rows).toHaveLength(0);
+
+    // And an unscoped SELECT — no WHERE at all — sees ONLY A's row. This is the stronger
+    // form: it catches a policy that filters on a column the caller could simply omit.
+    const everythingAcanSee = await asA.query<{ user_id: string; hues: string[] }>(
+      `SELECT user_id, hues FROM public.palette_profile`,
+    );
+    expect(everythingAcanSee.rows).toHaveLength(1);
+    expect(everythingAcanSee.rows[0]?.user_id).toBe(USER_A);
+    expect(everythingAcanSee.rows[0]?.hues).toEqual(['aonly']);
   });
 
   it('palette malformed body (extra key, strict) → 400', async () => {
