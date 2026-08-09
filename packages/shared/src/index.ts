@@ -19,3 +19,5 @@ export * from './dedupe.js';
 export * from './suggestion.js';
 export * from './palette.js';
 export * from './subscriptionDisclosure.js';
+export * from './wardrobeSuggestion.js';
+export * from './suggestionNote.js';
