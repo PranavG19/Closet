@@ -4,10 +4,16 @@
 // "DIRTY"). Colors from useTokens() only.
 import React from 'react';
 import { View, type ViewStyle } from 'react-native';
+import type { Availability } from '@closet/shared';
 import { useTokens } from '../tokens/index.js';
 import { Text } from './Text.js';
 
-export type Availability = 'clean' | 'dirty' | 'unavailable';
+// `Availability` comes from @closet/shared (schemas/common.ts), which is where the wire
+// contract lives. It used to be hand-redeclared here, byte-identical — and WardrobeScreen
+// feeds `item.availability` (typed from the shared row schema) straight into this prop, so
+// the two agreed only by luck. Re-exported because sibling UI files already import it from
+// here; the single declaration now lives in one place.
+export type { Availability };
 
 const LABEL: Readonly<Record<Availability, string>> = {
   clean: 'Ready to wear',

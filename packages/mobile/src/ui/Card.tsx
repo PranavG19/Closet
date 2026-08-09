@@ -15,14 +15,10 @@ export interface CardProps {
 
 export function Card({ children, variant = 'surface', padding = 'md', style }: CardProps): React.JSX.Element {
   const tokens = useTokens();
-  const pad =
-    padding === 'none'
-      ? 0
-      : padding === 'sm'
-        ? tokens.spacing.sm
-        : padding === 'lg'
-          ? tokens.spacing.lg
-          : tokens.spacing.md;
+  // Every prop value except 'none' IS a spacing-scale key, so this is a lookup, not a
+  // decision. Written as a ladder it silently fell through to `md` for any key not
+  // spelled out — so adding a step to the scale would quietly do nothing here.
+  const pad = padding === 'none' ? 0 : tokens.spacing[padding];
 
   const base: ViewStyle = {
     backgroundColor: variant === 'sunken' ? tokens.color.bg.sunken : tokens.color.bg.surface,

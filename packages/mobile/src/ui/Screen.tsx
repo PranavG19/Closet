@@ -28,16 +28,10 @@ export interface ScreenProps {
 export function Screen({ children, scroll = false, padding = 'lg', style }: ScreenProps): React.JSX.Element {
   const tokens = useTokens();
   const insets = useSafeAreaInsets();
-  const pad =
-    padding === 'none'
-      ? 0
-      : padding === 'sm'
-        ? tokens.spacing.sm
-        : padding === 'md'
-          ? tokens.spacing.md
-          : padding === 'xl'
-            ? tokens.spacing.xl
-            : tokens.spacing.lg;
+  // Every prop value except 'none' IS a spacing-scale key — a lookup, not a decision.
+  // The ladder this replaces fell through to `lg` for anything not spelled out, so a new
+  // step added to the scale would have silently done nothing here.
+  const pad = padding === 'none' ? 0 : tokens.spacing[padding];
 
   // The inset lives here and the content padding lives on `inner`, so the two are
   // never flattened into one style object — a `padding` shorthand landing after a
