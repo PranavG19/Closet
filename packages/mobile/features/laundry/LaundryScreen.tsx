@@ -1,11 +1,16 @@
-// Laundry (F7) — the "in the wash" surface. Structural skeleton: lists the dirty
-// items via useWardrobe({availability:'dirty'}) with the token-only availability
-// chip and a toggle back to clean. Copy is neutral and kind (laundry is normal,
-// not an error).
+// Laundry (F7) — the "in the wash" surface. Copy is neutral and kind (laundry is normal, not
+// an error).
+//
+// BATCH MARK-CLEAN, because doing laundry is a LOAD, not a garment. This screen previously
+// offered one "Mark clean" button per row, so finishing a wash meant fifteen taps and fifteen
+// round-trips — and because each one invalidates the wardrobe cache, the list re-rendered and
+// shifted under her finger between taps. That is the wrong interaction shape for the task, not
+// a styling problem. Selection lives in basket.ts (pure, unit-tested); this file is the render
+// and the submit loop.
 //
 // VISUAL CORRECTNESS IS UNVERIFIED (human-gated) — no simulator in this build.
 import React from 'react';
-import { View, type ViewStyle } from 'react-native';
+import { View, Pressable, type ViewStyle } from 'react-native';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useToggleAvailability } from '../../src/api/index.js';
 import {
@@ -18,23 +23,91 @@ import {
   EmptyState,
   ErrorState,
 } from '../../src/ui/index.js';
+import {
+  EMPTY_BASKET,
+  clear,
+  count,
+  isSelected,
+  pending,
+  prune,
+  selectAll,
+  toggle,
+} from './basket.js';
 
 export function LaundryScreen(): React.JSX.Element {
   const tokens = useTokens();
   const query = useWardrobe({ availability: 'dirty' });
-  const toggle = useToggleAvailability();
+  const toggleAvailability = useToggleAvailability();
+  const [basket, setBasket] = React.useState(EMPTY_BASKET);
+  const [failedCount, setFailedCount] = React.useState(0);
+
+  const items = query.data?.items ?? [];
+  // Joined, not the array: a refetch returns a new array instance with the same contents, so
+  // an effect keyed on identity would re-run forever.
+  const visibleKey = items.map((item) => item.id).join(',');
+
+  // Keep the basket honest when the list refetches: a garment marked clean elsewhere must not
+  // stay counted here. `prune` preserves identity when nothing changed, which is what makes
+  // this safe to run on every list change without looping.
+  React.useEffect(() => {
+    const visibleIds = visibleKey === '' ? [] : visibleKey.split(',');
+    setBasket((current) => prune(current, visibleIds));
+  }, [visibleKey]);
 
   if (query.isPending) return <LoadingState message="Checking the hamper…" />;
   if (query.isError) {
     return <ErrorState body="We couldn't load your laundry." onRetry={() => void query.refetch()} />;
   }
 
-  const items = query.data.items;
   if (items.length === 0) {
     return <EmptyState title="Nothing in the wash" body="Everything's ready to wear." />;
   }
 
+  const visibleIds = items.map((item) => item.id);
+  const selectedCount = count(basket);
+  const allSelected = selectedCount === items.length;
+
+  // Mark every selected garment clean.
+  //
+  // Submitted SEQUENTIALLY, on purpose. There is no batch endpoint — inventing one would be a
+  // deploy-topology change, not a UI fix — so each garment is an independent write. Firing
+  // fifteen at once would race the shared wardrobe cache invalidation and hammer the endpoint.
+  //
+  // A failure does NOT abort the run: the remaining garments are still attempted and the
+  // number of failures is reported. Stopping at the first error would leave her with a
+  // half-emptied hamper and no idea which half — and since each write is independent, there is
+  // nothing to roll back.
+  const markSelectedClean = async (): Promise<void> => {
+    setFailedCount(0);
+    let failures = 0;
+    for (const id of pending(basket, visibleIds)) {
+      try {
+        await toggleAvailability.mutateAsync({ item_id: id, availability: 'clean' });
+      } catch {
+        // The specific error is deliberately not surfaced: raw error text may carry PII and
+        // never reaches the UI. The count is the part she can act on.
+        failures += 1;
+      }
+    }
+    setFailedCount(failures);
+    setBasket(clear());
+  };
+
   const row: ViewStyle = {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: tokens.spacing.md,
+  };
+  const selectedRow: ViewStyle = {
+    ...row,
+    // Selection is marked with a border rather than a background tint: tinting the card would
+    // change the surface that every label and AvailabilityChip on it was contrast-checked
+    // against.
+    borderWidth: 2,
+    borderColor: tokens.color.accent.pink,
+  };
+  const actionBar: ViewStyle = {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -43,24 +116,71 @@ export function LaundryScreen(): React.JSX.Element {
 
   return (
     <Screen scroll padding="lg">
-      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
+      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.md }}>
         Laundry
       </Text>
-      {items.map((item) => (
-        <Card key={item.id} variant="surface" padding="md" style={row}>
-          <View>
-            <Text variant="body" tone="primary">
-              {item.color ?? item.category}
-            </Text>
-            <AvailabilityChip availability="dirty" style={{ marginTop: tokens.spacing.xs }} />
-          </View>
-          <Button
-            label="Mark clean"
-            intent="secondary"
-            onPress={() => toggle.mutate({ item_id: item.id, availability: 'clean' })}
-          />
-        </Card>
-      ))}
+
+      <View style={actionBar}>
+        <Button
+          label={allSelected ? 'Clear selection' : 'Select all'}
+          intent="ghost"
+          onPress={() => setBasket(allSelected ? clear() : selectAll(visibleIds))}
+        />
+        {selectedCount > 0 && (
+          <Text variant="caption" tone="secondary">
+            {`${selectedCount} selected`}
+          </Text>
+        )}
+      </View>
+
+      {selectedCount > 0 && (
+        <Button
+          // The count is IN the label, so the button states exactly what it will do. A
+          // reversible action does not need an "are you sure" dialog; it needs an honest label.
+          label={toggleAvailability.isPending ? 'Putting them away…' : `Mark ${selectedCount} clean`}
+          accent="pink"
+          disabled={toggleAvailability.isPending}
+          onPress={() => void markSelectedClean()}
+          style={{ marginBottom: tokens.spacing.md }}
+        />
+      )}
+
+      {failedCount > 0 && (
+        <Text variant="caption" tone="secondary" style={{ marginBottom: tokens.spacing.md }}>
+          {`${failedCount} couldn't be updated. Pull down to refresh and try again.`}
+        </Text>
+      )}
+
+      {items.map((item) => {
+        const selected = isSelected(basket, item.id);
+        return (
+          <Pressable
+            key={item.id}
+            onPress={() => setBasket(toggle(basket, item.id))}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: selected }}
+            accessibilityLabel={`${item.color ?? item.category}, in the wash`}
+          >
+            <Card variant="surface" padding="md" style={selected ? selectedRow : row}>
+              <View>
+                <Text variant="body" tone="primary">
+                  {item.color ?? item.category}
+                </Text>
+                <AvailabilityChip availability="dirty" style={{ marginTop: tokens.spacing.xs }} />
+              </View>
+              {/* The single-garment action stays: tapping the row selects, and this is the
+                  one-off path for someone who wants exactly one thing back without building a
+                  selection at all. */}
+              <Button
+                label={selected ? 'Selected' : 'Mark clean'}
+                intent="secondary"
+                disabled={selected || toggleAvailability.isPending}
+                onPress={() => toggleAvailability.mutate({ item_id: item.id, availability: 'clean' })}
+              />
+            </Card>
+          </Pressable>
+        );
+      })}
     </Screen>
   );
 }
