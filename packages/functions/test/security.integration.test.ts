@@ -28,6 +28,10 @@ import { createOutfit } from '../src/outfits/create.js';
 import { logWear } from '../src/wear-log/log-wear.js';
 import { upsertPalette } from '../src/palette/upsert-palette.js';
 import { makeParsePhoto, type ParsePorts } from '../src/parse/parse-photo.js';
+// Passed EXPLICITLY at every makeParsePhoto call below. These suites measure claim /
+// cap / entitlement behaviour, not rate behaviour, so a 429 here would mask what they
+// assert — but 'unthrottled' is now a visible choice rather than a silent default.
+import { unthrottledSpendLimiter } from '../src/parse/rate-limit.js';
 import {
   applyMigrations,
   makeCaller,
@@ -428,7 +432,7 @@ describe('Tier-2 security gauntlet — cross-tenant, injected identity, money, a
 
   it('never-uploads seam — parse-photo without source_photo_hash → 400, no job row, provider never called', async () => {
     const ports = makeCountingPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
     const caller = makeCaller(pool, USER_A);
 
     // Missing source_photo_hash entirely.

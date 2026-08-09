@@ -22,6 +22,10 @@ import type {
 } from '@closet/shared';
 import { withAuth, type AuthedHandler } from '../src/auth/withAuth.js';
 import { makeParsePhoto, type ParsePorts } from '../src/parse/parse-photo.js';
+// Passed EXPLICITLY at every makeParsePhoto call below. These suites measure claim /
+// cap / entitlement behaviour, not rate behaviour, so a 429 here would mask what they
+// assert — but 'unthrottled' is now a visible choice rather than a silent default.
+import { unthrottledSpendLimiter } from '../src/parse/rate-limit.js';
 import { TEASER_JOB_CAP } from '../src/parse/teaser-cap.js';
 import {
   applyMigrations,
@@ -180,7 +184,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
 
   it('teaser happy path: providers called once, one item written, status=done, rows owned by A', async () => {
     const ports = makeCountingPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
     const res = await callAs(handler, pool, USER_A, {
       source_photo_hash: 'HAPPY-1',
       kind: 'teaser',
@@ -206,7 +210,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
   it('entitlement gate: kind=full with no entitlement → 402, provider counter 0, zero rows; seeded entitlement → done', async () => {
     const user = 'e5e5e5e5-e5e5-45e5-85e5-e5e5e5e5e5e5';
     const ports = makeCountingPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
 
     const denied = await callAs(handler, pool, user, {
       source_photo_hash: 'FULL-DENIED',
@@ -242,7 +246,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
   // ---- Oracle: already-done short-circuit (no double-charge on replay) -------
   it('already-done short-circuit: re-submit the same photo → 200, NO extra provider call, item count unchanged', async () => {
     const ports = makeCountingPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
     const first = await callAs(handler, pool, USER_A, {
       source_photo_hash: 'REPLAY-1',
       kind: 'teaser',
@@ -269,7 +273,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
   it('no-dup-on-resume: done → crash back to failed + partial injected → resume → exactly N items, status=done', async () => {
     const user = 'f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6';
     const ports = makeCountingPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
 
     const first = await callAs(handler, pool, user, {
       source_photo_hash: 'RESUME-1',
@@ -315,7 +319,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
   it('one-winner concurrency: two parses race the same job → provider called ONCE, one item (no double-charge)', async () => {
     const user = '11111111-1111-4111-8111-111111111111';
     const ports = makeCountingPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
     const body = { source_photo_hash: 'RACE-1', kind: 'teaser' as const };
 
     const [r1, r2] = await Promise.all([
@@ -343,7 +347,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
   it('teaser cap: at the cap a new teaser → 402 teaser_cap_reached, no provider call, count unchanged', async () => {
     const user = '22222222-2222-4222-8222-222222222222';
     const ports = makeCountingPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
     // Pin the business-critical value to a LITERAL (docs/05 Tier-0 mutation target
     // 10 -> 1000). Seeding the literal count — not the constant — is what kills the
     // widen mutant: seed 10, and if the handler's cap is anything > 10 the 11th
@@ -378,7 +382,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
   it('teaser cap under concurrency: 1 slot free, two NEW photos race → final teaser count never exceeds the cap', async () => {
     const user = '33333333-3333-4333-8333-333333333333';
     const ports = makeCountingPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
     const execUser = makeTenantExecutor(pool, user);
     // Seed cap-1 so exactly ONE slot remains.
     for (let i = 0; i < TEASER_JOB_CAP - 1; i += 1) {
@@ -407,7 +411,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
   // ---- Provider failure path -------------------------------------------------
   it('provider failure → 502 parse_provider_failed, job=failed with fixed non-PII reason, no raw message on the wire', async () => {
     const user = '44444444-4444-4444-8444-444444444444';
-    const handler = makeParsePhoto(() => THROWING_PORTS);
+    const handler = makeParsePhoto(() => THROWING_PORTS, unthrottledSpendLimiter);
     const res = await callAs(handler, pool, user, {
       source_photo_hash: 'FAIL-1',
       kind: 'teaser',
@@ -437,7 +441,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
   // ---- Oracle 5: control — RLS is live + identity from JWT, not body ---------
   it('control: superuser sees A rows while B-executor sees 0 (RLS isolation), and a body-smuggled user_id is inert', async () => {
     const ports = makeCountingPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
     const res = await callAs(handler, pool, USER_A, {
       source_photo_hash: 'ISO-1',
       kind: 'teaser',
@@ -484,7 +488,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
       const attacker = '55555555-5555-4555-8555-555555555555';
       const victim = '66666666-6666-4666-8666-666666666666';
       const ports = makeCountingPorts();
-      const handler = makeParsePhoto(() => ports);
+      const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
 
       const attack = await callAs(handler, pool, attacker, {
         source_photo_hash: 'XTENANT-1',
@@ -527,7 +531,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     ])('%s in source_photo_hash → 400, zero jobs, zero provider calls', async (_label, hash) => {
       const user = '77777777-7777-4777-8777-777777777777';
       const ports = makeCountingPorts();
-      const handler = makeParsePhoto(() => ports);
+      const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
 
       const res = await callAs(handler, pool, user, { source_photo_hash: hash, kind: 'teaser' });
 
@@ -548,7 +552,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
       const EXPECTED_KEY = '88888888-8888-4888-8888-888888888888/DERIVED-1/original';
 
       const ports = makeCountingPorts();
-      const handler = makeParsePhoto(() => ports);
+      const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
       const res = await callAs(handler, pool, user, { source_photo_hash: hash, kind: 'teaser' });
       expect(res.status).toBe(200);
 
@@ -577,7 +581,7 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
       const userTwo = 'aaaaaaaa-0000-4000-8000-aaaaaaaaaaaa';
       const hash = 'SAMEHASH-1';
       const ports = makeCountingPorts();
-      const handler = makeParsePhoto(() => ports);
+      const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
 
       expect((await callAs(handler, pool, userOne, { source_photo_hash: hash, kind: 'teaser' })).status).toBe(200);
       expect((await callAs(handler, pool, userTwo, { source_photo_hash: hash, kind: 'teaser' })).status).toBe(200);

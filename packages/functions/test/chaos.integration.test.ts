@@ -29,6 +29,10 @@ import {
 import { makeServiceExecutor, type Sql } from '../src/auth/executor.js';
 import { makeRevenueCatWebhook } from '../src/billing/revenuecat-webhook.js';
 import { makeParsePhoto, type ParsePorts } from '../src/parse/parse-photo.js';
+// Passed EXPLICITLY at every makeParsePhoto call below. These suites measure claim /
+// cap / entitlement behaviour, not rate behaviour, so a 429 here would mask what they
+// assert — but 'unthrottled' is now a visible choice rather than a silent default.
+import { unthrottledSpendLimiter } from '../src/parse/rate-limit.js';
 import { logWear } from '../src/wear-log/log-wear.js';
 import { toggleAvailability } from '../src/wardrobe/availability.js';
 import type {
@@ -341,7 +345,7 @@ describe('Tier-4 chaos — adversarial temporal + scale conditions, state-oracle
       const batch = [...OK, ...FAIL];
 
       const ports = makePorts((imageUrl) => imageUrl.includes('FAN-FAIL'));
-      const handler = makeParsePhoto(() => ports);
+      const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
 
       // Fan out in-process. Promise.all resolving at all is itself the "never hangs"
       // proof — a rejecting provider is absorbed into a 502, not a dangling promise.
@@ -390,7 +394,7 @@ describe('Tier-4 chaos — adversarial temporal + scale conditions, state-oracle
       await superuser.query(`UPDATE public.parse_jobs SET claimed_at = NULL WHERE id = $1`, [failedJobId]);
 
       const healthyPorts = makePorts(() => false);
-      const healthyHandler = makeParsePhoto(() => healthyPorts);
+      const healthyHandler = makeParsePhoto(() => healthyPorts, unthrottledSpendLimiter);
       const resume = await caller.call(healthyHandler, {
         body: { source_photo_hash: 'FAN-FAIL-0', kind: 'full' },
       });
@@ -406,7 +410,7 @@ describe('Tier-4 chaos — adversarial temporal + scale conditions, state-oracle
       // call and adds NO garment.
       const doneBefore = await itemsForUser(USER);
       const shortCircuitPorts = makePorts(() => false);
-      const shortCircuitHandler = makeParsePhoto(() => shortCircuitPorts);
+      const shortCircuitHandler = makeParsePhoto(() => shortCircuitPorts, unthrottledSpendLimiter);
       const replay = await caller.call(shortCircuitHandler, {
         body: { source_photo_hash: 'FAN-OK-0', kind: 'full' },
       });

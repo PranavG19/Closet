@@ -3,7 +3,7 @@
 // message } }` with a SAFE, caller-facing message only — never raw DB/exception
 // text (PII rule). BoundaryParseError from @closet/shared maps to a 400 without
 // leaking the parsed input or the Zod issue paths to the client.
-import { BoundaryParseError } from '@closet/shared';
+import { BoundaryParseError, type ErrorEnvelope } from '@closet/shared';
 
 const JSON_HEADERS = { 'content-type': 'application/json; charset=utf-8' } as const;
 
@@ -11,14 +11,16 @@ export function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: JSON_HEADERS });
 }
 
-export interface ErrorBody {
-  readonly error: { readonly code: string; readonly message: string };
-}
-
 // A curated set of client-safe codes. `message` is a fixed, non-sensitive string;
 // it never carries a DB error, a stack, or the offending input.
+//
+// The body is typed as shared's ErrorEnvelope — the SAME declaration the mobile client
+// parses with. The envelope used to be declared independently on each side and they
+// disagreed (flat vs nested), which was invisible because an all-optional Zod object
+// parses successfully against a body with none of its keys. Typing against the shared
+// schema makes that drift a compile error.
 export function errorResponse(status: number, code: string, message: string): Response {
-  const body: ErrorBody = { error: { code, message } };
+  const body: ErrorEnvelope = { error: { code, message } };
   return jsonResponse(status, body);
 }
 

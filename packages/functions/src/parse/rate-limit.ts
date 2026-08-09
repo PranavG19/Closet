@@ -76,16 +76,6 @@ export interface SpendLimiter {
 // is written under the caller's RLS context exactly like every other write.
 export type ProvideSpendLimiter = (exec: QueryExecutor) => SpendLimiter;
 
-// Fail-closed placeholder kept for tests that assert an unwired build refuses rather
-// than serving an unthrottled paid endpoint. It THROWS: the outer handler catch turns
-// that into a 500 with zero provider calls. The production binding uses
-// dbSpendLimiter below, NOT this.
-export const unwiredSpendLimiter: ProvideSpendLimiter = () => ({
-  async consume(): Promise<RateLimitDecision> {
-    throw new Error('parse spend limiter is not wired');
-  },
-});
-
 // The REAL limiter: the @closet/db repo over the caller's own tenant-scoped executor,
 // so the counter row is written under the caller's RLS context like every other write
 // (migration 0015's policies bind auth.uid(), and a mismatched user_id raises 42501).

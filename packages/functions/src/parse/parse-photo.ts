@@ -42,7 +42,6 @@ import {
   dbSpendLimiter,
   parseRateLimitConfig,
   rateLimitedResponse,
-  unthrottledSpendLimiter,
   type ProvideSpendLimiter,
 } from './rate-limit.js';
 
@@ -110,11 +109,15 @@ function toItem(vision: AIVisionResult, cutout: CutoutResult): CommitItemInput {
 // makeParsePhoto(fakeProvider) — the SAME code path, only the ports differ.
 export function makeParsePhoto(
   providePorts: ProvidePorts,
-  // The provider-spend throttle seam. The production export below binds the real
-  // (DB-backed, fail-closed) limiter; the default keeps the pre-existing parse
-  // oracles — which assert claim/cap/entitlement behaviour, not rate behaviour —
-  // running unthrottled so a 429 never masks what they measure.
-  provideLimiter: ProvideSpendLimiter = unthrottledSpendLimiter,
+  // The provider-spend throttle seam. REQUIRED, deliberately — it used to default to
+  // `unthrottledSpendLimiter`, which meant ONE dropped argument on the production
+  // binding below would silently hand every caller unmetered access to the paid
+  // vendors, with nothing failing and no test going red. The safe value is not a
+  // sensible default here; there is no safe default, so there is no default.
+  // Test callers that measure claim/cap/entitlement rather than rate behaviour pass
+  // `unthrottledSpendLimiter` explicitly, which makes "this test is unthrottled" a
+  // visible choice at the call site instead of an invisible one.
+  provideLimiter: ProvideSpendLimiter,
 ): AuthedHandler {
   return async (req, { userId, exec, correlationId, accessToken }) => {
     try {

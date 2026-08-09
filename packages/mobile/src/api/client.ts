@@ -24,6 +24,9 @@ import {
   WearLogRow,
   PaletteProfileRow,
   EntitlementResponse,
+  // The error envelope is declared in shared so this client and the server's
+  // errorResponse() cannot drift — they used to, silently. See schemas/errors.ts.
+  ErrorEnvelope,
 } from '@closet/shared';
 import {
   WardrobeListResult,
@@ -35,7 +38,6 @@ import {
 } from './schemas.js';
 import { ROUTES, type RouteName } from './routes.js';
 import { loadConfig, type AppConfig } from './config.js';
-import { z } from 'zod';
 
 // The narrow query-string shape the wardrobe list accepts. Kept local (not a
 // request body) — the server clamps limit regardless.
@@ -79,7 +81,6 @@ export class ApiError extends Error {
   }
 }
 
-const ErrorBody = z.object({ code: z.string().optional(), message: z.string().optional() });
 
 export class ApiClient {
   private readonly fetchFn: typeof fetch;
@@ -117,9 +118,10 @@ export class ApiClient {
     const raw: unknown = await response.json().catch(() => undefined);
 
     if (!response.ok) {
-      const parsed = ErrorBody.safeParse(raw);
-      const code = parsed.success ? parsed.data.code ?? 'error' : 'error';
-      const message = parsed.success ? parsed.data.message ?? 'Request failed.' : 'Request failed.';
+      const parsed = ErrorEnvelope.safeParse(raw);
+      const { code, message } = parsed.success
+        ? parsed.data.error
+        : { code: 'error', message: 'Request failed.' };
       throw new ApiError(response.status, code, message);
     }
     return parse(raw);

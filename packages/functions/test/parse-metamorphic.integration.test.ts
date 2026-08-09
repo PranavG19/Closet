@@ -30,6 +30,10 @@ import {
 } from '@closet/shared';
 import { withAuth, type AuthedHandler } from '../src/auth/withAuth.js';
 import { makeParsePhoto, type ParsePorts } from '../src/parse/parse-photo.js';
+// Passed EXPLICITLY at every makeParsePhoto call below. These suites measure claim /
+// cap / entitlement behaviour, not rate behaviour, so a 429 here would mask what they
+// assert — but 'unthrottled' is now a visible choice rather than a silent default.
+import { unthrottledSpendLimiter } from '../src/parse/rate-limit.js';
 import {
   applyMigrations,
   makeSuperuserExecutor,
@@ -169,7 +173,7 @@ describe('parse-photo — Tier-1 metamorphic relations (attribute stability, cap
   it('re-submitting the same source_photo_hash yields the SAME category, color bucket, and the SAME committed item set', async () => {
     const user = 'aa000000-0000-4000-8000-000000000001';
     const ports = makeFixedPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
     const body = { source_photo_hash: 'STABLE-1', kind: 'teaser' as const };
 
     const first = await callAs(handler, pool, user, body);
@@ -208,7 +212,7 @@ describe('parse-photo — Tier-1 metamorphic relations (attribute stability, cap
     const teaserUser = 'bb000000-0000-4000-8000-000000000002';
     const fullUser = 'cc000000-0000-4000-8000-000000000003';
     const ports = makeFixedPorts();
-    const handler = makeParsePhoto(() => ports);
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
 
     const teaserRes = await callAs(handler, pool, teaserUser, {
       source_photo_hash: 'SAME-PHOTO',
@@ -273,7 +277,7 @@ describe('parse-photo — Tier-1 metamorphic relations (attribute stability, cap
       vision: makeParsingVisionPort(rejectedPayload),
       cutout: OK_CUTOUT_PORT,
       mintSourcePhotoUrl: async (objectKey: string) => `https://storage.test/signed/${objectKey}?token=sig`,
-    }));
+    }), unthrottledSpendLimiter);
 
     const res = await callAs(handler, pool, user, {
       source_photo_hash: 'LOWCONF-1',
@@ -298,7 +302,7 @@ describe('parse-photo — Tier-1 metamorphic relations (attribute stability, cap
     // Metamorphic contrast: the SAME photo with a WELL-FORMED confident payload commits
     // exactly one garment — proving the 502 above was the rejection, not a broken path.
     const goodPorts = makeFixedPorts();
-    const goodHandler = makeParsePhoto(() => goodPorts);
+    const goodHandler = makeParsePhoto(() => goodPorts, unthrottledSpendLimiter);
     const goodUser = 'ee000000-0000-4000-8000-000000000005';
     const okRes = await callAs(goodHandler, pool, goodUser, {
       source_photo_hash: 'LOWCONF-1',
