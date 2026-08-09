@@ -98,6 +98,28 @@ describe('wardrobe endpoint — list/clamp, toggle, dedupe MERGE', () => {
     expect(res.status).toBe(400);
   });
 
+  // An UNPARSEABLE body (dropped connection mid-POST), not merely a wrong shape.
+  // This is the caller's fault, so it must be 400: a 5xx tells the client (App.tsx
+  // sets retry: 1) and any future infra the SERVER is at fault and the request is
+  // worth resending, when this body will never parse no matter how often it is sent.
+  // Every other "malformed body" oracle sends well-formed JSON with wrong fields,
+  // which fails inside parseBoundary and never reaches the req.json() throw.
+  it.each([
+    { label: 'empty', rawBody: '' },
+    { label: 'truncated', rawBody: '{' },
+  ])('toggle with an $label body → 400, never 500', async ({ rawBody }) => {
+    const res = await callerA.call(toggleAvailability, { rawBody });
+    expect(res.status).toBe(400);
+  });
+
+  it.each([
+    { label: 'empty', rawBody: '' },
+    { label: 'truncated', rawBody: '{' },
+  ])('dedupe with an $label body → 400, never 500', async ({ rawBody }) => {
+    const res = await callerA.call(resolveDedupe, { rawBody });
+    expect(res.status).toBe(400);
+  });
+
   it('toggle round-trips; toggling B item as A → 404, B row unchanged', async () => {
     const itemA = await seedItem(execA, USER_A);
     const res = await callerA.call(toggleAvailability, { body: { item_id: itemA, availability: 'dirty' } });

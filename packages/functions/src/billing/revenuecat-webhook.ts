@@ -62,6 +62,22 @@ function authHeader(req: Request): string | null {
   return req.headers.get('authorization') ?? req.headers.get('Authorization');
 }
 
+// The widest epoch-ms a JS Date can represent; beyond it toISOString() throws
+// RangeError. RevenueCatEvent types the two ms fields as bare z.number(), which
+// rejects NaN/Infinity but ADMITS any finite double, so a vendor serialization bug
+// or a µs/ms unit mix-up slips past the schema and throws inside toApplyEventInput.
+// That landed in the catch-all as a 500 — and a 5xx tells RevenueCat to RETRY an
+// event that can never succeed, burning the entire retry window on a poison pill
+// whose log deliberately carries no eventId. A 400 lets RevenueCat mark it
+// undeliverable, which is what every other malformed field already does.
+const MAX_EPOCH_MS = 8.64e15;
+
+// NaN/Infinity would also fail this comparison, so the check stays correct even if
+// the schema ever loosens.
+function isRepresentableEpochMs(ms: number): boolean {
+  return Math.abs(ms) <= MAX_EPOCH_MS;
+}
+
 // Build the ApplyEventInput from the validated event. The type→active map OWNS the
 // entitlement decision; the REAL event timestamp becomes eventTs so the repo's
 // monotonic guard engages; expiresAt is the RC expiration or null.
@@ -93,6 +109,18 @@ export function makeRevenueCatWebhook(deps: WebhookDeps): (req: Request) => Prom
       //    missing consumed field / non-uuid app_user_id → BoundaryParseError → 400.
       const rawBody: unknown = await req.json();
       const { event } = parseBoundary(RevenueCatWebhookBody, rawBody, 'revenuecat.webhook.body');
+
+      //    A timestamp the schema admits but Date cannot represent is a malformed
+      //    FIELD, so it belongs with the other 400s — not in the catch-all as a 500
+      //    that makes RevenueCat retry an unprocessable event forever. Checked here,
+      //    before the event id is consumed, so nothing is written either.
+      if (
+        !isRepresentableEpochMs(event.event_timestamp_ms) ||
+        (event.expiration_at_ms !== null && !isRepresentableEpochMs(event.expiration_at_ms))
+      ) {
+        logger.warn({ correlationId, event: 'revenuecat.invalid_timestamp', eventId: event.id, eventType: event.type });
+        return errorResponse(400, 'invalid_request', 'Request failed validation.');
+      }
 
       // 3. Map the event type to an entitlement state BEFORE consuming the event id.
       //    An unmapped type is an acknowledged 200 no-op, and it must NOT be recorded

@@ -20,9 +20,22 @@ function wantsFlip(url: URL): boolean {
   return url.searchParams.get('flip') === 'dirty';
 }
 
+// A missing/non-JSON body must be a 400, never a 500 (same rule + shape as
+// account/delete-account.ts): req.json() throws SyntaxError, NOT BoundaryParseError,
+// so errorFromThrown would map it to 500 — and a 5xx tells the client the SERVER is
+// at fault and the request is worth retrying, when this body will never parse.
+// Returning null lets parseBoundary raise the same 400 as any other bad shape.
+async function readJsonBody(req: Request): Promise<unknown> {
+  try {
+    return await req.json();
+  } catch {
+    return null;
+  }
+}
+
 export const logWear: AuthedHandler = async (req, { userId, exec }) => {
   try {
-    const body: unknown = await req.json();
+    const body = await readJsonBody(req);
     const request = parseBoundary(LogWearRequest, body, 'wear-log.append');
     const flipToDirty = wantsFlip(new URL(req.url));
     const row = await makeWearLogRepo(exec).appendWear({

@@ -127,4 +127,19 @@ describe('wear-log endpoint — idempotent append + atomic flip', () => {
     const res = await callerA.call(logWear, { body: { item_id: item } });
     expect(res.status).toBe(400);
   });
+
+  // An UNPARSEABLE body (dropped connection mid-POST), not merely a wrong shape.
+  // 400, never 500: on an append path a 5xx invites a retry of a body that can never
+  // parse. The test above sends well-formed JSON, so it fails inside parseBoundary
+  // and never reaches the req.json() throw.
+  it.each([
+    { label: 'empty', rawBody: '' },
+    { label: 'truncated', rawBody: '{' },
+  ])('log-wear with an $label body → 400, never 500, no row', async ({ rawBody }) => {
+    const before = await superuser.query<{ n: string }>(`SELECT count(*)::text AS n FROM public.wear_log`);
+    const res = await callerA.call(logWear, { rawBody });
+    expect(res.status).toBe(400);
+    const after = await superuser.query<{ n: string }>(`SELECT count(*)::text AS n FROM public.wear_log`);
+    expect(after.rows[0]?.n).toBe(before.rows[0]?.n);
+  });
 });

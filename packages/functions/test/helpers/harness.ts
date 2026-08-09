@@ -15,8 +15,12 @@ export { applyMigrations, makeTenantExecutor, makeSuperuserExecutor, startPg };
 export type { QueryExecutor, PgHarness };
 
 // A caller bound to one verified sub. `call` invokes the handler as that user.
+// `rawBody` sends the string VERBATIM (no JSON.stringify) so an oracle can drive
+// an unparseable body — `''`, `'{'` — which `body` cannot express. That is the only
+// way to reach the `req.json()` throw; a well-formed body with wrong fields fails
+// inside parseBoundary instead and never exercises it.
 export interface Caller {
-  call(handler: AuthedHandler, init?: { body?: unknown; query?: string }): Promise<Response>;
+  call(handler: AuthedHandler, init?: { body?: unknown; rawBody?: string; query?: string }): Promise<Response>;
 }
 
 // Build a caller for a given userId over the pool. The fake verifier treats the
@@ -35,7 +39,10 @@ export function makeCaller(pool: Pool, userId: string): Caller {
       const url = `https://test.local/fn${init?.query ?? ''}`;
       const headers: Record<string, string> = { authorization: `Bearer ${userId}` };
       const reqInit: RequestInit = { method: 'POST', headers };
-      if (init?.body !== undefined) {
+      if (init?.rawBody !== undefined) {
+        reqInit.body = init.rawBody;
+        headers['content-type'] = 'application/json';
+      } else if (init?.body !== undefined) {
         reqInit.body = JSON.stringify(init.body);
         headers['content-type'] = 'application/json';
       }
