@@ -72,6 +72,18 @@ describe('palette + entitlement endpoints', () => {
     expect(res.status).toBe(400);
   });
 
+  // An UNPARSEABLE body (dropped connection mid-POST), not merely a wrong shape.
+  // 400, never 500 — a 5xx would invite a retry of a body that can never parse. The
+  // test above sends well-formed JSON, so it fails inside parseBoundary and never
+  // reaches the req.json() throw.
+  it.each([
+    { label: 'empty', rawBody: '' },
+    { label: 'truncated', rawBody: '{' },
+  ])('palette upsert with an $label body → 400, never 500', async ({ rawBody }) => {
+    const res = await callerA.call(upsertPalette, { rawBody });
+    expect(res.status).toBe(400);
+  });
+
   it('entitlement default — a user with no money row reads false/null (not 404)', async () => {
     const res = await callerB.call(readEntitlement);
     expect(res.status).toBe(200);

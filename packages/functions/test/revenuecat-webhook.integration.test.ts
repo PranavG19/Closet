@@ -49,6 +49,7 @@ const USER_MONO_BUG = '44444444-4444-4444-8444-444444444444';
 const USER_REVOKE = '55555555-5555-4555-8555-555555555555';
 const USER_BADAUTH = '66666666-6666-4666-8666-666666666666';
 const USER_REPLAY_BUG = '77777777-7777-4777-8777-777777777777';
+const USER_RANGE = 'cccccccc-0000-4000-8000-00000000000c';
 
 const T1 = 1_700_000_000_000; // oldest
 const T2 = 1_700_000_100_000; // newer
@@ -519,5 +520,34 @@ describe('revenuecat-webhook — the entitlement write path (money, service_role
     const res = await handler(post(malformed, SHARED_KEY_FIXTURE));
     expect(res.status).toBe(400);
     expect(await countEvent('evt-malformed')).toBe(0);
+  });
+
+  // An out-of-range but FINITE epoch-ms (a vendor serialization bug or a µs/ms unit
+  // mix-up) is the one malformed-field case the schema's bare z.number() admits:
+  // NaN/Infinity are already rejected, but |ms| > 8.64e15 passes and then makes
+  // new Date(ms).toISOString() throw RangeError inside the handler. That lands in
+  // the catch-all as a 500, and a 5xx tells RevenueCat to RETRY an event that can
+  // never succeed — burning the whole retry window on a poison pill, with the log
+  // deliberately carrying no eventId so it is also the hardest path to diagnose.
+  // 400 lets RevenueCat mark it undeliverable, consistent with every other bad field.
+  it.each([
+    { label: 'event_timestamp_ms out of range', eventTimestampMs: 1e20, expirationAtMs: T3 },
+    { label: 'negative event_timestamp_ms out of range', eventTimestampMs: -1e20, expirationAtMs: T3 },
+    { label: 'expiration_at_ms out of range', eventTimestampMs: T1, expirationAtMs: 1e20 },
+  ])('poison pill — $label → 400, nothing written, event NOT consumed', async ({ eventTimestampMs, expirationAtMs }) => {
+    const eventId = `evt-range-${eventTimestampMs}-${expirationAtMs}`;
+    const fixture = makeEvent({
+      id: eventId,
+      type: 'INITIAL_PURCHASE',
+      appUserId: USER_RANGE,
+      eventTimestampMs,
+      expirationAtMs,
+    });
+    const res = await handler(post(fixture, SHARED_KEY_FIXTURE));
+    expect(res.status).toBe(400);
+    // Independent SELECTs: no money row, and the id is unconsumed so a corrected
+    // redelivery of the same event id can still apply.
+    expect(await selectSub(USER_RANGE)).toBeNull();
+    expect(await countEvent(eventId)).toBe(0);
   });
 });

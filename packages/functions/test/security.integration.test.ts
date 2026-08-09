@@ -22,6 +22,7 @@ import {
   type JWTVerifyOptions,
 } from 'jose';
 import type { AIVisionPort, AIVisionResult, CutoutPort, CutoutResult } from '@closet/shared';
+import { OutfitRow } from '@closet/shared';
 import { withAuth, type AuthedHandler, type TokenVerifier } from '../src/auth/withAuth.js';
 import { makePgExecutor, type Sql } from '../src/auth/executor.js';
 import { createOutfit } from '../src/outfits/create.js';
@@ -273,7 +274,9 @@ describe('Tier-2 security gauntlet — cross-tenant, injected identity, money, a
     const aItem = await seedItem(execA, USER_A);
     const res = await callerA.call(createOutfit, { body: { name: 'mine', items: [{ item_id: aItem }] } });
     expect(res.status).toBe(200);
-    const outfitId = ((await res.json()) as { outfit: { id: string } }).outfit.id;
+    // Parsed through OutfitRow, not an `as` cast: the cast asserted the response
+    // shape against itself, so it silently read `undefined` when the shape changed.
+    const outfitId = OutfitRow.parse(await res.json()).id;
     // Superuser owner check: the created outfit + its member are owned by A.
     const owner = await superuser.query<{ user_id: string }>(
       `SELECT user_id FROM public.outfits WHERE id = $1`,

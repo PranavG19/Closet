@@ -4,6 +4,7 @@
 // a superuser count, never the handler's own return value.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Pool } from 'pg';
+import { OutfitRow } from '@closet/shared';
 import { createOutfit } from '../src/outfits/create.js';
 import { listOutfits } from '../src/outfits/list.js';
 import {
@@ -48,15 +49,19 @@ describe('outfits endpoint — idempotent create + FK isolation', () => {
     await harness?.stop();
   });
 
-  it('create returns the outfit + members; members persisted', async () => {
+  // The response id is read through OutfitRow rather than an `as` cast: the cast
+  // asserted the server's shape against itself, so it stayed green while the shape
+  // drifted away from what the mobile client parses (see the wire-contract test).
+  // The member count is still the independent oracle — a superuser SELECT, not the
+  // response — so this proves the same persistence claim it always did.
+  it('create returns the outfit; members persisted', async () => {
     const item = await seedItem(execA, USER_A);
     const res = await callerA.call(createOutfit, { body: { name: 'Look', items: [{ item_id: item }] } });
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { outfit: { id: string }; items: unknown[] };
-    expect(body.items.length).toBe(1);
+    const outfit = OutfitRow.parse(await res.json());
     const count = await superuser.query<{ n: string }>(
       `SELECT count(*)::text AS n FROM public.outfit_items WHERE outfit_id = $1`,
-      [body.outfit.id],
+      [outfit.id],
     );
     expect(count.rows[0]?.n).toBe('1');
   });
@@ -95,6 +100,34 @@ describe('outfits endpoint — idempotent create + FK isolation', () => {
   it('malformed body → 400 at the boundary', async () => {
     const res = await callerA.call(createOutfit, { body: { items: 'nope' } });
     expect(res.status).toBe(400);
+  });
+
+  // An UNPARSEABLE body (dropped connection mid-POST), not merely a wrong shape.
+  // 400, never 500: a 5xx tells the client (App.tsx sets retry: 1) the SERVER is at
+  // fault and the request is worth resending, but this body will never parse. The
+  // test above sends well-formed JSON, so it fails inside parseBoundary and never
+  // reaches the req.json() throw.
+  it.each([
+    { label: 'empty', rawBody: '' },
+    { label: 'truncated', rawBody: '{' },
+  ])('create with an $label body → 400, never 500', async ({ rawBody }) => {
+    const res = await callerA.call(createOutfit, { rawBody });
+    expect(res.status).toBe(400);
+  });
+
+  // The WIRE CONTRACT the mobile client parses. client.ts:170 does
+  // parseBoundary(OutfitRow, res) on this exact 200 body, so a nested envelope
+  // makes every successful create throw client-side on a row that DID land in
+  // Postgres — the user sees "save failed" on a write that succeeded. Asserting the
+  // shared schema the client uses is what makes the two sides checkable; the
+  // existing create test read `body.outfit.id` behind an `as` cast, which asserted
+  // the server's own shape against itself and so could never catch the drift.
+  it('create response parses as the OutfitRow the mobile client expects', async () => {
+    const item = await seedItem(execA, USER_A);
+    const res = await callerA.call(createOutfit, { body: { name: 'Wire', items: [{ item_id: item }] } });
+    expect(res.status).toBe(200);
+    const parsed = OutfitRow.safeParse(await res.json());
+    expect(parsed.success).toBe(true);
   });
 
   it('list is RLS-scoped — A never sees B outfits', async () => {
