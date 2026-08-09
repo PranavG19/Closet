@@ -68,8 +68,12 @@ async function mintToken(
   return jwt.sign(privateKey);
 }
 
-// A verifier over a LOCAL JWKS (the trusted key set). Mirrors makeJwksVerifier's
-// contract: verify signature + exp, extract a non-empty string sub.
+// A verifier over a LOCAL JWKS (the trusted key set) — a STAND-IN for the injected
+// TokenVerifier seam, not a copy of the production verifier's contract. Note that the
+// exp rejection asserted below only fires because mintToken always sets an expiry; the
+// real verifier's claim set (issuer + audience + a REQUIRED exp, so a token with no exp
+// cannot verify forever) is proven against makeJwksVerifier itself in
+// src/auth/withAuth.test.ts. What this suite proves is the withAuth wiring around it.
 function localVerifier(trusted: JWK): TokenVerifier {
   const jwks = createLocalJWKSet({ keys: [trusted] });
   return {

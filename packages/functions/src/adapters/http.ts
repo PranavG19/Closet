@@ -28,10 +28,18 @@ const DEFAULT_TIMEOUT_MS = 15_000;
 const DEFAULT_MAX_RETRIES = 2;
 const BACKOFF_BASE_MS = 250;
 
-function parsePositiveInt(raw: string | undefined, fallback: number): number {
-  if (raw === undefined) return fallback;
-  const value = Number.parseInt(raw, 10);
-  return Number.isFinite(value) && value >= 0 ? value : fallback;
+// A configured value only wins if it is a safe integer at or above `minimum`.
+// Number, not parseInt: parseInt('15s') is 15, so PROVIDER_TIMEOUT_MS='15s' used to
+// become a 15ms timeout that aborts every provider call, and '1e999' became 1ms. The
+// timeout's minimum is 1 (0 aborts on the next tick — also 502-everything), while
+// maxRetries legitimately allows 0. Same shape as rate-limit.ts's
+// positiveIntOrDefault, for the same reason: a misconfigured knob must fall back to
+// the conservative default, never to a value that disables the guard.
+function intAtLeastOrDefault(raw: string | undefined, minimum: number, fallback: number): number {
+  if (raw === undefined || raw.trim() === '') return fallback;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < minimum) return fallback;
+  return value;
 }
 
 // Build the production transport defaults, overlaying any injected test doubles.
@@ -41,8 +49,9 @@ export function resolveTransportDeps(overrides?: Partial<TransportDeps>): Transp
     ((input, init) => (globalThis.fetch as unknown as FetchFn)(input, init));
   return {
     fetchFn,
-    timeoutMs: overrides?.timeoutMs ?? parsePositiveInt(envValue('PROVIDER_TIMEOUT_MS'), DEFAULT_TIMEOUT_MS),
-    maxRetries: overrides?.maxRetries ?? parsePositiveInt(envValue('PROVIDER_MAX_RETRIES'), DEFAULT_MAX_RETRIES),
+    timeoutMs: overrides?.timeoutMs ?? intAtLeastOrDefault(envValue('PROVIDER_TIMEOUT_MS'), 1, DEFAULT_TIMEOUT_MS),
+    maxRetries:
+      overrides?.maxRetries ?? intAtLeastOrDefault(envValue('PROVIDER_MAX_RETRIES'), 0, DEFAULT_MAX_RETRIES),
     sleep: overrides?.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms))),
     random: overrides?.random ?? Math.random,
   };
@@ -71,35 +80,59 @@ export class ProviderRequestError extends Error {
   }
 }
 
-// Execute one request with a hard timeout via AbortController. The timer is always
-// cleared so a resolved call never leaks a pending abort.
-async function fetchWithTimeout(url: string, init: RequestInit, deps: TransportDeps): Promise<Response> {
+// How a caller consumes an OK response. It runs INSIDE the timeout window — see the
+// note on requestWithRetry.
+export type ReadBody<T> = (response: Response) => Promise<T>;
+
+type Attempt<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly status: number };
+
+// Execute one request AND its body read under a single hard timeout. The abort must
+// stay armed across the read: a Response resolves as soon as HEADERS arrive, so
+// clearing the timer there left every body read unbounded.
+async function attemptOnce<T>(
+  url: string,
+  init: RequestInit,
+  deps: TransportDeps,
+  readBody: ReadBody<T>,
+): Promise<Attempt<T>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), deps.timeoutMs);
   try {
-    return await deps.fetchFn(url, { ...init, signal: controller.signal });
+    const response = await deps.fetchFn(url, { ...init, signal: controller.signal });
+    if (!response.ok) return { ok: false, status: response.status };
+    return { ok: true, value: await readBody(response) };
   } finally {
     clearTimeout(timer);
   }
 }
 
-// Request with bounded retry on transient (429/5xx) responses. Returns the first OK
-// Response; throws ProviderRequestError once retries are exhausted or on a non-
-// retryable non-OK status. Thrown transport errors (timeout/abort/network) are NOT
-// retried and propagate to the caller.
-export async function requestWithRetry(
+// Request with bounded retry on transient (429/5xx) responses. Returns what `readBody`
+// made of the first OK response; throws ProviderRequestError once retries are exhausted
+// or on a non-retryable non-OK status. Thrown transport errors (timeout/abort/network)
+// are NOT retried and propagate to the caller.
+//
+// WHY THE BODY READ IS A CALLBACK AND NOT THE CALLER'S BUSINESS. This used to return
+// the Response, so every adapter's `response.json()` / `.arrayBuffer()` ran after the
+// timer had already been cleared — outside any timeout. A vendor (or a proxy) that
+// sends 200 + headers and then stalls the chunked body therefore hung the parse
+// FOREVER, with parse_jobs still at status='processing': the row is unre-claimable for
+// the whole claim lease, so the user's retries get 409 'already being parsed' for a job
+// nothing is working on. Taking the reader as a callback is what makes the read
+// impossible to perform outside the timeout window, rather than merely wrong to.
+export async function requestWithRetry<T>(
   url: string,
   init: RequestInit,
   deps: TransportDeps,
-): Promise<Response> {
+  readBody: ReadBody<T>,
+): Promise<T> {
   for (let attempt = 0; ; attempt++) {
-    const response = await fetchWithTimeout(url, init, deps);
-    if (response.ok) return response;
-    if (isRetryableStatus(response.status) && attempt < deps.maxRetries) {
+    const attempted = await attemptOnce(url, init, deps, readBody);
+    if (attempted.ok) return attempted.value;
+    if (isRetryableStatus(attempted.status) && attempt < deps.maxRetries) {
       await deps.sleep(backoffMs(attempt, deps.random));
       continue;
     }
-    throw new ProviderRequestError('provider request failed', response.status);
+    throw new ProviderRequestError('provider request failed', attempted.status);
   }
 }
 

@@ -95,7 +95,10 @@ export function makeOpenAIVisionAdapter(deps?: OpenAIVisionDeps): AIVisionPort {
         ],
       };
 
-      const response = await requestWithRetry(
+      // The body read is passed INTO requestWithRetry so it runs inside the per-call
+      // timeout — a vendor that sends headers then stalls the body must not hang the
+      // parse (http.ts).
+      const vendorBody: unknown = await requestWithRetry(
         `${baseUrl}/chat/completions`,
         {
           method: 'POST',
@@ -106,9 +109,9 @@ export function makeOpenAIVisionAdapter(deps?: OpenAIVisionDeps): AIVisionPort {
           body: JSON.stringify(requestBody),
         },
         transport,
+        (response) => response.json(),
       );
 
-      const vendorBody: unknown = await response.json();
       const contentJson = extractContentJson(vendorBody);
       const normalized = isRecord(contentJson) ? lowercaseColors(contentJson) : contentJson;
       // Boundary: garbage/partial vendor payload → BoundaryParseError, never coerced.
