@@ -28,17 +28,39 @@ export interface ColorTokens {
     readonly primary: ColorValue;
     // Supporting copy — warm gray.
     readonly secondary: ColorValue;
-    // Hints, metadata — lighter gray.
+    // Hints, metadata — the LIGHTEST tone that still clears AA 4.5:1 on every bg.
+    // It is not "as light as looks nice": at #9A9793 it measured 2.58:1, failing even
+    // the 3.0 large-text floor, which made every hint and every timestamp unreadable
+    // for anyone with low vision.
     readonly tertiary: ColorValue;
-    // Text drawn on top of an accent fill (e.g. a filled Button).
+    // Text drawn on top of an accent FILL (e.g. a filled Button). Only ever legal on
+    // `accent.*` — never on `accentDecorative.*`, which is too light to carry a label.
     readonly onAccent: ColorValue;
   };
+  // ACCENTS SPLIT BY ROLE, and the split is the whole accessibility fix.
+  //
+  // One accent cannot be both the brightest possible brand pink AND legible as text —
+  // those are contradictory constraints, and collapsing them is why 7 of 10 foreground
+  // tokens failed AA. So there are two families:
+  //   `accent.*`            — legal as TEXT and as a FILL under a white label. AA 4.5:1
+  //                           against every bg, and ≥4.5:1 for white-on-it.
+  //   `accentDecorative.*`  — the brighter brand tones, legal ONLY where no text touches
+  //                           them: a dot, a rule, a border, a highlight strip edge.
+  // Both preserve the exact hue of the original brand values (339° pink, 4° red, 211°
+  // blue); only lightness moved. The aesthetic is unchanged, the contrast is not.
   readonly accent: {
     // The signature warm highlight; the primary accent.
     readonly pink: ColorValue;
     // Emphasis / occasional CTA — used rarely, deliberate.
     readonly red: ColorValue;
     // Cool highlight / secondary — balances the warm accents.
+    readonly blue: ColorValue;
+  };
+  // Decoration ONLY. Putting text on these, or a white label on a fill of these, is the
+  // AA failure this family exists to keep out of the text tokens.
+  readonly accentDecorative: {
+    readonly pink: ColorValue;
+    readonly red: ColorValue;
     readonly blue: ColorValue;
   };
   readonly border: {
@@ -96,10 +118,23 @@ export interface TypographyScaleEntry {
 export type TypographyWeight = '400' | '500' | '600';
 
 export interface TypographyTokens {
-  // One family, small weight range (docs/03). `undefined` = the platform default
-  // sans until the exact humanist/geometric face is chosen with mockups; it slots
-  // in here without touching a single component.
-  readonly family: string | undefined;
+  // One family, small weight range (docs/03 §Typography: "a modern humanist/geometric
+  // sans; one family").
+  //
+  // NO LONGER `string | undefined`. It was optional, it was set to `undefined`, and
+  // `Text.tsx` spread `fontFamily` in conditionally — so the app shipped with NO typeface
+  // set at all and nothing failed. That is the structural cause of "the fonts are messed
+  // up": not a wrong font, an ABSENT decision. Making the field required means a build
+  // cannot silently have no typeface again.
+  //
+  // The value is the platform's own humanist sans (San Francisco on iOS, Roboto on
+  // Android), named EXPLICITLY rather than left to the default. That is a real choice, not
+  // a placeholder: both are modern humanist sans faces that match what docs/03 asks for,
+  // they need no font file in the bundle, they carry no licensing question, and they render
+  // at the OS's optical sizes with correct Dynamic Type behaviour. Shipping a custom face
+  // is a licensing + bundle-size decision the owner has to make; this is the honest default
+  // in the meantime, and swapping it is a one-line change here.
+  readonly family: string;
   readonly weight: {
     readonly regular: TypographyWeight;
     readonly medium: TypographyWeight;
@@ -133,23 +168,38 @@ export const lightTokens: Tokens = {
       sunken: '#F3F1EF', // soft neutral well for cutouts
     },
     text: {
-      primary: '#1A1A1A',
-      secondary: '#5C5A57',
-      tertiary: '#9A9793',
-      onAccent: '#FFFFFF',
+      primary: '#1A1A1A', // 15.45:1 worst-bg
+      secondary: '#5C5A57', // 6.10:1
+      // Was #9A9793 = 2.58:1, failing even the 3.0 floor. Same hue family, dark enough
+      // to read: 4.62:1.
+      tertiary: '#706C68',
+      onAccent: '#FFFFFF', // ≥5.19:1 on every accent.* fill (was 2.91:1 on the old pink)
     },
+    // Text/fill-legal accents. Hue identical to the brand tones below; lightness reduced
+    // until both AA tests pass (≥4.61:1 on every bg, ≥5.19:1 for a white label on the fill).
     accent: {
-      pink: '#E8709A', // signature warm highlight
-      red: '#D8483F', // rare, deliberate emphasis
-      blue: '#5A8FC7', // cool secondary highlight
+      pink: '#CF215E', // 4.62:1 · white-on-it 5.21:1 · hue 339° (unchanged)
+      red: '#CB3329', // 4.61:1 · white-on-it 5.19:1 · hue 4° (unchanged)
+      blue: '#396FA9', // 4.64:1 · white-on-it 5.22:1 · hue 211° (unchanged)
+    },
+    // The original brand values, preserved for decoration where nothing must be read
+    // against them. These are the hexes docs/03 specified; they are still the product's
+    // colour, just no longer asked to do a job they cannot do.
+    accentDecorative: {
+      pink: '#E8709A', // signature warm highlight — dots, rules, strip edges
+      red: '#D8483F',
+      blue: '#5A8FC7',
     },
     border: {
-      hairline: '#E7E4E1',
+      hairline: '#E7E4E1', // decorative hairline; carries no text
     },
+    // Availability dots. The AA bar here is 3.0:1 (non-text UI indicator), not 4.5 — these
+    // are always paired with a text label, so the colour is redundant reinforcement rather
+    // than the sole carrier of meaning. Every one of them was under 2.5:1 before.
     state: {
-      clean: '#6FA98A', // calm positive
-      dirty: '#C9A96A', // muted, non-alarming ("in the wash")
-      unavailable: '#B7B4B0', // neutral/dimmed
+      clean: '#589474', // 3.16:1 · calm positive · hue 148° (unchanged)
+      dirty: '#A6823C', // 3.17:1 · muted, non-alarming ("in the wash") · hue 40°
+      unavailable: '#8C8781', // 3.16:1 · neutral/dimmed
     },
   },
   spacing: {
@@ -175,7 +225,10 @@ export const lightTokens: Tokens = {
     elevation: 2,
   },
   typography: {
-    family: undefined,
+    // 'System' is React Native's cross-platform alias for the OS UI face — SF Pro on iOS,
+    // Roboto on Android. Chosen deliberately over `undefined`: same rendering, but now the
+    // typeface is a stated decision that a component reads, rather than an absence.
+    family: 'System',
     weight: {
       regular: '400',
       medium: '500',

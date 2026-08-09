@@ -18,7 +18,7 @@ export function LoadingState({ message }: { readonly message?: string }): React.
   const tokens = useTokens();
   return (
     <View style={centered(tokens.spacing.md)}>
-      <ActivityIndicator color={tokens.color.accent.pink} />
+      <ActivityIndicator color={tokens.color.accentDecorative.pink} />
       {message !== undefined ? (
         <Text variant="body" tone="secondary">
           {message}

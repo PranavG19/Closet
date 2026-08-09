@@ -217,3 +217,78 @@ figure at `ab25513` is **228 unit (20 files) / 221 passed + 14 skipped integrati
 - **Environment note:** `pnpm add` fails in this repo — the `prepare` script runs `lefthook install`, which refuses because the machine has a **global** `core.hooksPath`. Deps resolve into `node_modules` and the lockfile, but the **`package.json` write is aborted**, so every dep must be added to `package.json` by hand and reconciled with `pnpm install --lockfile-only`. Silently half-installing is the failure mode to watch for.
 - Also removed 13 `probe*.mjs` diagnostic scripts left at the repo root during the migration-race investigation; 2 were failing lint.
 - **Verified:** `verify:full` GREEN — **247 unit (22 files) / 221 passed + 14 skipped integration (31 files)** (`vitest run` @ `aa025e9`).
+
+## 2026-08-09 — Paywall can charge; palette clears AA; the F5/F9 engines are wired
+
+Four commits after the salvage, working the de-slop work order and the screenshot audit's
+findings. `aa025e9` → `da4177d` → `d28569e` → `9c8db01` → this.
+
+- **THE APP STORE 3.1.2 BLOCKER IS CLOSED.** The paywall showed **no price** and its
+  Subscribe button was `onPress={() => {}}`. Now: a `BillingPort` in shared, the required
+  disclosure text as a PURE FUNCTION (`subscriptionDisclosure`) tested against
+  `docs/legal/subscription-terms.md` §7 rather than hand-written into a screen, a RevenueCat
+  adapter with no native imports, and a Restore Purchases control. **The price is the
+  store's own localised string**, never a number we format — §2 of the legal doc already
+  required exactly that, and a formatted number gets decimal separators, symbol placement,
+  and tax-inclusive storefronts wrong. `localizedPrice` carries `.min(1)` so a **blank price
+  is a parse failure, not a blank paywall**. Still owner-blocked on RevenueCat keys, and the
+  unconfigured build says so honestly: no offer → "Membership isn't available right now",
+  with **no button and no price** rather than a dead button.
+- **A successful purchase does NOT grant entitlement.** It means the store took the money;
+  the webhook is still the sole writer of `entitlement_active`, so the screen refetches. The
+  copy says "confirming your membership", not "you're a member".
+- **The palette now clears WCAG AA, and a test keeps it there.** 7 of 10 foreground tokens
+  failed — `text.tertiary` at **2.58:1** (below even the 3.0 large-text floor) and
+  **white-on-`accent.pink` at 2.91:1, which is the filled Button's own label**: the
+  `Subscribe` and `I wore this` text. Fixed by SPLITTING the accent by role, because one
+  colour cannot be both the brightest brand pink and legible type — `accent.*` is
+  text/fill-legal (≥4.61:1 on every bg, ≥5.19:1 for a white label), `accentDecorative.*`
+  keeps the original brand hexes for dots, rules, and borders where nothing is read. **Every
+  hue is preserved to within 2°** — only lightness moved, so the aesthetic is unchanged. New
+  values derived by solving in HSL against the WCAG formula, not picked by eye.
+- **`packages/mobile/src/tokens/contrast.test.ts` is the mechanism, and it is the real
+  deliverable here.** docs/03 called AA "baseline, non-negotiable" and **nothing enforced
+  it**. The test implements the WCAG 2.x formula and asserts the published thresholds; it
+  does NOT hardcode expected ratios (that would be a mirror oracle agreeing with whatever
+  the tokens are). **Proven by restoring the old palette: 11 tests went red with exact
+  ratios, naming the offending background.** It iterates the token objects, so a new colour
+  token cannot be added untested.
+- **`typography.family` was `undefined` and is now REQUIRED.** That is the structural cause
+  of "the fonts are messed up" — not a wrong font, an **absent decision**, invisible because
+  `Text.tsx` spread `fontFamily` conditionally. Set to `'System'` (SF Pro / Roboto — real
+  humanist sans faces matching docs/03, no bundled file, no licensing question). A custom
+  face remains an owner call; the type now makes "no typeface" unrepresentable.
+- **F5 + F9 are wired into SuggestionsScreen (de-slop B8).** It rendered `items[0]` under the
+  hardcoded "This pairs beautifully with your neutrals." — printed for every outfit including
+  ones with no neutral — while `suggestItems`/`harmony` sat tested with **zero callers**. The
+  audit called this "~10 lines of wiring"; **it was not**: `suggestItems` needs a `warmth` per
+  item and **there is no `warmth` column**, so the heuristic was unreachable from real data.
+  Hence `wardrobeSuggestion.ts` (category→ordinal warmth, a closed Record so a new category
+  is a compile error) and `suggestionNote.ts` (advisory copy from the REAL verdict; **a clash
+  says nothing**, per docs/03 "never a nag"; an outfit is graded by its WEAKEST pair so one
+  safe combination cannot vouch for the rest).
+- **The suggestions query is now unfiltered.** It requested `availability:'clean'`, which made
+  "closet is empty" and "everything is in the wash" indistinguishable — and gave the wrong
+  advice to the second ("add a few pieces" to someone who needs to do laundry).
+- **De-slop A1/A2 (see `d28569e`):** the error envelope was declared TWICE and the two sides
+  disagreed (server nested, client flat, both fields optional) — so `safeParse` **succeeded
+  on `{}`** and every error code collapsed to `'error'`. One declaration in
+  `shared/schemas/errors.ts` now. And `makeParsePhoto`'s spend-limiter parameter lost its
+  default: one dropped argument was unmetered access to the paid vendors. **Verified by
+  mutation — the compiler kills it**, not a test.
+- **Mutation-verified this session, 10 mutants, all killed:** price removed from the paywall
+  headline · trial claimed with no trial · "until you cancel" dropped · declined payment
+  reported as a cancellation · unknown billing period defaulting to monthly · the spend
+  limiter argument dropped · the old palette restored (11 red).
+- **A REAL GAP FOUND: tests under `packages/mobile/features/**` DO NOT RUN.** vitest's `unit`
+  project globs `packages/*/src/**/*.test.ts`. A test placed under `features/` does not fail
+  — it **never executes**. I hit this with the billing adapter (20 tests, silently skipped)
+  and moved it to `src/billing/`. No pre-existing test was affected (mine was the only one
+  under `features/`). I did **not** widen the glob: that is adjacent shared config and the
+  right fix is a decision about where mobile tests live, not a quiet edit inside a feature
+  commit. **Reported, not fixed.**
+- **Verified:** `verify:full` GREEN — **318 unit (27 files) / 221 passed + 14 skipped
+  integration (31 files)** (`vitest run` @ this commit). Unit count up 90 from `ab25513`.
+- **STILL NOT RE-CAPTURED.** Four of the six screenshot defects are now fixed in code
+  (safe-area, tab label, palette, typeface) and **zero are visually confirmed** — all 17
+  committed PNGs are pre-fix. A re-capture is the only oracle that closes those rows.

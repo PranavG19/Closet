@@ -26,7 +26,10 @@ export function Text({
     fontSize: scale.fontSize,
     lineHeight: scale.lineHeight,
     fontWeight: scale.fontWeight,
-    ...(tokens.typography.family !== undefined ? { fontFamily: tokens.typography.family } : {}),
+    // Unconditional. This used to be a conditional spread guarding against
+    // `family: undefined`, which meant the app shipped with no fontFamily set and nothing
+    // could tell. The token is now required, so there is nothing to guard.
+    fontFamily: tokens.typography.family,
   };
   return <RNText style={[composed, style]} {...rest} />;
 }

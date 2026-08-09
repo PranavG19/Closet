@@ -87,7 +87,7 @@ export function SuggestionsScreen(): React.JSX.Element {
   // Gentle highlight strip — advisory, never a red error/nag (docs/03).
   const highlight: ViewStyle = {
     borderLeftWidth: 3,
-    borderLeftColor: tokens.color.accent.pink,
+    borderLeftColor: tokens.color.accentDecorative.pink,
     paddingLeft: tokens.spacing.md,
     marginTop: tokens.spacing.md,
   };

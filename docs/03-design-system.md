@@ -44,7 +44,7 @@ Light theme. A mostly-neutral canvas with **pink / red / blue accents used as hi
 
 ## Typography
 
-- **Clean, minimal typeface** — a modern humanist/geometric sans; one family, a small weight range (e.g. regular / medium / semibold). Exact face chosen with mockups. **Not chosen yet: `tokens.ts:178` is `family: undefined`,** so the app currently renders in the platform default. See §Open.
+- **Clean, minimal typeface** — a modern humanist/geometric sans; one family, a small weight range (e.g. regular / medium / semibold). **`typography.family` is now REQUIRED (not `string | undefined`) and set to `'System'`** — SF Pro on iOS, Roboto on Android, both modern humanist sans faces. That is a stated decision, not a placeholder: no bundled font file, no licensing question, correct Dynamic Type behaviour. A custom face remains an owner call and is a one-line change in `tokens.ts`. The type makes "no typeface at all" unrepresentable, which is what previously shipped.
 - Clear hierarchy: display (reveal moment, big and confident) → title → body → caption. Generous line-height; nothing cramped. *(Implemented: display 32/40, title 22/28, body 16/24, caption 13/18.)*
 - Numbers (counts, later cost-per-wear) tabular-aligned. **Not implemented** — no `fontVariant` anywhere.
 
@@ -102,14 +102,16 @@ The requirements stand. Each carries where the code actually is as of `ab25513`,
 - **Reduced-motion honored.** ⚠️ **VACUOUSLY TRUE** — no `AccessibilityInfo`/`isReduceMotionEnabled` anywhere, and **no motion exists yet**, so nothing is currently violated. It becomes a live requirement with the reveal animation.
 - **Tabular numerals** (§Typography). ❌ **NOT MET** — no `fontVariant` in `tokens.ts` or `src/ui/Text.tsx`.
 
-**Nothing above is enforced by a gate.** There is no accessibility check in `scripts/verify.mjs` and no CI. These are commitments held by review, which is why the screenshot audit found them and 228 tests did not.
+**CONTRAST IS NOW ENFORCED; the rest is not.** `packages/mobile/src/tokens/contrast.test.ts` implements the WCAG 2.x relative-luminance formula and asserts the published thresholds (4.5:1 normal text, 3.0:1 large text + non-text UI) against **every** foreground token on **every** background, plus white-on-every-accent-fill. It runs in `pnpm verify`. It deliberately does **not** hardcode expected ratios — that would be a mirror oracle agreeing with whatever the tokens happen to be; the oracle is the spec's formula, so changing a hex changes the measurement while the threshold stays put. It iterates the token objects, so a newly added colour cannot be introduced untested. Proven by restoring the pre-fix palette: **11 tests went red**, each naming the exact ratio and the offending background.
+
+The other commitments on this page — hit targets, "never encode meaning in hue alone", motion durations, one-family typography — remain **held by review, not by a gate**, which is why the screenshot audit found violations that a 228-test suite could not see. Contrast was the one that reduced cleanly to arithmetic.
 
 ---
 
 ## Open (finalize with mockups)
 
 - **Exact hex values** — the revision now has a hard constraint, not only taste: the palette must clear **4.5** for text and **3.0** for meaningful non-text UI. Current numbers + the recompute snippet are in `07-ui-state.md` §4.4.
-- **The chosen typeface.** `tokens.ts:178` is `family: undefined` — the platform default (SF Pro on iOS, Roboto on Android), which is what the screenshots show. The real gap is that **nothing fails when it is still `undefined` at ship.**
+- **A CUSTOM typeface, if one is ever wanted.** `typography.family` is now required and set to `'System'`, so the "nothing fails when it is `undefined` at ship" hole is closed — the field cannot be absent. What remains is purely a taste + licensing call: whether to bundle a specific face instead of the platform sans.
 - Precise radii/shadow, the reveal animation choreography, and the empty-state illustration style — the empty states currently render as text + a button with no illustration (`wardrobe-empty.png`).
 
 This doc defines the *system and intent*; the visual demos slot in against these tokens without changing the structure.

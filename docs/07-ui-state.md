@@ -134,7 +134,7 @@ const ratio = (a, b) => {
 
 ### 5. No typeface is set at all
 
-`src/tokens/tokens.ts:178` → `family: undefined`. The comment at `:99-102` is explicit that `undefined` means the platform default, so the screenshots are SF Pro (iOS) and Android would be Roboto.
+**FIXED IN CODE (not re-captured).** Was `family: undefined`, with `Text.tsx` spreading `fontFamily` conditionally — so the app shipped with no typeface set and nothing could tell. `typography.family` is now REQUIRED (`string`, not `string | undefined`) and set to `'System'` (SF Pro on iOS, Roboto on Android). The screenshots still show the same rendering, because the platform default IS what `'System'` resolves to — the change is that the absence is no longer representable.
 
 `docs/03` §Typography asks for "a modern humanist/geometric sans; one family, a small weight range" and §Open lists the typeface as unfinalized — so this is a *disclosed* gap, not a lie. The real problem is that **nothing fails when `family` is still `undefined` at ship.** Related and undisclosed: `docs/03` also requires tabular-aligned numbers, and there is no `fontVariant` anywhere in `tokens.ts` or `src/ui/Text.tsx`.
 

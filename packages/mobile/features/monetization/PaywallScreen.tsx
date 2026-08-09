@@ -79,7 +79,7 @@ export function PaywallScreen(): React.JSX.Element {
     width: tokens.spacing.sm,
     height: tokens.spacing.sm,
     borderRadius: tokens.radius.pill,
-    backgroundColor: tokens.color.accent.pink,
+    backgroundColor: tokens.color.accentDecorative.pink,
     marginRight: tokens.spacing.sm,
   };
 
