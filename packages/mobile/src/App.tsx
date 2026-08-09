@@ -30,6 +30,7 @@ import {
   makeTokenSource,
   type AuthPort,
 } from './session/index.js';
+import { BillingProvider, makeBillingPort } from './billing/index.js';
 import { LoadingState } from './ui/index.js';
 import { NavShell, type TabScreens } from '../features/navigation/index.js';
 import { WardrobeScreen } from '../features/wardrobe/index.js';
@@ -85,6 +86,10 @@ export function App(): React.JSX.Element {
     () => new ApiClient({ getToken: makeTokenSource(port) }),
     [port],
   );
+  // The store seam. Built once; reports "no offer" until the owner's RevenueCat keys and
+  // product IDs exist, which the paywall renders as an honest unavailable state rather
+  // than a priceless subscribe button. See src/billing/revenueCatNative.ts.
+  const billing = React.useMemo(() => makeBillingPort(), []);
 
   return (
     <SafeAreaProvider>
@@ -92,7 +97,9 @@ export function App(): React.JSX.Element {
         <ThemeProvider>
           <SessionProvider port={port}>
             <ApiProvider client={client}>
-              <RootGate />
+              <BillingProvider port={billing}>
+                <RootGate />
+              </BillingProvider>
             </ApiProvider>
           </SessionProvider>
         </ThemeProvider>
