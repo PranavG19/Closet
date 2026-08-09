@@ -10,6 +10,14 @@ The three critical paths this whole document exists to protect: **money/entitlem
 
 ## Tier-0 — Anti-mirror: mutation battery + spec-derived-by-a-different-agent + red-first
 
+> **⚠️ IMPLEMENTATION STATUS (re-derived 2026-08-08): `pnpm mutation` DOES NOT EXIST.** There is no `mutation` script in `package.json` (the scripts are `gen`, `gen:check`, `verify`, `verify:full`, `typecheck`, `lint`, `test`, `test:integration`, `db:migrate{,:down,:redo}`, `prepare`), no mutation tooling installed, and no nightly runner. So the "6-mutant smoke in `pnpm verify`" and "full battery nightly" below describe a **design, not a gate**.
+>
+> **What HAS actually happened, and it is not nothing:** mutants have been **hand-derived by the orchestrator from main** on every critical path, each with a red→revert→green cycle recorded in `RUN-LOG.md` — the entitlement-comparison flip (`!== true` → `=== true`), the constant-time-compare flip, the wear-log/teaser-cap concurrency variants, a deliberately-broken 0012-style CTE rate limiter (which admitted 12 against a cap of 3 in 25/25 loops, proving the harness detects the bug class), and the `44812c5` SSRF re-introduction (which failed exactly one test with `expected 200 to be 400`, where that 200 **is** the attack succeeding). Migration `0013`'s folder-index literal has a **standing** mutation test in the suite — that one is a real, permanent Tier-0 artifact.
+>
+> **One trap that makes a mutant vacuous, learned the hard way:** vitest resolves `@closet/shared` to the built `dist`, so **mutating source without `pnpm -w exec tsc --build` tests nothing.** "No tests ran" is not a kill.
+>
+> Mechanism (b), spec-derived-by-a-second-agent, has **never been run** in this project.
+
 **The signal, and why the author can't fake it.** This tier exists *only* to kill the mirror oracle directly, so its independence is structural rather than data-driven. Three mechanisms, none of which the code-author controls:
 
 - **(a) Mutation testing grades the TESTS, not the code.** A surviving mutant on a critical path is machine proof the author's assertions are hollow — no amount of self-confidence fakes a killed mutant.
@@ -29,7 +37,9 @@ In all three, the grading signal comes from a process the author cannot author.
 
 **Applies to.** `packages/functions` parse-photo handler · `packages/functions` revenuecat-webhook handler · `packages/db` repos (tenancy + idempotency writes) · `packages/db` migrations (destructive DML tie-breaks) · `packages/shared` critical pure fns.
 
-**Extension rule — there is more.** Any code on the three critical paths (money/entitlement, tenancy/RLS, parse idempotency + cap) gets a **mutation target the day it lands**; every such module must survive the 6-mutant smoke in `pnpm verify` and the full battery nightly — a surviving mutant is a **build-blocking gap, not a warning**. For any feature with a written GWT clause on a critical or irreversible path, a **second agent derives its test from the spec alone**. Add a mutation target and a spec-agent derivation for **each new critical-path branch as it is written** — never retrofit in bulk.
+**Extension rule — there is more.** Any code on the three critical paths (money/entitlement, tenancy/RLS, parse idempotency + cap) gets a **mutation target the day it lands**; a surviving mutant is a **build-blocking gap, not a warning**. For any feature with a written GWT clause on a critical or irreversible path, a **second agent derives its test from the spec alone**. Add both for **each new critical-path branch as it is written** — never retrofit in bulk.
+
+**Until `pnpm mutation` exists, the standing rule is:** every critical-path change must carry a **hand-derived mutant re-derived from `main`** (not from the author's worktree), with the red→revert→green recorded in `RUN-LOG.md`. Rebuild `dist` first or the probe is vacuous. That is weaker than a battery — it covers the branches someone thought to mutate — and it is what has actually caught things, so it is the bar, not an excuse. Building the real battery is tracked in `LAUNCH-READINESS.md` §4.
 
 ---
 
@@ -94,7 +104,7 @@ In all three, the grading signal comes from a process the author cannot author.
 
 **The signal, and why the author can't fake it.** The oracle is an **attacker's independent observation, never the handler's own response** — the fitapp rule *THE RESPONSE IS NEVER THE ORACLE* (a handler can return 404 while having written the row). Every probe ends in a **fresh SELECT taken as the victim tenant under RLS**, plus a **container-superuser cross-owner join** that no RLS-scoped read can express (`count 0` = no foreign row exists anywhere). Independence comes from grading against actual database state from a vantage the handler doesn't control, with a **fully-valid attacker token** (nothing forged — the attacker simply names rows it doesn't own). For privacy, the oracle is the **network/upload boundary itself**: the assertion is that NO code path can transmit a non-approved photo, proven by the **absence** of any endpoint/Storage-write reachable without prior on-device approval + hash.
 
-**What it proves.** That per-user isolation is real against a **malicious-but-authenticated** caller across all 7 tenant tables (default-deny holds on read AND write); that the money table is **structurally unwritable** by any `app_user` token; and that the privacy invariant is enforced by the **shape** of the system (no server gate endpoint, no upload path for an unapproved photo) rather than by a promise.
+**What it proves.** That per-user isolation is real against a **malicious-but-authenticated** caller across all 9 tenant tables (default-deny holds on read AND write); that the money table is **structurally unwritable** by any `app_user` token; and that the privacy invariant is enforced by the **shape** of the system (no server gate endpoint, no upload path for an unapproved photo) rather than by a promise.
 
 **Example tests.**
 - **Cross-tenant WRITE:** tenant A (valid token) submits `outfit_items` naming B's `outfit_id` / `wardrobe_item` id; a fresh SELECT as B shows nothing, and the superuser cross-owner join (`child.user_id <> parent.user_id`) counts 0.
@@ -104,7 +114,7 @@ In all three, the grading signal comes from a process the author cannot author.
 - **Privacy never-uploads (backend seam):** assert there is **NO** Edge endpoint that accepts a raw camera-roll photo, and Storage RLS refuses any object write whose path/metadata lacks the approved `source_photo_hash` — an unapproved photo has no representable upload path.
 - **Idempotency-collision attack:** A replays B's exact `client_id` on `wear_log` to try to make a partial-UNIQUE arbiter resolve onto B's row.
 
-**Applies to.** `packages/functions` withAuth/serveAuthed · `packages/db` repos + RLS policies on all 7 tenant tables · Supabase Storage RLS (uploads + cutouts buckets) · `subscriptions` table (money boundary) · parse-photo upload/approval seam.
+**Applies to.** `packages/functions` withAuth/serveAuthed · `packages/db` repos + RLS policies on all 9 tenant tables · Supabase Storage RLS (`originals` + `cutouts` buckets) · `subscriptions` table (money boundary) · parse-photo upload/approval seam.
 
 **Extension rule — there is more.** Every new tenant table and every new mutation endpoint is added to the **standing cross-tenant penetration suite the same wave it lands** — a permanent fixture, not a one-time audit, and it must attack **WRITE** paths with a valid token, not just reads. Each new byte-storing bucket gets a **real Storage-RLS test** (not a table-RLS proxy) proving the path-prefix policy binds to the requester's `sub`; each new self-authed endpoint gets a **signature-forgery probe**.
 
@@ -124,7 +134,7 @@ In all three, the grading signal comes from a process the author cannot author.
 - **RLS-per-table suite:** for each of the 7 tables, `app_user` sees only own rows; a second tenant's rows are invisible; grants come only from the migration chain.
 - **pgExecutor role test:** confirm `SET LOCAL ROLE app_user` is actually in effect (a query that would succeed as superuser but must fail as `app_user`).
 
-**Applies to.** `packages/functions` all 6 handlers · `packages/db` all repos · full migration chain (`applyMigrations`) · RLS policies + grant matrix on all 7 tables.
+**Applies to.** `packages/functions` all 12 handlers · `packages/db` all repos · full migration chain (`applyMigrations`) · RLS policies + grant matrix on all 9 tables.
 
 **Extension rule — there is more.** Every endpoint and every repo gets a `*.integration.test.ts` (exact suffix) that runs the **real chain** and `SET LOCAL ROLE app_user` before a wave is declared done — affected-only masks regressions, so `verify:full` gates the wave. Each new table adds its own `.rls.integration.test.ts`; each new idempotency constraint adds a **retry/collision integration test** that proves the arbiter resolves onto the caller's own row only.
 
@@ -174,7 +184,7 @@ The synchronous budget is a hard agent-arch constraint (Rule 4: the safe path is
 | Runs synchronously in `pnpm verify` (affected-only, < 90s) | Runs post-merge / nightly (`pnpm verify:full` + scheduled) |
 |---|---|
 | Tier-1 property tests (bounded fast-check runs — fast, pure, no I/O) | Tier-0 **full** mutation battery (minutes-to-hours; the 722-mutant-class run) |
-| Tier-0 **6-mutant smoke** on touched critical-path modules | Tier-3 **full** integration suite across all 7 tables + all handlers |
+| Tier-0 **6-mutant smoke** on touched critical-path modules | Tier-3 **full** integration suite across all 9 tables + all handlers |
 | Tier-2 authz/tenancy tests for **affected** tables/endpoints | Tier-4 load/chaos: parse fan-out, populated-migration round-trips |
 | Tier-3 integration tests for the **affected** repo/handler | Tier-1 bench-scan **replay tier** (keyless) on every merge; **live-provider + adversary + differential** nightly (cost + latency) |
 | Structural gates: gen-check, edge-graph/edge-type, typecheck, lint | Tier-4 real-RevenueCat webhook chaos (human-gated; never in the autonomous wall) |

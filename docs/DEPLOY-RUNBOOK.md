@@ -160,10 +160,15 @@ pnpm db:migrate
 instructions if absent. **Never `cat`/`echo` `.env.migrate`** — the `secret-file-guard`
 hook enforces this, and `set -a; . ./file; set +a` keeps the value out of context.
 
+**There are 16 migrations** (`ls packages/db/migrations/ | wc -l` → 16; `0001_substrate.sql`
+… `0016_apply_webhook_event_fn.sql`, no gaps). Re-derive that count rather than trusting
+this line — it has been wrong in three docs before. `0013_storage_rls.sql` is included and
+applies here; §6 is its verification checklist, not a separate step.
+
 Migration 0001 is **dual-target**: on hosted Supabase it detects that GoTrue already
 owns the `auth` schema and does not fabricate the local stand-in, while still defining
-`auth.uid()` via `CREATE OR REPLACE`. It also creates `app_user`. Nothing to do
-manually.
+`auth.uid()` via `CREATE OR REPLACE`. It also creates `app_user`. `0013` is dual-target
+the same way for the `storage` schema (see §6). Nothing to do manually for either.
 
 Then run step 2's `CREATE ROLE closet_app` SQL (it needs `app_user` to exist), and
 verify with preflight A.3 at step 9 — not by eyeballing the CLI output.
@@ -205,27 +210,45 @@ void regardless of what B.1 asserts about the authenticated path.
 
 ---
 
-## 6. Apply the Storage RLS policies **[A→H]** — NOT AUTHORED IN THIS RUNBOOK
+## 6. Apply the Storage RLS policies **[A→H]** — the SQL EXISTS; verify then apply
 
-The policy SQL lands in **`packages/db/migrations/0013_storage_rls.sql`**, authored
-concurrently by another task. This runbook must not write it and does not duplicate it.
+The policy SQL is **`packages/db/migrations/0013_storage_rls.sql`** (landed `7d1c3e3`). It
+is applied by step 4's `pnpm db:migrate` along with everything else — there is no separate
+command. This section is the operator's **verification checklist**, not an authoring task.
 
 Nothing you can create in the dashboard substitutes for it — buckets alone grant no
 access, and RLS on `storage.objects` is, per docs/06 §6, *"the ONLY control preventing
 cross-user byte reads/writes."*
 
-**What the operator must confirm about 0013 before proceeding** (docs/06 §6, verbatim
-requirements — check each against the migration text):
+**Confirm each of these against the migration text before you trust it** (docs/06 §6
+requirements; all four were verified present on 2026-08-08, but re-check rather than trust
+this line):
 
 1. It compares `(storage.foldername(name))[1] = auth.uid()::text`. **The `::text` cast
    is mandatory** — `auth.uid()` is `uuid`, `foldername()` returns `text`, and without
-   the cast the comparison misbehaves.
+   the cast the comparison misbehaves. → present, `:88` and every policy.
 2. It includes a `bucket_id` predicate, so a policy for one bucket cannot apply to the
-   other.
-3. It covers **read AND write** on **both** buckets (`SELECT`, `INSERT`, and `UPDATE` —
-   an `INSERT`-only policy still lets a user overwrite a neighbour's object).
-4. It is applied by `pnpm db:migrate` (re-run step 4 once 0013 lands) and shows up in
-   preflight A.3's ledger comparison.
+   other. → present in all 8 policies.
+3. It covers **read AND write** on **both** buckets. → 8 policies = `SELECT`/`INSERT`/`UPDATE`/`DELETE`
+   × `originals`/`cutouts`. (An `INSERT`-only policy would still let a user overwrite a
+   neighbour's object, which is why `UPDATE` carries both `USING` and `WITH CHECK`.)
+4. It appears in preflight A.3's ledger comparison after step 4.
+
+**Two things specific to running this against real Supabase:**
+
+- The migration is **dual-target**. On hosted Supabase the `storage` schema is
+  platform-owned and already exists, so the bootstrap block is a **no-op** and nothing
+  Supabase-owned is mutated; the policies are simply created. On a bare `postgres:17` test
+  container it fabricates a stand-in so the same policy text is exercised locally.
+  **Everything proven so far was proven against that stand-in — never against hosted
+  `storage.objects`.** Applying it here is the first real exercise, which is exactly why
+  B.1 exists.
+- **Its DOWN is deliberately conservative and must stay that way.** As originally authored
+  it ran `DROP SCHEMA storage CASCADE` + `DROP ROLE authenticated` guarded only by an
+  ownership check — on a real project one mis-evaluation **destroys every user's photo
+  bytes.** It now uses explicit named drops, no CASCADE, and a second independent
+  discriminator (real Supabase `storage.objects` has a `path_tokens` column the stand-in
+  never creates). **Do not "simplify" that DOWN.**
 
 Then, and only then, does B.1 have something to prove. **Path obscurity is never the
 control.**
@@ -410,43 +433,49 @@ guard.
 
 ---
 
-## Contradictions with LAUNCH-READINESS §2 / §6 found while writing this
+## Doc contradictions found while writing this — all RESOLVED as of 2026-08-08
 
-Reported, not silently corrected in that doc.
+Kept as a record of *what drifted and why*, because the same three numbers drifted across
+~8 docs and the pattern matters more than any one instance. Each was corrected at the
+source in the 2026-08-08 doc pass; none is an open action.
 
-1. **Route count is wrong everywhere.** LAUNCH-READINESS §2 says "9 Edge handlers",
-   `supabase/functions/README.md`'s table lists **9** routes and its env table says
-   "all 8 user-JWT functions". Disk has **12** shim directories: the README's table omits
-   `palette-entitlement`, `account-export`, and `account-delete` entirely. Proving line —
-   `ls -1d supabase/functions/*/ | wc -l` = 12 (11 `serveAuthed` + 1 `Deno.serve`).
-   `supabase/functions/README.md` needs its table and its "all 8 user-JWT functions"
-   rows updated to 11.
+1. **Route count (RESOLVED).** LAUNCH-READINESS said "9 Edge handlers"; `supabase/functions/README.md`'s
+   table listed **9** routes and said "all 8 user-JWT functions" three times. Disk has **12**
+   shim directories — `ls -1d supabase/functions/*/ | wc -l` = 13 including `_shared`, so
+   **12 routes = 11 `serveAuthed` + 1 `Deno.serve`**. Both docs now say 12/11, and both now
+   point here for the route→env mapping instead of restating it. Also recorded in both:
+   `packages/mobile/src/api/routes.ts` has **11** entries and that is correct — the webhook
+   has no client caller.
 
-2. **`config.toml` was missing three functions — a real day-1 outage, now fixed.**
-   Before this change, `supabase/config.toml` had 9 `[functions.*]` stanzas while 12 shims
-   existed. `account-delete`, `account-export`, and `palette-entitlement` would have
-   deployed with the gateway's `verify_jwt` **ON**, and since our tokens are asymmetric
-   while the gateway verifies symmetrically, **every real request to those three would
-   have 401'd** — taking out App Store 5.1.1(v) account deletion, GDPR Art. 15 export,
-   and the paywall's entitlement read. LAUNCH-READINESS §6 does not list this among the
-   day-1 breakages; it should. Preflight A.0 found it on its first execution and now
-   prevents its recurrence.
+2. **`config.toml` was missing three functions — a real day-1 outage, fixed in `8183aa5`.**
+   `config.toml` had 9 `[functions.*]` stanzas while 12 shims existed. `account-delete`,
+   `account-export`, and `palette-entitlement` would have deployed with the gateway's
+   `verify_jwt` **ON**, and since our tokens are asymmetric while the gateway verifies
+   symmetrically, **every real request to those three would have 401'd** — taking out App
+   Store 5.1.1(v) account deletion, GDPR Art. 15 export, and the paywall's entitlement read.
+   Preflight A.0 found it on its first execution and now prevents recurrence. LAUNCH-READINESS
+   §7.2 and `supabase/functions/README.md` both now record it as the reason `verify_jwt=false`
+   is stated emphatically rather than in passing.
 
-3. **"uploads" bucket does not exist.** LAUNCH-READINESS §6.5 and docs/05 Tier-2/§107 say
-   "uploads + cutouts buckets". Every implementation-side source says **`originals`** +
-   `cutouts` (docs/06 §6:199, `0014_delete_account_fn.sql:71`,
-   `privacy-policy.md:129-130`, `export-data.ts`). Cosmetic in the doc, but a runbook
-   operator reading only LAUNCH-READINESS would create a bucket the app never writes to
-   and never create the one it does.
+3. **The "uploads" bucket never existed (RESOLVED).** LAUNCH-READINESS and `docs/05` said
+   "uploads + cutouts". Every implementation-side source says **`originals`** + `cutouts`
+   (`docs/06` §6, `0013_storage_rls.sql:76-77`, `0014_delete_account_fn.sql`,
+   `privacy-policy.md:129-130`, `export-data.ts`). Cosmetic in prose, load-bearing in
+   practice: an operator reading only that doc would create a bucket the app never writes
+   to and skip the one it does. Both docs now say `originals` + `cutouts`.
 
-4. **§4's "12 migrations" is stale.** LAUNCH-READINESS §2 says "12 migrations …
-   `0001`…`0012`. Count verified (`ls | wc -l` = 12)". Disk now has **13** files —
-   `0014_delete_account_fn.sql` landed after that audit, and **there is no `0013`** (it is
-   being authored concurrently for Storage RLS). Consequences the doc does not flag:
-   preflight A.3a compares against whatever is on disk, so it is self-correcting; but
-   A.3b exists because once 0014 is applied and 0013 lands afterwards, the next
-   `pnpm db:migrate` **hard-fails** with node-pg-migrate's *"Not run migration
-   0013_storage_rls is preceding already run migration 0014_delete_account_fn"*
-   (`checkOrder`, `node-pg-migrate/dist/bundle/index.js:3712`) and applies nothing.
-   **Ordering consequence for this runbook: do not run step 4 until 0013 exists, or
-   0013 must be renumbered above 0014.** Flagged for the 0013 author.
+4. **Migration count (RESOLVED — and the ordering hazard is GONE).** LAUNCH-READINESS said
+   "12 migrations, `ls | wc -l` = 12". Disk has **16** (`0001`…`0016`, no gaps).
+   **`0013_storage_rls.sql` exists** — it landed in `7d1c3e3`, and it landed *before* `0014`
+   was ever applied anywhere, so the hazard this section previously warned about never
+   materialised. The old warning — *"do not run step 4 until 0013 exists, or 0013 must be
+   renumbered above 0014"* — was correct when written, is obsolete now, and had become
+   **actively harmful**: an operator following it would refuse to run step 4 for no reason.
+   It is deleted rather than annotated.
+
+   **The underlying node-pg-migrate rule still applies to any FUTURE migration, so keep it
+   in mind:** if a lower-numbered migration lands after a higher-numbered one has already
+   been applied, `pnpm db:migrate` **hard-fails** with *"Not run migration X is preceding
+   already run migration Y"* (`checkOrder`) and applies nothing. Preflight A.3a compares the
+   ledger against disk and is self-correcting; A.3b exists specifically to catch this
+   ordering case. Never number a new migration below anything already applied.

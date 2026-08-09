@@ -87,14 +87,17 @@ The model above only works if it's mechanical. Each rule below is wired to a hoo
 | No destructive DDL ad-hoc | **`db-guard`** PreToolUse hook — DROP/TRUNCATE must be an approved numbered migration | **live in scaffold** |
 | No dangerous git | **`git-guard`** — blocks force-push, push-to-default, `--no-verify`, staging secrets | **live in scaffold** |
 | Fast local signal | **`posttool-typecheck`** — incremental `tsc --build` on the edited package after every Edit/Write | **live in scaffold** |
-| Session state surfaced | **`session-start`** hook — prints RUN-LOG tail + open BUG-QUEUE + escalation queue | **live in scaffold** |
-| Agent can't edit its own cage | `conventions.json` `humanOwnedPaths` → generated CODEOWNERS covers `.claude/`, hooks, gates, tsconfig, migration approvals | **live in scaffold** |
+| Session state surfaced | **`session-start`** hook — prints RUN-LOG tail + open BUG-QUEUE + escalation queue | **live in scaffold** — but **`docs/BUG-QUEUE.md` does not exist**, so that half prints nothing |
+| Agent can't edit its own cage | `conventions.json` `humanOwnedPaths` → generated CODEOWNERS covers `.claude/`, hooks, gates, root tsconfigs, migration approvals | ⚠️ **PARKED, NOT LIVE.** `.github/CODEOWNERS:6` states it: "not enforced until a GitHub remote + branch protection ruleset exist" — and **there is no remote.** CODEOWNERS is generated and correct, and enforces nothing today; the real enforcement is the per-agent prompt. Also: `/tsconfig*.json` is **root-anchored** (does not cover `packages/*/tsconfig.json`), and `packages/db/migrations/approvals/` **does not exist** |
 | Every task carries an independent oracle | `.code-task.md` format requires a "Verification requirements / independent signal" section; a task without one is rejected at decomposition | **enforced at task authoring** |
-| Money path human-gated | AGENTS.md STOP list + the entitlement path parked for human review; webhook verified against a *real* event | **wired with the money task** |
-| RLS on every tenant table | `check-rls` gate (real Postgres, `SET LOCAL ROLE app_user`) | **lands with the db package** |
-| Gate budget ≤ 6 | `check-budget` gate over `gate-budget.json` (generated from `conventions.json`) | **lands with first budgeted gate** |
+| Money path human-gated | ~~AGENTS.md STOP list + the entitlement path parked~~ | **SUPERSEDED 2026-08-06** — `CLAUDE.md` granted full build/verify/commit/merge autonomy on the money path. Built + committed (`fb60f22`). The **real-event** verification bar is unchanged and **still unmet** |
+| RLS on every tenant table | `check-rls` gate (real Postgres, `SET LOCAL ROLE app_user`) | **live** — 9/9 FORCE, fire-drill-proven red |
+| SECURITY DEFINER fns pin `search_path` | `check-definer-search-path` gate | **live** — 2/2 pinned (`0011`, `0014`) |
+| Gate budget ≤ 6 | `check-budget` gate over `gate-budget.json` (generated from `conventions.json`) | **live** — counts declared *weights*, not wall time |
 | Learning persists as a test | `verify-stop` soft nudge: a `fix(` commit touching no regression test / KB entry gets a one-time reminder | **live in scaffold (nudge)** |
 
-**The meta-rule (agent-arch): the agent cannot weaken its own guardrails.** Editing a hook, `conventions.json`, `.claude/settings.json`, a gate script, or tsconfig in the same change as the code it would unblock is auto-rejected. Those paths are human-owned. A blocked gate is reported as a finding, never disabled.
+**The meta-rule (agent-arch): the agent cannot weaken its own guardrails.** Editing a hook, `conventions.json`, `.claude/settings.json`, a gate script, or a root tsconfig in the same change as the code it would unblock is auto-rejected. Those paths are human-owned. A blocked gate is reported as a finding, never disabled.
+
+> **And the honest caveat on this whole table (added 2026-08-08):** the 6 hooks are real and were fire-drilled, but **several gates other docs promise do not exist at all** — no-literal-colors, the `supabase.from()` ban, `no-console`, the cross-feature import ban, `pnpm mutation`. **There is also no CI** (`ls .github/` → `CODEOWNERS` only), so nothing in this table runs on a trigger other than the local pre-commit hook. The enumerated list is `docs/LAUNCH-READINESS.md` §4 and the real gate list is `scripts/verify.mjs` STEPS. **A row in this table is a claim to re-derive, not a fact.**
 
 *Companion doc: [`05-testing-gauntlet.md`](./05-testing-gauntlet.md) — the tiered, oracle-independence-organized test framework (authored by the running backend-design workflow).*
