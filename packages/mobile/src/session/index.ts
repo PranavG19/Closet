@@ -6,3 +6,12 @@ export * from './gate.js';
 export * from './tokenSource.js';
 export * from './SessionProvider.js';
 export { makeSupabaseAuthPort, type SupabaseAuthPortDeps } from './supabaseAuthPort.js';
+// The credential adapters (pure, injectable) and the one module that binds the real
+// native SDKs to them. Only src/App.tsx calls makeNativeCredentialProviders.
+export {
+  makeAppleCredentialProvider,
+  makeGoogleCredentialProvider,
+  type AppleNativeSurface,
+  type GoogleNativeSurface,
+} from './nativeCredentials.js';
+export { makeNativeCredentialProviders } from './nativeProviders.js';
