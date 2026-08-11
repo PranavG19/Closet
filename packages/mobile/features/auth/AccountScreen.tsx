@@ -70,7 +70,16 @@ function ExportReceipt({ summary }: { readonly summary: ExportSummary }): React.
   );
 }
 
-export function AccountScreen(): React.JSX.Element {
+// An optional extra section rendered above the data/delete cards. The palette swatch quiz
+// (features/palette) is composed in HERE by App.tsx rather than imported directly, because a
+// features/auth file importing features/palette is the cross-feature import the project bans
+// (eslint.config.mjs crossFeatureZones). App.tsx is the composition root that already wires
+// every feature, so the slot keeps the isolation intact.
+export interface AccountScreenProps {
+  readonly extraSection?: React.ReactNode;
+}
+
+export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.JSX.Element {
   const tokens = useTokens();
   const { user, signOut } = useSession();
   const exportMutation = useExportMyData();
@@ -141,6 +150,8 @@ export function AccountScreen(): React.JSX.Element {
         </Text>
         <Button label="Sign out" onPress={() => void signOut()} intent="secondary" />
       </Card>
+
+      {extraSection}
 
       <Card padding="lg" style={section}>
         <Text variant="title" tone="primary">

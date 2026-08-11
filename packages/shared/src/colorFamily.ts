@@ -92,6 +92,53 @@ function chromaticFamily(hueDeg: number): ColorFamily {
   return CHROMATIC_BY_HUE_STEP[step]!;
 }
 
+// A REPRESENTATIVE display hex per family — the swatch the B1 quiz shows for each family.
+//
+// This is domain data, not UI styling: the family's canonical appearance lives with the
+// family definition (one source), so the swatch quiz can render the 12 chromatic families
+// from their own wheel positions rather than a scattered set of hand-picked RN color
+// literals that could drift from the hue geometry `toColorFamily` buckets by. Chromatics
+// are the centre hue of each 30° bucket at a fixed mid saturation/lightness; the 5 neutrals
+// are fixed representative values (they are not derived from a single hue by construction).
+//
+// It is a DISPLAY approximation — a swatch is a hint of the family, not a colourimetric
+// definition — consistent with the whole module's stated approximation contract.
+function hslToHex(hueDeg: number, s: number, l: number): string {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const hp = hueDeg / 60;
+  const x = c * (1 - Math.abs((hp % 2) - 1));
+  let r = 0;
+  let g = 0;
+  let b = 0;
+  if (hp < 1) [r, g, b] = [c, x, 0];
+  else if (hp < 2) [r, g, b] = [x, c, 0];
+  else if (hp < 3) [r, g, b] = [0, c, x];
+  else if (hp < 4) [r, g, b] = [0, x, c];
+  else if (hp < 5) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const m = l - c / 2;
+  const toHex = (v: number): string =>
+    Math.round((v + m) * 255)
+      .toString(16)
+      .padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+// Fixed representative hexes for the 5 neutrals (not hue-derived by construction).
+const NEUTRAL_SWATCH_HEX: Readonly<Record<'black' | 'white' | 'gray' | 'beige' | 'navy', string>> = {
+  black: '#1a1a1a',
+  white: '#f5f5f5',
+  gray: '#9a9a9a',
+  beige: '#e8dcc4',
+  navy: '#1f2d5a',
+};
+
+export function familySwatchHex(family: ColorFamily): string {
+  const step = CHROMATIC_BY_HUE_STEP.indexOf(family);
+  if (step >= 0) return hslToHex(step * 30, 0.65, 0.5); // centre hue of the family's bucket
+  return NEUTRAL_SWATCH_HEX[family as keyof typeof NEUTRAL_SWATCH_HEX];
+}
+
 // The whole seam. Total: every input yields a ColorFamily or null; never throws.
 export function toColorFamily(input: string | null | undefined): ColorFamily | null {
   if (input === null || input === undefined) return null;

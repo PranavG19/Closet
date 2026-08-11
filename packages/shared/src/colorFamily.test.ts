@@ -5,8 +5,28 @@
 // (unknown/malformed → null, never a guess).
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { toColorFamily } from './colorFamily.js';
+import { toColorFamily, familySwatchHex } from './colorFamily.js';
 import { COLOR_FAMILIES, isColorFamily } from './harmony.js';
+
+describe('familySwatchHex — the quiz swatch represents its own family', () => {
+  const CHROMATIC = ['red', 'orange', 'yellow', 'chartreuse', 'green', 'teal', 'cyan', 'azure', 'blue', 'violet', 'magenta', 'pink'] as const;
+
+  it('is total: every family yields a valid #rrggbb hex', () => {
+    for (const family of COLOR_FAMILIES) {
+      expect(familySwatchHex(family)).toMatch(/^#[0-9a-f]{6}$/);
+    }
+  });
+
+  it('a chromatic family’s swatch maps BACK to that same family (round-trip through toColorFamily)', () => {
+    // The independent oracle: the swatch shown for "red" must itself be classified red by
+    // the same geometry that buckets stored garment colours. If a swatch drifted off its
+    // bucket centre this would fail — proving the swatch is not a hand-picked literal that
+    // could disagree with what the palette scorer matches.
+    for (const family of CHROMATIC) {
+      expect(toColorFamily(familySwatchHex(family))).toBe(family);
+    }
+  });
+});
 
 describe('toColorFamily — token passthrough', () => {
   it('every canonical family token maps to itself (round-trip)', () => {

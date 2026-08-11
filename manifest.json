@@ -38,6 +38,14 @@
       "path": "packages/mobile/features/outfits"
     },
     {
+      "entry": "packages/mobile/features/palette/index.ts",
+      "exports": [
+        "SwatchQuizCard"
+      ],
+      "name": "@closet/mobile/features/palette",
+      "path": "packages/mobile/features/palette"
+    },
+    {
       "entry": "packages/mobile/features/suggestions/index.ts",
       "exports": [],
       "name": "@closet/mobile/features/suggestions",

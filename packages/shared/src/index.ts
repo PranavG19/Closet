@@ -33,3 +33,4 @@ export * from './subscriptionDisclosure.js';
 export * from './wardrobeSuggestion.js';
 export * from './suggestionNote.js';
 export * from './suggestionRationale.js';
+export * from './swatchQuiz.js';

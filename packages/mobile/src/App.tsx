@@ -41,6 +41,7 @@ import { OutfitsScreen } from '../features/outfits/index.js';
 import { LaundryScreen } from '../features/laundry/index.js';
 import { PaywallScreen } from '../features/monetization/index.js';
 import { SignInScreen, AccountScreen } from '../features/auth/index.js';
+import { SwatchQuizCard } from '../features/palette/index.js';
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -53,7 +54,7 @@ const screens: TabScreens = {
   outfits: <OutfitsScreen />,
   laundry: <LaundryScreen />,
   profile: <PaywallScreen />,
-  account: <AccountScreen />,
+  account: <AccountScreen extraSection={<SwatchQuizCard />} />,
 };
 
 // The gate. `loading` is checked FIRST (see src/session/gate.ts) so an
