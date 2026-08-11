@@ -9,6 +9,7 @@ import { makeWardrobeRepo } from '../src/repos/wardrobe.repo.js';
 import { applyMigrations } from './helpers/applyMigrations.js';
 import { makeSuperuserExecutor, makeTenantExecutor, type QueryExecutor } from './helpers/executor.js';
 import { startPg, type PgHarness } from './helpers/pgContainer.js';
+import { expectRlsDenies } from './helpers/rls-oracle.js';
 
 const USER_A = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1';
 const USER_B = 'b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2';
@@ -77,6 +78,76 @@ describe('makeOutfitsRepo — idempotent create + isolation', () => {
     expect(memberCount.rows[0]?.n).toBe('1');
   });
 
+  it('CONCURRENT duplicate create — loser reads the winner row, never 500s (READ COMMITTED race)', async () => {
+    // The sequential-retry test above passes because `first` commits in its own
+    // transaction before `retry` runs, so the retry's snapshot sees it. This test
+    // forces the TRULY-SIMULTANEOUS case the old in-statement UNION-ALL fallback got
+    // wrong: the loser's CTE statement snapshot is fixed BEFORE the winner commits, so
+    // a same-statement `SELECT ... WHERE NOT EXISTS(ins_outfit)` sees zero rows and the
+    // repo 500s with 'returned no row'. Fire-drilled: reverting the fresh-query fix
+    // makes this reject (verified against the pre-fix repo on this container).
+    const item = await makeWardrobeRepo(execA).create(USER_A, { category: 'top' });
+    const outfitId = 'f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6';
+
+    // A held-client executor: the TEST owns the transaction (BEGIN / COMMIT), so the
+    // winner can stay open while the loser's statement starts and blocks on the lock.
+    // Each exec.query is a new COMMAND on the same client, which under READ COMMITTED
+    // takes a fresh snapshot — exactly what the production per-query() transaction does.
+    const heldExec = async (): Promise<{ exec: QueryExecutor; commit: () => Promise<void>; release: () => void }> => {
+      const client = await pool.connect();
+      await client.query('BEGIN');
+      await client.query('SET LOCAL ROLE app_user');
+      await client.query('SELECT set_config($1, $2, true)', ['request.jwt.claim.sub', USER_A]);
+      return {
+        exec: { query: async (sql, params) => client.query(sql, params ? [...params] : undefined) },
+        commit: async () => void (await client.query('COMMIT')),
+        release: () => client.release(),
+      };
+    };
+    const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
+    const winner = await heldExec();
+    const loser = await heldExec();
+    try {
+      const args = { id: outfitId, name: 'Race', items: [{ item_id: item.id }] };
+      // Winner inserts and RETURNs the row, but its transaction stays OPEN (holds the
+      // unique-key lock on outfitId).
+      const winnerRow = await makeOutfitsRepo(winner.exec).createWithItems(USER_A, args);
+      expect(winnerRow.id).toBe(outfitId);
+
+      // Loser fires the same create; its ins_outfit INSERT blocks on the winner's lock.
+      // Do NOT await yet — let it reach the lock-wait with its snapshot already taken.
+      const loserPromise = makeOutfitsRepo(loser.exec).createWithItems(USER_A, args);
+      await sleep(250);
+
+      // Winner commits → loser's INSERT unblocks as ON CONFLICT DO NOTHING (no row),
+      // and the committed outfit is NOT visible in the loser's CTE-statement snapshot.
+      await winner.commit();
+
+      // The fix: on the empty CTE result the repo issues a FRESH command whose new
+      // snapshot sees the committed row. Old code returned nothing here and threw.
+      const loserRow = await loserPromise;
+      await loser.commit();
+      expect(loserRow.id).toBe(outfitId);
+      expect(loserRow.name).toBe('Race');
+    } finally {
+      winner.release();
+      loser.release();
+    }
+
+    // Exactly one outfit and one member survived the race (idempotent, no duplicate).
+    const outfitCount = await superuser.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM public.outfits WHERE id = $1`,
+      [outfitId],
+    );
+    expect(outfitCount.rows[0]?.n).toBe('1');
+    const memberCount = await superuser.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM public.outfit_items WHERE outfit_id = $1`,
+      [outfitId],
+    );
+    expect(memberCount.rows[0]?.n).toBe('1');
+  });
+
   it('cross-tenant item_id in createWithItems raises FK 23503 (unrepresentable)', async () => {
     const bItem = await makeWardrobeRepo(execB).create(USER_B, { category: 'top' });
     // A names B's item under A's user_id: no wardrobe_items(A, bItem.id) parent.
@@ -88,13 +159,22 @@ describe('makeOutfitsRepo — idempotent create + isolation', () => {
     ).rejects.toMatchObject({ code: '23503' });
   });
 
-  it('cross-tenant read control — B/C see none of A outfits', async () => {
+  // RENAMED + STRENGTHENED. Both listByUser calls pass the READER'S OWN id, which is
+  // what lands in the repo's `WHERE user_id = $1` — so both 0-row results came from the
+  // repo predicate, not from a policy, and this stayed green with outfits_select_own
+  // widened to USING (true). The two original assertions are kept (they do prove
+  // listByUser returns only the requested tenant's rows), and the RLS claim is now
+  // measured by an unfiltered probe that is fire-drilled on this container.
+  it('B/C listByUser returns none of A outfits (repo predicate) + RLS denies unfiltered', async () => {
     await makeOutfitsRepo(execA).createWithItems(USER_A, { name: 'A-only', items: [] });
     const bList = await makeOutfitsRepo(execB).listByUser(USER_B);
     expect(bList.some((r) => r.name === 'A-only')).toBe(false);
     const superCount = await superuser.query<{ n: string }>(`SELECT count(*)::text AS n FROM public.outfits`);
     expect(Number(superCount.rows[0]?.n)).toBeGreaterThan(0);
-    const cList = await makeOutfitsRepo(makeTenantExecutor(pool, USER_C)).listByUser(USER_C);
+    const execC = makeTenantExecutor(pool, USER_C);
+    const cList = await makeOutfitsRepo(execC).listByUser(USER_C);
     expect(cList.length).toBe(0);
+    await expectRlsDenies(superuser, execB, 'outfits', USER_A);
+    await expectRlsDenies(superuser, execC, 'outfits', USER_A);
   });
 });

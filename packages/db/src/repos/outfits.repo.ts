@@ -42,9 +42,17 @@ export function makeOutfitsRepo(exec: QueryExecutor): OutfitsRepo {
       // idempotency, else DB-minted). ins_outfit inserts ON CONFLICT DO NOTHING;
       // ins_items runs to completion (data-modifying CTEs always execute) but only
       // inserts when the outfit was NEWLY created — a retry (conflict ⇒ ins_outfit
-      // empty) re-inserts nothing. The final row is read from ins_outfit's RETURNING
-      // for the create case and from the table for the retry case (a plain SELECT
-      // cannot see rows the sibling CTEs inserted in the same statement).
+      // empty) re-inserts nothing. The statement returns a row ONLY when THIS call won
+      // the insert (ins_outfit non-empty).
+      //
+      // NO in-statement UNION-ALL fallback SELECT for the conflict case: under READ
+      // COMMITTED the loser's statement snapshot is fixed at statement start — before
+      // the concurrent winner commits — so a `SELECT ... WHERE NOT EXISTS(ins_outfit)`
+      // in the SAME statement sees ZERO rows on a truly-simultaneous duplicate and 500s
+      // (`returned no row`). This is the exact trap wear-log.repo.ts:44-47 documents; the
+      // sequential retry happened to work only because the first create was already
+      // committed in an earlier transaction. The conflict row is read by a FRESH query()
+      // below instead — a new transaction, new snapshot, so it sees the committed row.
       const { rows } = await exec.query<OutfitRow>(
         `WITH target AS (
            SELECT COALESCE($2::uuid, gen_random_uuid()) AS oid
@@ -65,15 +73,23 @@ export function makeOutfitsRepo(exec: QueryExecutor): OutfitsRepo {
            ON CONFLICT (outfit_id, item_id) DO NOTHING
            RETURNING 1
          )
-         SELECT id, user_id, name, created_at, updated_at FROM ins_outfit
-         UNION ALL
-         SELECT id, user_id, name, to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS updated_at
-         FROM public.outfits
-         WHERE user_id = $1 AND id = (SELECT oid FROM target)
-           AND NOT EXISTS (SELECT 1 FROM ins_outfit)`,
+         SELECT id, user_id, name, created_at, updated_at FROM ins_outfit`,
         [userId, args.id ?? null, args.name ?? null, JSON.stringify(args.items)],
       );
-      const row = rows[0];
+      const inserted = rows[0];
+      if (inserted) return inserted;
+
+      // Lost the insert race (or a sequential retry): the outfit already exists,
+      // committed. A retry only reaches here when the caller supplied the id (a
+      // DB-minted uuid never conflicts). A FRESH query() is a new transaction whose
+      // snapshot is taken after the winner committed, so it reads the canonical row —
+      // making create response-idempotent under simultaneous retries (D-001), not just
+      // data-idempotent. SELECT-only; the grant matrix is unchanged.
+      const { rows: existing } = await exec.query<OutfitRow>(
+        `SELECT ${PROJECTION} FROM public.outfits WHERE user_id = $1 AND id = $2`,
+        [userId, args.id ?? null],
+      );
+      const row = existing[0];
       if (!row) throw new Error('outfits createWithItems returned no row');
       return row;
     },
