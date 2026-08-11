@@ -102,6 +102,33 @@ describe('openai-vision adapter — LLM efficiency knobs', () => {
     expect(body['response_format']).toEqual({ type: 'json_object' });
   });
 
+  // MODEL-TIER cost guard (Test A/B, docs/research/llm-efficiency-audit.md). The existing
+  // guards bound the prompt/image/output token AXES but not the model TIER — yet the tier is
+  // the largest single cost multiplier (a silent hardcode to a pricier model, or a dropped env
+  // knob, would inflate every parse with nothing going red). These pin the default and prove
+  // BOTH override paths (injected dep AND the deployed-Deno env var) reach the wire.
+  it('defaults the model to gpt-4o (the corpus-gated tier decision, not a silent upgrade)', async () => {
+    const body = await capturedBody({});
+    expect(body['model']).toBe('gpt-4o');
+  });
+
+  it('respects an injected model override', async () => {
+    const body = await capturedBody({ model: 'gpt-4o-mini' });
+    expect(body['model']).toBe('gpt-4o-mini');
+  });
+
+  it('honours OPENAI_VISION_MODEL from the ENV (the deployed-Deno cost lever, not just the dep)', async () => {
+    const previous = process.env['OPENAI_VISION_MODEL'];
+    process.env['OPENAI_VISION_MODEL'] = 'gpt-4o-mini';
+    try {
+      const body = await capturedBody({});
+      expect(body['model']).toBe('gpt-4o-mini');
+    } finally {
+      if (previous === undefined) delete process.env['OPENAI_VISION_MODEL'];
+      else process.env['OPENAI_VISION_MODEL'] = previous;
+    }
+  });
+
   // Payload-leanness guard: the token bill is (prompt + image + output). max_tokens caps
   // output and detail caps the image; this catches the THIRD axis — accidental PROMPT bloat.
   // A regression that doubled the instruction, sent the image twice, or appended a

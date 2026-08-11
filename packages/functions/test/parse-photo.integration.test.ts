@@ -269,6 +269,40 @@ describe('parse-photo endpoint — claim/commit/cap/entitlement oracle', () => {
     expect(await superuserItemCount(superuser, jobId)).toBe(countAfterFirst);
   });
 
+  // ---- Test D (docs/research/llm-efficiency-audit.md): idempotency = no re-billing.
+  // A dedicated, explicitly NAMED cost guard. The strongest LLM-cost control is "never
+  // call the model twice for the same photo": a regression that broke the done
+  // short-circuit would double every user's LLM spend silently. The existing
+  // "already-done short-circuit" test above proves ONE replay does not re-charge; this
+  // strengthens it to N replays and makes the no-re-billing invariant the central named
+  // assertion — visionCalls() is pinned at exactly 1 across every resubmit.
+  it('LLM cost guard: N resubmits of the same source_photo_hash bill the vision model EXACTLY ONCE', async () => {
+    const user = 'd0d0d0d0-d0d0-4d0d-8d0d-d0d0d0d0d0d0';
+    const ports = makeCountingPorts();
+    const handler = makeParsePhoto(() => ports, unthrottledSpendLimiter);
+    const body = { source_photo_hash: 'NOREBILL-1', kind: 'teaser' as const };
+
+    const first = await callAs(handler, pool, user, body);
+    expect(first.status).toBe(200);
+    const jobId = ((await first.json()) as ParseBody).job.id;
+    // The paid model ran exactly once for the first, genuinely-new submit.
+    expect(ports.visionCalls()).toBe(1);
+    expect(ports.cutoutCalls()).toBe(1);
+
+    // Three further resubmits of the SAME photo: each short-circuits on the done job.
+    for (let i = 0; i < 3; i += 1) {
+      const replay = await callAs(handler, pool, user, body);
+      expect(replay.status).toBe(200);
+      expect(((await replay.json()) as ParseBody).job.id).toBe(jobId);
+      // The named invariant: the vision-model call counter NEVER advances past 1.
+      expect(ports.visionCalls()).toBe(1);
+      expect(ports.cutoutCalls()).toBe(1);
+    }
+
+    // Independent SELECT: still exactly one committed item — no re-parse, no dup garment.
+    expect(await superuserItemCount(superuser, jobId)).toBe(1);
+  });
+
   // ---- Oracle 1: no-dup-on-resume (differential row count = exactly N) -------
   it('no-dup-on-resume: done → crash back to failed + partial injected → resume → exactly N items, status=done', async () => {
     const user = 'f6f6f6f6-f6f6-46f6-86f6-f6f6f6f6f6f6';
