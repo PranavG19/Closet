@@ -59,6 +59,50 @@ describe('openai-vision adapter — happy path', () => {
   });
 });
 
+describe('openai-vision adapter — LLM efficiency knobs', () => {
+  // Pull the parsed JSON request body the adapter sent to the vendor.
+  async function capturedBody(overrides: Parameters<typeof makeOpenAIVisionAdapter>[0]): Promise<Record<string, unknown>> {
+    let sentBody: unknown;
+    const fetchFn: FetchFn = vi.fn(async (_url, init) => {
+      sentBody = JSON.parse(init.body as string);
+      return chatResponse(VALID_ATTRS);
+    });
+    const adapter = makeOpenAIVisionAdapter({ apiKey: 'sk-test', fetchFn, ...fastTransport, ...overrides });
+    await adapter.extractAttributes({ imageUrl: 'https://s/x.jpg' });
+    return sentBody as Record<string, unknown>;
+  }
+
+  it('sends a bounded max_tokens (caps runaway spend; generous vs the ~80-token JSON)', async () => {
+    const body = await capturedBody({});
+    expect(body['max_tokens']).toBe(400);
+  });
+
+  it('respects an injected max_tokens override', async () => {
+    const body = await capturedBody({ maxTokens: 128 });
+    expect(body['max_tokens']).toBe(128);
+  });
+
+  it('OMITS image detail by default — no silent quality change (stays on the model auto)', async () => {
+    const body = await capturedBody({});
+    const content = (body['messages'] as { content: unknown }[])[1]!.content as { type: string; image_url?: Record<string, unknown> }[];
+    const imagePart = content.find((p) => p.type === 'image_url')!;
+    expect(imagePart.image_url).toEqual({ url: 'https://s/x.jpg' });
+    expect(imagePart.image_url).not.toHaveProperty('detail');
+  });
+
+  it('includes detail:low ONLY when explicitly opted in (the corpus-gated cost lever)', async () => {
+    const body = await capturedBody({ imageDetail: 'low' });
+    const content = (body['messages'] as { content: unknown }[])[1]!.content as { type: string; image_url?: Record<string, unknown> }[];
+    const imagePart = content.find((p) => p.type === 'image_url')!;
+    expect(imagePart.image_url).toEqual({ url: 'https://s/x.jpg', detail: 'low' });
+  });
+
+  it('still keeps JSON mode on (no wasted prose tokens, guaranteed-parseable output)', async () => {
+    const body = await capturedBody({});
+    expect(body['response_format']).toEqual({ type: 'json_object' });
+  });
+});
+
 describe('openai-vision adapter — parse-don\'t-cast (garbage never reaches the domain)', () => {
   it('throws BoundaryParseError on a bad enum', async () => {
     const fetchFn: FetchFn = vi.fn(async () => chatResponse({ ...VALID_ATTRS, category: 'hat' }));

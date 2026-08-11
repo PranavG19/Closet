@@ -41,7 +41,26 @@ export interface OpenAIVisionDeps extends Partial<TransportDeps> {
   readonly apiKey?: string;
   readonly baseUrl?: string;
   readonly model?: string;
+  // Image fidelity sent to the vision model. 'low' fixes the image to a small
+  // token-cheap tile (~85 tokens); 'high'/'auto' tile at full resolution (hundreds+
+  // of tokens). This is the single biggest per-call COST lever — but it trades against
+  // PARSE QUALITY, which is this product's make-or-break metric (docs/00): `material`
+  // (cotton vs linen) and fine `pattern` (thin stripes, small florals) can degrade at
+  // low detail. So it is a knob, defaulted to `undefined` (= the model's `auto`, i.e.
+  // NO behaviour change) rather than silently flipped to 'low'. The low-vs-auto
+  // decision is a Tier-1 bench-scan-corpus call (docs/05) and CANNOT be made without a
+  // real key + labeled corpus — flip it via OPENAI_VISION_IMAGE_DETAIL only after the
+  // corpus shows accuracy holds.
+  readonly imageDetail?: 'low' | 'high' | 'auto';
+  // Hard cap on output tokens. The schema's JSON is ~80 tokens; 400 is generous
+  // headroom so a valid response never truncates, while bounding a pathological
+  // runaway (a safe pure win — a truncated JSON just fails parseBoundary and 502s).
+  readonly maxTokens?: number;
 }
+
+// Generous vs. the ~80-token JSON this schema produces, so a well-formed response is
+// never cut off, while still capping worst-case spend.
+const DEFAULT_MAX_TOKENS = 400;
 
 // Lowercase any string value under the color-bearing keys so a #RRGGBB from the
 // model still satisfies the lowercase-hex schema. This is the ONLY color mutation;
@@ -76,6 +95,11 @@ export function makeOpenAIVisionAdapter(deps?: OpenAIVisionDeps): AIVisionPort {
   const transport = resolveTransportDeps(deps);
   const baseUrl = deps?.baseUrl ?? envValue('OPENAI_BASE_URL') ?? DEFAULT_BASE_URL;
   const model = deps?.model ?? envValue('OPENAI_VISION_MODEL') ?? DEFAULT_MODEL;
+  // `undefined` => omit the field => the model's own `auto` default (unchanged
+  // behaviour). Only a real, corpus-validated env value opts into 'low'.
+  const rawDetail = deps?.imageDetail ?? envValue('OPENAI_VISION_IMAGE_DETAIL');
+  const imageDetail = rawDetail === 'low' || rawDetail === 'high' || rawDetail === 'auto' ? rawDetail : undefined;
+  const maxTokens = deps?.maxTokens ?? DEFAULT_MAX_TOKENS;
 
   return {
     async extractAttributes(input: AIVisionInput): Promise<AIVisionResult> {
@@ -83,13 +107,24 @@ export function makeOpenAIVisionAdapter(deps?: OpenAIVisionDeps): AIVisionPort {
       const requestBody = {
         model,
         response_format: { type: 'json_object' },
+        // Bound output tokens: the JSON is tiny and fixed-shape, so a cap only ever
+        // truncates a runaway (which then fails the boundary schema, never enters the
+        // domain). Never a quality regression on a well-formed response.
+        max_tokens: maxTokens,
         messages: [
           { role: 'system', content: EXTRACTION_INSTRUCTION },
           {
             role: 'user',
             content: [
               { type: 'text', text: 'Extract the garment attributes as JSON.' },
-              { type: 'image_url', image_url: { url: input.imageUrl } },
+              {
+                type: 'image_url',
+                // Only include `detail` when explicitly configured; omitting it leaves
+                // the model on `auto` (the pre-existing behaviour), so this change is
+                // token-cost-neutral until someone opts into 'low' after the corpus
+                // proves accuracy holds.
+                image_url: imageDetail ? { url: input.imageUrl, detail: imageDetail } : { url: input.imageUrl },
+              },
             ],
           },
         ],
