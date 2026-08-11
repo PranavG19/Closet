@@ -5,7 +5,7 @@
 // (unknown/malformed → null, never a guess).
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { toColorFamily, familySwatchHex } from './colorFamily.js';
+import { toColorFamily, toColorSignal, familySwatchHex } from './colorFamily.js';
 import { COLOR_FAMILIES, isColorFamily } from './harmony.js';
 
 describe('familySwatchHex — the quiz swatch represents its own family', () => {
@@ -94,6 +94,60 @@ describe('toColorFamily — honest null contract (never a guess, never a throw)'
   it('returns null for null/undefined', () => {
     expect(toColorFamily(null)).toBeNull();
     expect(toColorFamily(undefined)).toBeNull();
+  });
+});
+
+describe('toColorSignal — emits family + lightness + chroma (A1), agreeing with toColorFamily', () => {
+  it('family agrees with toColorFamily for every input (one classifier, two views)', () => {
+    fc.assert(
+      fc.property(fc.string(), (s) => {
+        const signal = toColorSignal(s);
+        expect(signal?.family ?? null).toBe(toColorFamily(s));
+      }),
+    );
+  });
+
+  it('a bare token carries NO geometry (lightness/chroma null — never a fabricated axis)', () => {
+    for (const family of COLOR_FAMILIES) {
+      const signal = toColorSignal(family);
+      expect(signal).not.toBeNull();
+      expect(signal!.lightness).toBeNull();
+      expect(signal!.chroma).toBeNull();
+    }
+  });
+
+  it('a #rrggbb hex yields both axes in [0,1]', () => {
+    fc.assert(
+      fc.property(
+        fc.tuple(fc.integer({ min: 0, max: 255 }), fc.integer({ min: 0, max: 255 }), fc.integer({ min: 0, max: 255 })),
+        ([r, g, b]) => {
+          const hex = `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+          const signal = toColorSignal(hex);
+          expect(signal).not.toBeNull();
+          // HSL L is exact in [0,1]; HSL saturation is mathematically in [0,1] but the
+          // division can float over by an epsilon (e.g. #9494ff → 1.0000000002), so allow a
+          // tiny tolerance rather than pretend the raw converter clamps.
+          const EPS = 1e-9;
+          expect(signal!.lightness!).toBeGreaterThanOrEqual(0);
+          expect(signal!.lightness!).toBeLessThanOrEqual(1);
+          expect(signal!.chroma!).toBeGreaterThanOrEqual(0);
+          expect(signal!.chroma!).toBeLessThanOrEqual(1 + EPS);
+        },
+      ),
+    );
+  });
+
+  it('a known light vs dark hex differ in emitted lightness (the axis A1 gates on is real)', () => {
+    const dark = toColorSignal('#400000'); // dark red
+    const light = toColorSignal('#ff8080'); // light red
+    expect(dark!.lightness!).toBeLessThan(light!.lightness!);
+  });
+
+  it('unknown/malformed → null, same honest contract as toColorFamily', () => {
+    expect(toColorSignal('turquoise')).toBeNull();
+    expect(toColorSignal('#fff')).toBeNull();
+    expect(toColorSignal(null)).toBeNull();
+    expect(toColorSignal(undefined)).toBeNull();
   });
 });
 

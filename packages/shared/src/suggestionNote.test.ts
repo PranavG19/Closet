@@ -2,10 +2,25 @@
 // and separately tested) plus docs/03's voice rule — "advisory, never bossy… never a nag."
 // Each test names which of the two it enforces.
 import { describe, it, expect } from 'vitest';
+import fc from 'fast-check';
 import { suggestionNote } from './suggestionNote.js';
 import { harmony } from './harmony.js';
+import { COLOR_FAMILIES } from './harmony.js';
 
 const item = (color: string | null, category = 'top') => ({ category, color });
+
+// A hex at a family's centre hue (S=100% L=50%) at an arbitrary lightness, for A1 value-spread
+// tests. Pure additive-wheel math, hand-derived — NOT computed by the module under test.
+const hexAtHueLightness = (hueDeg: number, l: number): string => {
+  const c = (1 - Math.abs(2 * l - 1)) * 1.0; // S = 1
+  const hp = hueDeg / 60;
+  const x = c * (1 - Math.abs((hp % 2) - 1));
+  const [r1, g1, b1] =
+    hp < 1 ? [c, x, 0] : hp < 2 ? [x, c, 0] : hp < 3 ? [0, c, x] : hp < 4 ? [0, x, c] : hp < 5 ? [x, 0, c] : [c, 0, x];
+  const m = l - c / 2;
+  const toHex = (v: number) => Math.round((v + m) * 255).toString(16).padStart(2, '0');
+  return `#${toHex(r1)}${toHex(g1)}${toHex(b1)}`;
+};
 
 describe('suggestionNote — says nothing rather than something false', () => {
   it('returns null for a single garment (nothing to pair)', () => {
@@ -80,5 +95,53 @@ describe('suggestionNote — the note reflects the REAL verdict', () => {
       const note = suggestionNote([item(pair[0]), item(pair[1])]);
       if (note !== null) expect(note.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe('suggestionNote — A1: the monochromatic note is gated on VALUE SPREAD', () => {
+  // Both hexes are saturated red (S=1), so both classify red → monochromatic; only their
+  // lightness differs. The oracle is the two lightnesses I passed in, not the module's output.
+  const RED = 0; // red hue centre
+  const layered = 'quietly layered';
+  const flat = 'One quiet colour';
+
+  it('says the "layered" sentence when the two same-hue garments differ in lightness', () => {
+    const note = suggestionNote([item(hexAtHueLightness(RED, 0.3)), item(hexAtHueLightness(RED, 0.7))]);
+    expect(note).toContain(layered); // |0.7-0.3| = 0.4 > band
+    expect(note).not.toContain(flat);
+  });
+
+  it('says the softer "one quiet colour" sentence when the values are close (flat, still positive)', () => {
+    const note = suggestionNote([item(hexAtHueLightness(RED, 0.5)), item(hexAtHueLightness(RED, 0.55))]);
+    expect(note).toContain(flat); // |0.55-0.5| = 0.05 < band
+    expect(note).not.toContain(layered);
+    // it is a POSITIVE sentence, never a scold
+    expect(note!.toLowerCase()).not.toMatch(/don'?t|avoid|clash|wrong|too|bad/);
+  });
+
+  it('CONSERVATIVE: bare tokens (no known lightness) keep the original "layered" line unchanged', () => {
+    // Regression guard: a token-only mono pair must read exactly as before A1 landed.
+    expect(suggestionNote([item('red'), item('red')])).toContain(layered);
+  });
+});
+
+describe('suggestionNote — never a scold across a generated matrix of pairs (A1+A2 invariant)', () => {
+  const arbColor = fc.oneof(
+    fc.constantFrom(...COLOR_FAMILIES), // bare tokens (unknown geometry)
+    fc
+      .tuple(fc.integer({ min: 0, max: 255 }), fc.integer({ min: 0, max: 255 }), fc.integer({ min: 0, max: 255 }))
+      .map(([r, g, b]) => `#${[r, g, b].map((c) => c.toString(16).padStart(2, '0')).join('')}`),
+    fc.constant(null),
+  );
+
+  it('no note is ever negative — every emitted note is one of the known positive sentences or null', () => {
+    fc.assert(
+      fc.property(fc.array(arbColor, { minLength: 0, maxLength: 5 }), (colors) => {
+        const note = suggestionNote(colors.map((c) => item(c)));
+        if (note === null) return; // silence is always allowed
+        expect(note.toLowerCase()).not.toMatch(/don'?t|avoid|clash|wrong|unflatter|bad|too much/);
+        expect(note.length).toBeGreaterThan(0);
+      }),
+    );
   });
 });

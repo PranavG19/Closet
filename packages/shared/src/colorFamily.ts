@@ -139,21 +139,52 @@ export function familySwatchHex(family: ColorFamily): string {
   return NEUTRAL_SWATCH_HEX[family as keyof typeof NEUTRAL_SWATCH_HEX];
 }
 
-// The whole seam. Total: every input yields a ColorFamily or null; never throws.
-export function toColorFamily(input: string | null | undefined): ColorFamily | null {
+// A garment's colour reduced to the family PLUS the two axes the family bucket throws
+// away — HSL lightness and chroma (D-003 research §2: colour is 3-D; the family is the
+// hue layer only). `lightness`/`chroma` are `null` when the input was an already-canonical
+// family TOKEN: a token is categorical and carries no geometry, so we do not fabricate an
+// axis value we cannot know (the same honesty rule as the family `null` — never a guess).
+// A #rrggbb hex yields both axes. This is the A1 seam: the note logic can now gate copy on
+// value spread, and the harmony layer on chroma, WITHOUT changing toColorFamily's contract.
+export interface ColorSignal {
+  readonly family: ColorFamily;
+  readonly lightness: number | null; // HSL L in [0,1], null for a bare token
+  readonly chroma: number | null; // HSL saturation in [0,1], null for a bare token
+}
+
+// The single classifier both public functions delegate to, so the family a hex maps to is
+// computed in exactly ONE place (toColorFamily === toColorSignal(...).family).
+function classify(input: string | null | undefined): ColorSignal | null {
   if (input === null || input === undefined) return null;
-  // Already a family token (any of the 12 chromatic + 5 neutrals) → itself.
-  if (isColorFamily(input)) return input;
+  // Already a family token (any of the 12 chromatic + 5 neutrals) → itself, no geometry.
+  if (isColorFamily(input)) return { family: input, lightness: null, chroma: null };
 
   const rgb = parseHex(input);
   if (rgb === null) return null; // unknown colour name / malformed → no signal.
 
   const { hueDeg, saturation, lightness } = rgbToHsl(rgb.r, rgb.g, rgb.b);
   // Low chroma OR near-black / near-white → achromatic neutral, split by lightness.
-  if (saturation < NEUTRAL_SATURATION_CEILING || lightness < DARK_LIGHTNESS_CEILING || lightness > LIGHT_LIGHTNESS_FLOOR) {
-    if (lightness < DARK_LIGHTNESS_CEILING) return 'black';
-    if (lightness > LIGHT_LIGHTNESS_FLOOR) return 'white';
-    return 'gray';
-  }
-  return chromaticFamily(hueDeg);
+  const isAchromatic =
+    saturation < NEUTRAL_SATURATION_CEILING ||
+    lightness < DARK_LIGHTNESS_CEILING ||
+    lightness > LIGHT_LIGHTNESS_FLOOR;
+  const family: ColorFamily = !isAchromatic
+    ? chromaticFamily(hueDeg)
+    : lightness < DARK_LIGHTNESS_CEILING
+      ? 'black'
+      : lightness > LIGHT_LIGHTNESS_FLOOR
+        ? 'white'
+        : 'gray';
+  return { family, lightness, chroma: saturation };
+}
+
+// The A1 richer seam: family + the discarded lightness/chroma axes. Same totality and
+// honest-null contract as toColorFamily; every input yields a ColorSignal or null.
+export function toColorSignal(input: string | null | undefined): ColorSignal | null {
+  return classify(input);
+}
+
+// The whole seam. Total: every input yields a ColorFamily or null; never throws.
+export function toColorFamily(input: string | null | undefined): ColorFamily | null {
+  return classify(input)?.family ?? null;
 }

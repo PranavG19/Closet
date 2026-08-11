@@ -93,3 +93,36 @@ const HARMONY_TABLE: ReadonlyMap<string, HarmonyVerdict> = (() => {
 export function harmony(a: ColorFamily, b: ColorFamily): HarmonyVerdict {
   return HARMONY_TABLE.get(pairKey(a, b))!;
 }
+
+// A2 tuning constant — NOT a colorimetric law. Above the converter's
+// NEUTRAL_SATURATION_CEILING (0.15, where a colour is already folded to an achromatic
+// neutral), but a garment can still land in a chromatic bucket while being visibly muted
+// (dusty rose, sage, taupe: real hue, low chroma). D-003 research §4 [GROUNDED]: as chroma
+// → 0 the hue coordinate becomes meaningless, so a low-chroma colour cannot participate in
+// hue discord — which is *why* neutrals pair broadly ("neutral is a chroma threshold wearing
+// a five-token costume"). The 0.35 cutpoint itself is [SOFT] — a tuning value chosen to sit
+// between the achromatic floor (0.15) and clearly-saturated colour; adjust with taste, it is
+// not derived from a standard.
+const MUTED_CHROMA_CEILING = 0.35;
+
+// Chroma-aware verdict (A2). Given the family pair AND each garment's HSL chroma (null when
+// the colour was a bare token, so chroma is unknown), a pair the hue table calls `clash`
+// becomes neutral-safe when EITHER garment is muted enough to have no meaningful hue.
+//
+// SAFETY, STRUCTURAL not tested-for: chroma may ONLY pull a pair OUT of `clash`, never into
+// it. Every non-clash verdict is returned untouched, and the only rewrite is clash→neutral.
+// Since the app already silences `clash`, this can never turn silence into a scold — it can
+// only turn silence into a (positive) neutral note. With both chromas null (bare tokens)
+// this is exactly `harmony(a, b)` — the conservative regression path when chroma is unknown.
+export function harmonyWithChroma(
+  a: ColorFamily,
+  b: ColorFamily,
+  chromaA: number | null,
+  chromaB: number | null,
+): HarmonyVerdict {
+  const base = harmony(a, b);
+  if (base !== 'clash') return base;
+  const aMuted = chromaA !== null && chromaA < MUTED_CHROMA_CEILING;
+  const bMuted = chromaB !== null && chromaB < MUTED_CHROMA_CEILING;
+  return aMuted || bMuted ? 'neutral' : 'clash';
+}
