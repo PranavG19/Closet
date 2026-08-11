@@ -96,6 +96,9 @@ function toApplyEventInput(event: RevenueCatEvent, entitlementActive: boolean): 
 export function makeRevenueCatWebhook(deps: WebhookDeps): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
     const correlationId = deps.newCorrelationId();
+    // Monotonic clock for the money-write latency (docs/05 Tier-5 webhook SLO). Logged
+    // on the applied path so entitlement-flip latency is observable in production.
+    const startedAt = performance.now();
     try {
       // 1. Authenticate the shared secret in constant time. Absent/wrong → 401,
       //    write NOTHING (no executor is even created).
@@ -167,6 +170,7 @@ export function makeRevenueCatWebhook(deps: WebhookDeps): (req: Request) => Prom
         eventId: event.id,
         eventType: event.type,
         entitlementActive,
+        totalMs: Math.round(performance.now() - startedAt),
       });
       return jsonResponse(200, { applied: true });
     } catch (thrown) {

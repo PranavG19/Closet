@@ -120,6 +120,11 @@ export function makeParsePhoto(
   provideLimiter: ProvideSpendLimiter,
 ): AuthedHandler {
   return async (req, { userId, exec, correlationId, accessToken }) => {
+    // Monotonic wall-clock for latency instrumentation. performance.now() (not
+    // Date.now()) so a system-clock adjustment mid-request cannot yield a negative or
+    // wild duration. Deno's Edge runtime exposes performance.now() natively.
+    const startedAt = performance.now();
+    const sinceStartMs = (): number => Math.round(performance.now() - startedAt);
     try {
       const body: unknown = await req.json();
       const request = parseBoundary(CreateParseJobRequest, body, 'parse.request');
@@ -186,6 +191,14 @@ export function makeParsePhoto(
       //    call, no double-charge; return the existing items for this job.
       if (job.status === 'done') {
         const items = await parseJobs.listItemsByJob(userId, job.id);
+        logger.info({
+          correlationId,
+          event: 'parse.replay',
+          jobId: job.id,
+          kind: request.kind,
+          itemCount: items.length,
+          totalMs: sinceStartMs(),
+        });
         return jsonResponse(200, parseBoundary(ParseResultResponse, { job, items }, 'parse.result.replay'));
       }
 
@@ -201,6 +214,13 @@ export function makeParsePhoto(
       //    reason and 502s; because claim allows status IN (pending,failed) and
       //    commit deletes partials first, a later resubmit cleanly reprocesses.
       let items: readonly CommitItemInput[];
+      // Time the paid-provider block specifically: mint + vision + cutout are the
+      // serial network round-trips that dominate this handler's latency (the ~2s-each
+      // provider assumption, docs/06 §4), and they are the ONLY part we cannot measure
+      // any other way until a real key exists. Logged as providerMs on success so the
+      // production p95 of the actual bottleneck is observable (docs/05 Tier-5), separate
+      // from total handler time.
+      const providerStartedAt = performance.now();
       try {
         const ports = providePorts({ accessToken, userId });
         // Mint ONE short-lived signed URL for the original and hand THAT to both
@@ -222,14 +242,33 @@ export function makeParsePhoto(
         items = [toItem(vision, cutout)];
       } catch {
         await parseJobs.markFailed(userId, claimed.id, PROVIDER_FAILURE_REASON);
-        logger.error({ correlationId, event: 'parse.provider_failed', jobId: claimed.id });
+        logger.error({
+          correlationId,
+          event: 'parse.provider_failed',
+          jobId: claimed.id,
+          providerMs: Math.round(performance.now() - providerStartedAt),
+          totalMs: sinceStartMs(),
+        });
         return errorResponse(502, 'parse_provider_failed', 'The parse provider is temporarily unavailable.');
       }
+      const providerMs = Math.round(performance.now() - providerStartedAt);
 
       // 6. Atomic commit — single delete-partial-then-insert CTE, then status='done'.
       await parseJobs.commit(userId, claimed.id, items);
       const persisted = await parseJobs.listItemsByJob(userId, claimed.id);
       const doneJob: ParseJobRow = { ...claimed, status: 'done' };
+      // Success signal WITH latency. providerMs (the network bottleneck) is logged
+      // separately from totalMs (whole handler) so a slow provider vs. slow DB is
+      // distinguishable in production. No PII: ids + kind + durations + count only.
+      logger.info({
+        correlationId,
+        event: 'parse.done',
+        jobId: claimed.id,
+        kind: request.kind,
+        itemCount: persisted.length,
+        providerMs,
+        totalMs: sinceStartMs(),
+      });
       return jsonResponse(200, parseBoundary(ParseResultResponse, { job: doneJob, items: persisted }, 'parse.result'));
     } catch (thrown) {
       return errorFromThrown(thrown);
