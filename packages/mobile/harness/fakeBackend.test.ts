@@ -42,6 +42,19 @@ describe('harness fake backend — canned data is schema-valid (parses through t
     expect(result.next_cursor).toBeNull();
   });
 
+  it('listWardrobe honors the F4 filters (category + availability narrow the set)', async () => {
+    const client = makeClient(true);
+    const dresses = await client.listWardrobe({ category: 'dress' });
+    expect(dresses.items).toHaveLength(1);
+    expect(dresses.items[0]?.category).toBe('dress');
+    const clean = await client.listWardrobe({ availability: 'clean' });
+    expect(clean.items.length).toBeGreaterThanOrEqual(1);
+    expect(clean.items.every((i) => i.availability === 'clean')).toBe(true);
+    // A combined filter with no match returns an empty page (the "no matches" state), NOT all.
+    const none = await client.listWardrobe({ category: 'dress', availability: 'clean' });
+    expect(none.items).toHaveLength(0);
+  });
+
   it('listOutfits returns 2 outfits that parse', async () => {
     const result = await makeClient(true).listOutfits();
     expect(result.outfits.length).toBe(2);

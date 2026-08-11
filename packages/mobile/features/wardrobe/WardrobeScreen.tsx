@@ -30,6 +30,8 @@ import {
   ErrorState,
 } from '../../src/ui/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
+import { FilterBar } from './FilterBar.js';
+import { deriveListParams, hasActiveFilter, type WardrobeFilter } from './wardrobeFilters.js';
 
 // Memoized: in a FlatList the parent re-renders on every windowing change, so without
 // this every visible tile would re-render whenever any one cutout URL arrived. The props
@@ -94,7 +96,12 @@ const ItemTile = React.memo(function ItemTile({
 
 export function WardrobeScreen(): React.JSX.Element {
   const tokens = useTokens();
-  const query = useWardrobe();
+  // F4: the active filter, declared FIRST so the hook order is stable across every branch
+  // below (Rules of Hooks). Its params drive the list query — the SERVER filters under RLS
+  // (wardrobe/list.ts), so changing a chip refetches a genuinely filtered page rather than
+  // hiding rows client-side.
+  const [filter, setFilter] = React.useState<WardrobeFilter>({});
+  const query = useWardrobe(deriveListParams(filter));
   // Signed image URLs, keyed by item id. A separate query from the rows because signed URLs
   // expire and rows do not (see useCutoutUris). Its loading and error states are deliberately
   // NOT gated on: the closet renders immediately with empty wells and the garments appear as
@@ -107,7 +114,12 @@ export function WardrobeScreen(): React.JSX.Element {
   }
 
   const items = query.data.items;
-  if (items.length === 0) {
+  const filtered = hasActiveFilter(filter);
+  // A TRULY empty closet (no filter, no items) is the only case that takes over the whole
+  // screen — there is nothing to filter, so the filter bar would be noise. A filtered-empty
+  // result keeps the bar visible below (she must be able to clear the filter she just set),
+  // so it is handled inline, not here.
+  if (items.length === 0 && !filtered) {
     return (
       <EmptyState
         title="Your closet is empty"
@@ -133,22 +145,34 @@ export function WardrobeScreen(): React.JSX.Element {
   );
   return (
     <Screen padding="lg">
-      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
+      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.md }}>
         Your closet
       </Text>
-      <FlatList
-        data={items}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        numColumns={2}
-        columnWrapperStyle={{ justifyContent: 'space-between' }}
-        // Re-render visible tiles when a signed URL lands (the map identity changes); without
-        // this, memo'd tiles would keep their empty wells until an unrelated re-render.
-        extraData={cutouts.data}
-        style={wellSurface}
-        contentContainerStyle={{ padding: tokens.spacing.md }}
-        showsVerticalScrollIndicator={false}
-      />
+      <FilterBar filter={filter} onChange={setFilter} />
+      {items.length === 0 ? (
+        // Filtered to nothing — DISTINCT from an empty closet. She owns clothes; this selection
+        // just has none, so the advice is "loosen the filter", not "add pieces". The bar stays
+        // above so she can clear it.
+        <View style={{ paddingVertical: tokens.spacing.xl }}>
+          <Text variant="body" tone="secondary" style={{ textAlign: 'center' }}>
+            Nothing matches these filters. Tap a selected chip to clear it.
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          numColumns={2}
+          columnWrapperStyle={{ justifyContent: 'space-between' }}
+          // Re-render visible tiles when a signed URL lands (the map identity changes); without
+          // this, memo'd tiles would keep their empty wells until an unrelated re-render.
+          extraData={cutouts.data}
+          style={wellSurface}
+          contentContainerStyle={{ padding: tokens.spacing.md }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </Screen>
   );
 }

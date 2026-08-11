@@ -91,12 +91,28 @@ export interface FakeBackendOptions {
 }
 
 // The canned response body per route, given the options. Kept as a plain map so the
-// harness test can assert every GET route is covered.
-function responseFor(route: keyof typeof ROUTES, options: FakeBackendOptions): unknown {
+// harness test can assert every GET route is covered. `query` carries the parsed request
+// query string so listWardrobe can HONOR the F4 category/availability filters — without this
+// the grid would render identically for every chip and a filter screenshot would prove
+// nothing (a mirror oracle). The real server filters under RLS; here we filter the canned set
+// the same way, so the sim shows the genuine reduced page.
+function responseFor(
+  route: keyof typeof ROUTES,
+  options: FakeBackendOptions,
+  query: URLSearchParams,
+): unknown {
   const entitlementActive = options.entitlementActive ?? true;
   switch (route) {
-    case 'listWardrobe':
-      return { items: WARDROBE_ITEMS, next_cursor: null };
+    case 'listWardrobe': {
+      const category = query.get('category');
+      const availability = query.get('availability');
+      const items = WARDROBE_ITEMS.filter(
+        (item) =>
+          (category === null || item.category === category) &&
+          (availability === null || item.availability === availability),
+      );
+      return { items, next_cursor: null };
+    }
     case 'listOutfits':
       return { outfits: OUTFITS };
     case 'readEntitlement':
@@ -183,7 +199,9 @@ export function makeFakeBackend(options: FakeBackendOptions = {}): typeof fetch 
         headers: jsonHeaders,
       });
     }
-    return new Response(JSON.stringify(responseFor(route, options)), { status: 200, headers: jsonHeaders });
+    const queryString = url.split('?')[1] ?? '';
+    const query = new URLSearchParams(queryString);
+    return new Response(JSON.stringify(responseFor(route, options, query)), { status: 200, headers: jsonHeaders });
   };
   return fetchFn as unknown as typeof fetch;
 }
