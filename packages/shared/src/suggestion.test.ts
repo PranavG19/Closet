@@ -108,6 +108,79 @@ describe('F5 law 4 (composed) — advisory-never-blocks', () => {
   });
 });
 
+describe('F5 law 5 — palette is a WITHIN-TIER tie-break, never a filter, never breaks weather (D-003 Step 3)', () => {
+  // Items that carry a colorFamily so the tie-break can engage.
+  const arbColorItem: fc.Arbitrary<SuggestionItem> = fc.record({
+    id: fc.uuid(),
+    status: arbStatus,
+    warmth: fc.integer({ min: 0, max: 10 }),
+    category: fc.constantFrom('top', 'bottom', 'dress', 'outerwear', 'shoes', 'accessory'),
+    colorFamily: fc.constantFrom('red', 'blue', 'green', 'black', 'pink', null),
+  });
+  const arbColorWardrobe = fc.uniqueArray(arbColorItem, { selector: (i) => i.id, maxLength: 12 });
+  const arbPalette = fc.array(fc.constantFrom('red', 'blue', 'green', 'black', 'pink'), { maxLength: 5 });
+
+  it('a palette NEVER changes which items are eligible — count is identical with and without it', () => {
+    // The core safety law the critique demanded: palette may reorder, never filter. The
+    // number selected is a function of tempC + clean-count ONLY, so it cannot change when a
+    // palette is added. (Membership can differ only WITHIN a warmth tier, tested below.)
+    fc.assert(
+      fc.property(arbColorWardrobe, arbTemp, arbPalette, (items, tempC, paletteFamilies) => {
+        const without = suggestItems({ items, tempC });
+        const withPalette = suggestItems({ items, tempC, paletteFamilies });
+        const nWithout = without.fallback ? 0 : without.items.length;
+        const nWith = withPalette.fallback ? 0 : withPalette.items.length;
+        expect(nWith).toBe(nWithout);
+        expect(withPalette.fallback).toBe(without.fallback);
+      }),
+    );
+  });
+
+  it('weather monotonicity STILL holds with a palette applied (tie-break never crosses tiers)', () => {
+    fc.assert(
+      fc.property(arbColorWardrobe, arbTemp, arbTemp, arbPalette, (items, ta, tb, paletteFamilies) => {
+        const t1 = Math.min(ta, tb);
+        const t2 = Math.max(ta, tb);
+        const colder = suggestItems({ items, tempC: t1, paletteFamilies });
+        const warmer = suggestItems({ items, tempC: t2, paletteFamilies });
+        const wc = colder.fallback ? 0 : aggregateWarmth([...colder.items]);
+        const ww = warmer.fallback ? 0 : aggregateWarmth([...warmer.items]);
+        expect(wc).toBeGreaterThanOrEqual(ww);
+      }),
+    );
+  });
+
+  it('adding a palette never lowers the aggregate warmth of the selection (same tier, same sum)', () => {
+    // Because the tie-break only reorders EQUAL-warmth items, the aggregate warmth of the
+    // selected prefix is invariant to the palette — proving the reorder is warmth-neutral.
+    fc.assert(
+      fc.property(arbColorWardrobe, arbTemp, arbPalette, (items, tempC, paletteFamilies) => {
+        const without = suggestItems({ items, tempC });
+        const withPalette = suggestItems({ items, tempC, paletteFamilies });
+        const wWithout = without.fallback ? 0 : aggregateWarmth([...without.items]);
+        const wWith = withPalette.fallback ? 0 : aggregateWarmth([...withPalette.items]);
+        expect(wWith).toBe(wWithout);
+      }),
+    );
+  });
+
+  it('CONCRETE: among equal-warmth items, an in-palette one is preferred (the actual behavior)', () => {
+    // Two equal-warmth clean tops, one red (in palette) one blue (not). tempC warm enough
+    // to want exactly 1 layer, so only the preferred one is selected.
+    const items: SuggestionItem[] = [
+      { id: 'blue-top', status: 'clean', warmth: 2, category: 'top', colorFamily: 'blue' },
+      { id: 'red-top', status: 'clean', warmth: 2, category: 'top', colorFamily: 'red' },
+    ];
+    const withPalette = suggestItems({ items, tempC: 25, paletteFamilies: ['red'] });
+    expect(withPalette.fallback).toBe(false);
+    if (!withPalette.fallback) expect(withPalette.items[0]!.id).toBe('red-top');
+    // Without a palette, the id tie-break wins (blue-top < red-top), so the palette
+    // demonstrably changed the WITHIN-TIER order — not vacuous.
+    const without = suggestItems({ items, tempC: 25 });
+    if (!without.fallback) expect(without.items[0]!.id).toBe('blue-top');
+  });
+});
+
 describe('purity + malformed input', () => {
   it('same input twice → byte-identical output', () => {
     fc.assert(

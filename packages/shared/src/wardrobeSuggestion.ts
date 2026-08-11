@@ -16,6 +16,7 @@
 // guessing at a shape nothing enforces.
 import { WardrobeCategory, type Availability } from './schemas/common.js';
 import type { SuggestionItem } from './suggestion.js';
+import { toColorFamily } from './colorFamily.js';
 
 // Ordinal warmth by category. Non-negative because `suggestItems` documents warmth as a
 // non-negative ordinal — that is what makes its "adding a layer never lowers the sum"
@@ -40,6 +41,9 @@ export interface WardrobeRowLike {
   readonly id: string;
   readonly category: string;
   readonly availability: Availability;
+  // Optional stored color (hex from the vision adapter, or a family token). Read only to
+  // derive the advisory palette tie-break; absent/unrecognised → no color signal.
+  readonly color?: string | null;
 }
 
 // Map a stored row to the heuristic's input view.
@@ -58,6 +62,10 @@ export function toSuggestionItem(row: WardrobeRowLike): SuggestionItem {
     status: row.availability,
     warmth,
     category: row.category,
+    // Normalize the stored color to a family for the advisory palette tie-break. null
+    // (no color, or an unrecognised one) means "no color signal" — the heuristic then
+    // treats the item exactly as it did before color existed.
+    colorFamily: toColorFamily(row.color ?? null),
   };
 }
 

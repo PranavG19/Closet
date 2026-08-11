@@ -45,6 +45,15 @@ describe('toSuggestionItem — the mapping the heuristic needs', () => {
     expect(toSuggestionItem(row('i1', 'top', 'unavailable')).status).toBe('unavailable');
   });
 
+  it('normalizes stored color to a colorFamily for the palette tie-break; absent/unknown → null', () => {
+    // A hex is quantised to its family (via toColorFamily); a missing or unrecognised
+    // color yields null, which the heuristic treats as "no color signal".
+    expect(toSuggestionItem({ id: 'i1', category: 'top', availability: 'clean', color: '#ff0000' }).colorFamily).toBe('red');
+    expect(toSuggestionItem({ id: 'i2', category: 'top', availability: 'clean', color: 'pink' }).colorFamily).toBe('pink');
+    expect(toSuggestionItem({ id: 'i3', category: 'top', availability: 'clean', color: 'turquoise' }).colorFamily).toBeNull();
+    expect(toSuggestionItem(row('i4', 'top')).colorFamily).toBeNull(); // no color field
+  });
+
   it('keeps an UNRECOGNISED category with the lightest non-zero warmth, never drops it', () => {
     // Dropping it would hide a garment she owns from every suggestion; treating it as
     // warmest would put an unknown thing at the top of a cold-day outfit.
