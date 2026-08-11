@@ -10,15 +10,19 @@
 // The bytes need a SIGNED URL: the `cutouts` bucket is private and its RLS policy binds the
 // first path segment to auth.uid(), and <Image> cannot carry our JWT. See src/storage/cutoutUri.ts.
 //
-// VISUAL CORRECTNESS IS UNVERIFIED (human-gated) — no simulator in this build.
+// The grid is a FlatList (numColumns=2), not a .map() in a ScrollView: a ScrollView
+// mounts EVERY tile and its <Image> up front, so a large closet pays the full render +
+// image-decode cost on open and holds every cutout in memory at once. FlatList windows
+// the rows — off-screen tiles are not mounted — so open cost and memory stay flat as the
+// closet grows. ItemTile is React.memo'd and the signed-URL map is passed as `extraData`,
+// so a tile re-renders only when ITS OWN cutout URL arrives, not when any sibling's does.
 import React from 'react';
-import { View, Image, type ViewStyle, type ImageStyle } from 'react-native';
+import { View, Image, FlatList, type ViewStyle, type ImageStyle, type ListRenderItem } from 'react-native';
 import type { WardrobeItemRow } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe } from '../../src/api/index.js';
 import {
   Screen,
-  Card,
   Text,
   AvailabilityChip,
   LoadingState,
@@ -27,7 +31,11 @@ import {
 } from '../../src/ui/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
 
-function ItemTile({
+// Memoized: in a FlatList the parent re-renders on every windowing change, so without
+// this every visible tile would re-render whenever any one cutout URL arrived. The props
+// are an item row (stable ref from react-query) and a string|undefined, so the default
+// shallow compare is exactly right — a tile re-renders only when its own URL flips in.
+const ItemTile = React.memo(function ItemTile({
   item,
   cutoutUri,
 }: {
@@ -38,6 +46,8 @@ function ItemTile({
   readonly cutoutUri: string | undefined;
 }): React.JSX.Element {
   const tokens = useTokens();
+  // width:'48%' inside a 2-column FlatList row whose columnWrapperStyle is
+  // space-between reproduces the prior grid gutter exactly.
   const tile: ViewStyle = { width: '48%', marginBottom: tokens.spacing.lg };
   // The sunken well the cutout sits on. It stays behind the image rather than being replaced
   // by it: a PNG cutout is alpha-composited (CutoutPort guarantees `hasAlpha`), so the well
@@ -80,7 +90,7 @@ function ItemTile({
       <AvailabilityChip availability={item.availability} style={{ marginTop: tokens.spacing.xs }} />
     </View>
   );
-}
+});
 
 export function WardrobeScreen(): React.JSX.Element {
   const tokens = useTokens();
@@ -108,17 +118,37 @@ export function WardrobeScreen(): React.JSX.Element {
     );
   }
 
-  const grid: ViewStyle = { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' };
+  // The FlatList IS the scroller (so `Screen` is non-scroll: nesting a FlatList in a
+  // ScrollView would defeat windowing and warn). The sunken-well Card look moves onto the
+  // list itself — `style` carries the surface (bg/border/radius) that must NOT scroll away,
+  // `contentContainerStyle` carries the inner padding + the space-between column gutter.
+  const wellSurface: ViewStyle = {
+    backgroundColor: tokens.color.bg.sunken,
+    borderRadius: tokens.radius.md,
+    borderWidth: 1,
+    borderColor: tokens.color.border.hairline,
+  };
+  const renderItem: ListRenderItem<WardrobeItemRow> = ({ item }) => (
+    <ItemTile item={item} cutoutUri={cutouts.data?.[item.id]} />
+  );
   return (
-    <Screen scroll padding="lg">
+    <Screen padding="lg">
       <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
         Your closet
       </Text>
-      <Card variant="sunken" padding="md" style={grid}>
-        {items.map((item) => (
-          <ItemTile key={item.id} item={item} cutoutUri={cutouts.data?.[item.id]} />
-        ))}
-      </Card>
+      <FlatList
+        data={items}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        columnWrapperStyle={{ justifyContent: 'space-between' }}
+        // Re-render visible tiles when a signed URL lands (the map identity changes); without
+        // this, memo'd tiles would keep their empty wells until an unrelated re-render.
+        extraData={cutouts.data}
+        style={wellSurface}
+        contentContainerStyle={{ padding: tokens.spacing.md }}
+        showsVerticalScrollIndicator={false}
+      />
     </Screen>
   );
 }
