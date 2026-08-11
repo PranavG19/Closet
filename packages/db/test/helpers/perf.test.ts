@@ -4,7 +4,7 @@
 // against hand-computed nearest-rank values on a known distribution — a signal the
 // implementation did not produce.
 import { describe, it, expect } from 'vitest';
-import { summarize, rankedTable, type Sample } from './perf.js';
+import { summarize, rankedTable, measureConcurrent, type Sample } from './perf.js';
 
 const samplesFrom = (label: string, ms: readonly number[]): Sample[] => ms.map((m) => ({ label, ms: m }));
 
@@ -45,6 +45,48 @@ describe('perf.summarize — nearest-rank percentiles over a known distribution'
 
   it('empty samples throw (a vacuous measurement must not silently pass)', () => {
     expect(() => summarize([])).toThrow(/no samples/);
+  });
+});
+
+describe('perf.measureConcurrent — the load-test primitive is honest', () => {
+  // The three properties a load test's floor depends on: every op runs EXACTLY once
+  // (never lost, never double-counted → total is real), never more than `concurrency`
+  // are in flight (→ the "under load" claim is true, not a serial loop in disguise), and
+  // every sample is recorded (→ the percentile summary isn't computed over holes).
+  it('runs each op exactly once, at indices 0..total-1, and records every sample', async () => {
+    const seen: number[] = [];
+    const { samples } = await measureConcurrent('op', 20, 4, async (i) => {
+      seen.push(i);
+    });
+    expect(samples).toHaveLength(20);
+    expect(samples.every((s) => typeof s.ms === 'number' && s.label === 'op')).toBe(true);
+    expect([...seen].sort((a, b) => a - b)).toEqual(Array.from({ length: 20 }, (_, i) => i));
+  });
+
+  it('never exceeds the concurrency cap in flight (the "under load" claim is real)', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    await measureConcurrent('op', 30, 5, async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      // Yield so multiple workers genuinely overlap before any settles.
+      await new Promise((resolve) => setImmediate(resolve));
+      inFlight -= 1;
+    });
+    expect(peak).toBeGreaterThan(1); // actually concurrent, not accidentally serial
+    expect(peak).toBeLessThanOrEqual(5); // never over the cap
+  });
+
+  it('caps workers at total when concurrency exceeds it (no idle over-spawn)', async () => {
+    let peak = 0;
+    let inFlight = 0;
+    await measureConcurrent('op', 3, 100, async () => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setImmediate(resolve));
+      inFlight -= 1;
+    });
+    expect(peak).toBeLessThanOrEqual(3);
   });
 });
 

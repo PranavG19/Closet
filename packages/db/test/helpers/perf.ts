@@ -57,6 +57,40 @@ export async function measure(
   return samples;
 }
 
+// Run `total` invocations of `op` with at most `concurrency` in flight at once, via a
+// fixed pool of worker loops draining a shared counter. Records each op's wall-clock
+// (the per-request latency a caller sees UNDER load) AND the wall-clock of the whole
+// burst (from first dispatch to last settle) so throughput = total/wallMs is derivable.
+//
+// This is the load-test primitive `measure()` cannot express: a serial loop has exactly
+// one request in flight, so it never reveals connection-pool contention or the tail that
+// concurrency inflates. `opFor(i)` receives the global op index so a caller can vary
+// per-op input (e.g. a fresh client_id) and avoid measuring an ON-CONFLICT re-read.
+export async function measureConcurrent(
+  label: string,
+  total: number,
+  concurrency: number,
+  opFor: (i: number) => Promise<unknown>,
+): Promise<{ samples: Sample[]; wallMs: number }> {
+  const samples: Sample[] = new Array(total);
+  let next = 0;
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      const i = next;
+      next += 1;
+      if (i >= total) return;
+      const start = process.hrtime.bigint();
+      await opFor(i);
+      const end = process.hrtime.bigint();
+      samples[i] = { label, ms: Number(end - start) / 1e6 };
+    }
+  };
+  const wallStart = process.hrtime.bigint();
+  await Promise.all(Array.from({ length: Math.min(concurrency, total) }, () => worker()));
+  const wallEnd = process.hrtime.bigint();
+  return { samples, wallMs: Number(wallEnd - wallStart) / 1e6 };
+}
+
 export function summarize(samples: readonly Sample[]): PerfSummary {
   if (samples.length === 0) throw new Error('summarize: no samples (a vacuous perf measurement)');
   const label = samples[0]!.label;
