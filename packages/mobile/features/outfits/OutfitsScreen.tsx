@@ -11,7 +11,8 @@ import { FlatList, type ListRenderItem, type ViewStyle } from 'react-native';
 import type { OutfitRow } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useOutfits } from '../../src/api/index.js';
-import { Screen, Card, Text, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
+import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
+import { OutfitBuilderScreen } from './OutfitBuilderScreen.js';
 
 const OutfitCard = React.memo(function OutfitCard({
   outfit,
@@ -32,6 +33,14 @@ const OutfitCard = React.memo(function OutfitCard({
 export function OutfitsScreen(): React.JSX.Element {
   const tokens = useTokens();
   const query = useOutfits();
+  // F6: whether the builder canvas is open. In-feature state (no push navigation — the nav shell
+  // is a flat tab bar with no stack), declared before any early return so the hook order is
+  // stable across the loading/empty/error branches (Rules of Hooks).
+  const [building, setBuilding] = React.useState(false);
+
+  if (building) {
+    return <OutfitBuilderScreen onDone={() => setBuilding(false)} onCancel={() => setBuilding(false)} />;
+  }
 
   if (query.isPending) return <LoadingState message="Loading your outfits…" />;
   if (query.isError) {
@@ -45,7 +54,7 @@ export function OutfitsScreen(): React.JSX.Element {
         title="No outfits yet"
         body="Build a look from your closet and save it here."
         actionLabel="Build an outfit"
-        onAction={() => {}}
+        onAction={() => setBuilding(true)}
       />
     );
   }
@@ -56,9 +65,14 @@ export function OutfitsScreen(): React.JSX.Element {
   );
   return (
     <Screen padding="lg">
-      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
+      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.md }}>
         Outfits
       </Text>
+      <Button
+        label="Build a look"
+        onPress={() => setBuilding(true)}
+        style={{ marginBottom: tokens.spacing.lg }}
+      />
       <FlatList
         data={outfits}
         renderItem={renderItem}
