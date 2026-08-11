@@ -39,11 +39,16 @@ export const queryKeys = {
   entitlement: () => ['entitlement'] as const,
 } as const;
 
+// The WHOLE closet, not the server's first page. This used to call listWardrobe, which
+// returns one 50-row page — so a 120-garment closet rendered 50 tiles with no spinner and
+// no error, Laundry hid dirty items past the 50th, and the Suggestions heuristic ranked a
+// truncated sample. Every consumer of this hook needs the full set to be correct, so the
+// cursor is followed inside the queryFn and the cache still holds one value per filter.
 export function useWardrobe(params: ListWardrobeParams = {}): UseQueryResult<WardrobeListResult> {
   const client = useApiClient();
   return useQuery({
     queryKey: queryKeys.wardrobe(params),
-    queryFn: () => client.listWardrobe(params),
+    queryFn: () => client.listAllWardrobe(params),
   });
 }
 
@@ -98,12 +103,23 @@ export function useCreateOutfit(): UseMutationResult<OutfitRow, Error, CreateOut
 // client_id it minted at tap time (uuid) — this hook does NOT mint it, so a
 // react-query retry re-sends the SAME client_id and the partial UNIQUE index
 // dedups the write rather than appending a duplicate wear row.
-export function useLogWear(): UseMutationResult<WearLogRow, Error, LogWearRequest> {
+//
+// `flipToDirty` is a per-CALL-SITE option, not a per-mutate variable, because it is a
+// property of the affordance rather than of the garment: "I wore this today" means the
+// item goes in the hamper, and a future "log a past wear" screen means it does not.
+// Without it nothing in the app ever writes availability='dirty', so Laundry stays
+// permanently empty and Suggestions keeps re-offering what she just logged.
+export function useLogWear(options?: {
+  readonly flipToDirty?: boolean;
+}): UseMutationResult<WearLogRow, Error, LogWearRequest> {
   const client = useApiClient();
   const qc = useQueryClient();
+  const flipToDirty = options?.flipToDirty === true;
   return useMutation({
-    mutationFn: (request: LogWearRequest) => client.logWear(request),
+    mutationFn: (request: LogWearRequest) => client.logWear(request, { flipToDirty }),
     onSuccess: () => {
+      // Prefix-matches every queryKeys.wardrobe(params) slice, so the Laundry list
+      // (availability:'dirty') refetches and the item she just wore appears in it.
       void qc.invalidateQueries({ queryKey: ['wardrobe'] });
     },
   });

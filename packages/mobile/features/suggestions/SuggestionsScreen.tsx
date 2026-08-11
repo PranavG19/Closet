@@ -11,6 +11,7 @@
 // VISUAL CORRECTNESS IS UNVERIFIED (human-gated) — no simulator in this build.
 import React from 'react';
 import { View, type ViewStyle } from 'react-native';
+import * as Crypto from 'expo-crypto';
 import { suggestItems, toSuggestionItems, suggestionNote } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useLogWear } from '../../src/api/index.js';
@@ -23,10 +24,18 @@ import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from
 // selection is still real, and every warmth ordering and monotonicity property holds.
 const ASSUMED_TEMP_C = 18;
 
-// client_id is minted by the CALLER at tap time (idempotency). uuid via the RN
-// crypto global; a retry of the same tap reuses this id so the wear row dedups.
+// client_id is minted by the CALLER at tap time (idempotency); a retry of the same tap
+// reuses this id so the wear row dedups.
+//
+// expo-crypto's MODULE form, not `globalThis.crypto.randomUUID()`. Hermes ships no
+// crypto global and nothing in the dependency tree installs one — react-native 0.86's
+// setUpDefaultReactNativeEnvironment does not, and expo's winter runtime installs
+// TextDecoder/URL/DOMException/structuredClone/fetch and not crypto. The global read
+// typechecked only because mobile/tsconfig.json includes "DOM" in `lib`, which declares
+// `var crypto`; on device it was a TypeError thrown BEFORE mutate(), so the one-tap
+// wear-log never recorded. src/session/nativeProviders.ts already uses this form.
 function mintClientId(): string {
-  return (globalThis.crypto as { randomUUID(): string }).randomUUID();
+  return Crypto.randomUUID();
 }
 
 export function SuggestionsScreen(): React.JSX.Element {
@@ -38,7 +47,11 @@ export function SuggestionsScreen(): React.JSX.Element {
   // first, with no later branch re-admitting an excluded item), so fetching everything moves
   // no trust and lets the empty state tell the truth.
   const query = useWardrobe({});
-  const logWear = useLogWear();
+  // flipToDirty: this button says "I wore this" about TODAY, so the garment goes in the
+  // hamper — that is the laundry loop F7/F8 describe (docs/01 §F8: "optionally moves worn
+  // items toward dirty"). Without it the app had exactly one availability write (Laundry's
+  // "Mark clean") and nothing that ever set 'dirty'.
+  const logWear = useLogWear({ flipToDirty: true });
 
   if (query.isPending) return <LoadingState message="Putting together today's look…" />;
   if (query.isError) {
