@@ -8,7 +8,9 @@
     "build": "tsc --build",
     "start": "expo start --port 8081",
     "ios": "expo start --port 8081 --ios",
-    "start:clear": "expo start --port 8081 --clear"
+    "start:clear": "expo start --port 8081 --clear",
+    "start:harness": "EXPO_PUBLIC_HARNESS=1 expo start --port 8081",
+    "ios:harness": "EXPO_PUBLIC_HARNESS=1 expo start --port 8081 --ios"
   },
   "dependencies": {
     "@closet/shared": "workspace:*",

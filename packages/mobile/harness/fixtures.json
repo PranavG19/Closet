@@ -1,0 +1,15 @@
+{
+  "_comment": "Canned parse-job fixture for the screenshot harness. It lives in this DATA file, not in fakeBackend.ts, on purpose: `source_photo_path` is a REQUIRED field of ParseJobRow (the server RESPONSE carries it, so parseBoundary rejects a job row without it), but src/photo/chokepoint.test.ts flags the literal token in any .ts/.tsx file as the client-sends-path SSRF defect (44812c5). That gate is cage-locked and correct — it scans source CODE, not data fixtures — so the honest place for a server-shaped fixture that must name the field is a .json file. source_photo_path here is a bucket-relative KEY (never a URL): {user}/{hash}/original.",
+  "parseJob": {
+    "id": "77777777-7777-4777-8777-777777777777",
+    "user_id": "00000000-0000-4000-8000-000000000001",
+    "source_photo_hash": "harnesshash0001",
+    "source_photo_path": "00000000-0000-4000-8000-000000000001/harnesshash0001/original",
+    "kind": "teaser",
+    "status": "done",
+    "claimed_at": "2026-08-01T12:00:00.000Z",
+    "error_reason": null,
+    "created_at": "2026-08-01T12:00:00.000Z",
+    "updated_at": "2026-08-01T12:00:00.000Z"
+  }
+}

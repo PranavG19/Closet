@@ -2,7 +2,14 @@
 // their order. A real nav library (expo-router / @react-navigation) slots in later
 // and consumes THIS list; screens do not change. Kept as data so the shell renders
 // from it without a switch per tab.
-export type TabKey = 'wardrobe' | 'suggestions' | 'outfits' | 'laundry' | 'profile' | 'account';
+export type TabKey =
+  | 'wardrobe'
+  | 'add'
+  | 'suggestions'
+  | 'outfits'
+  | 'laundry'
+  | 'profile'
+  | 'account';
 
 export interface TabDef {
   readonly key: TabKey;
@@ -11,6 +18,13 @@ export interface TabDef {
 
 export const TABS: readonly TabDef[] = [
   { key: 'wardrobe', label: 'Closet' },
+  // Add-garment (F1). Sits SECOND, next to the closet it fills, because it is the flow every
+  // other surface depends on having run — an empty closet makes Today, Outfits and Laundry all
+  // empty too. The label is "Add" and not "Add clothing" for the width reason recorded below:
+  // this is the SEVENTH tab, so each label now gets ~1/7 of the bar. "Add" is the shortest
+  // honest word available. THIS IS A LAYOUT RISK ONLY A SCREENSHOT CAN SETTLE — the six-tab bar
+  // already wrapped one label mid-word, and no simulator ran in this build.
+  { key: 'add', label: 'Add' },
   { key: 'suggestions', label: 'Today' },
   { key: 'outfits', label: 'Outfits' },
   { key: 'laundry', label: 'Laundry' },

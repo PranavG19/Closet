@@ -31,9 +31,11 @@ import {
   type AuthPort,
 } from './session/index.js';
 import { BillingProvider, makeBillingPort } from './billing/index.js';
+import { PhotoIntakeProvider, makePhotoIntakePort } from './photo/index.js';
 import { LoadingState } from './ui/index.js';
 import { NavShell, type TabScreens } from '../features/navigation/index.js';
 import { WardrobeScreen } from '../features/wardrobe/index.js';
+import { AddGarmentScreen } from '../features/onboarding/index.js';
 import { SuggestionsScreen } from '../features/suggestions/index.js';
 import { OutfitsScreen } from '../features/outfits/index.js';
 import { LaundryScreen } from '../features/laundry/index.js';
@@ -46,6 +48,7 @@ const queryClient = new QueryClient({
 
 const screens: TabScreens = {
   wardrobe: <WardrobeScreen />,
+  add: <AddGarmentScreen />,
   suggestions: <SuggestionsScreen />,
   outfits: <OutfitsScreen />,
   laundry: <LaundryScreen />,
@@ -90,6 +93,12 @@ export function App(): React.JSX.Element {
   // product IDs exist, which the paywall renders as an honest unavailable state rather
   // than a priceless subscribe button. See src/billing/revenueCatNative.ts.
   const billing = React.useMemo(() => makeBillingPort(), []);
+  // The on-device photo seam (picker + screener + byte hashing). Reports `available: false`
+  // until a picker dependency lands, which AddGarmentScreen renders as an honest unavailable
+  // state rather than a button that throws. Its `screeningAvailable: false` is also what holds
+  // the in-app privacy copy to the approval-tap claim — the only claim the code can back until
+  // a classifier exists and clears its recall floor. See src/photo/photoIntakeNative.ts.
+  const photoIntake = React.useMemo(() => makePhotoIntakePort(), []);
 
   return (
     <SafeAreaProvider>
@@ -98,7 +107,9 @@ export function App(): React.JSX.Element {
           <SessionProvider port={port}>
             <ApiProvider client={client}>
               <BillingProvider port={billing}>
-                <RootGate />
+                <PhotoIntakeProvider port={photoIntake}>
+                  <RootGate />
+                </PhotoIntakeProvider>
               </BillingProvider>
             </ApiProvider>
           </SessionProvider>

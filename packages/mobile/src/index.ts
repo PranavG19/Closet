@@ -10,4 +10,5 @@ export * from './ui/index.js';
 export * from './api/index.js';
 export * from './session/index.js';
 export * from './account/index.js';
+export * from './photo/index.js';
 export { App, default } from './App.js';
