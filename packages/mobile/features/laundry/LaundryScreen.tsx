@@ -10,7 +10,8 @@
 //
 // VISUAL CORRECTNESS IS UNVERIFIED (human-gated) — no simulator in this build.
 import React from 'react';
-import { View, Pressable, type ViewStyle } from 'react-native';
+import { View, Pressable, FlatList, type ViewStyle, type ListRenderItem } from 'react-native';
+import type { WardrobeItemRow } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useToggleAvailability } from '../../src/api/index.js';
 import {
@@ -114,8 +115,44 @@ export function LaundryScreen(): React.JSX.Element {
     marginBottom: tokens.spacing.md,
   };
 
-  return (
-    <Screen scroll padding="lg">
+  // The hamper is a FlatList (windowed) rather than a .map() in a ScrollView. The header
+  // block (title, select-all bar, batch mark-clean button, failure notice) rides
+  // ListHeaderComponent so it scrolls with the list exactly as before. Rows are re-rendered
+  // on selection or mutation-pending change via `extraData` — a row's border and its button's
+  // disabled state both depend on those, so they must be in the windowing dependency.
+  const isMutating = toggleAvailability.isPending;
+  const renderItem: ListRenderItem<WardrobeItemRow> = ({ item }) => {
+    const selected = isSelected(basket, item.id);
+    return (
+      <Pressable
+        onPress={() => setBasket(toggle(basket, item.id))}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: selected }}
+        accessibilityLabel={`${item.color ?? item.category}, in the wash`}
+      >
+        <Card variant="surface" padding="md" style={selected ? selectedRow : row}>
+          <View>
+            <Text variant="body" tone="primary">
+              {item.color ?? item.category}
+            </Text>
+            <AvailabilityChip availability="dirty" style={{ marginTop: tokens.spacing.xs }} />
+          </View>
+          {/* The single-garment action stays: tapping the row selects, and this is the
+              one-off path for someone who wants exactly one thing back without building a
+              selection at all. */}
+          <Button
+            label={selected ? 'Selected' : 'Mark clean'}
+            intent="secondary"
+            disabled={selected || isMutating}
+            onPress={() => toggleAvailability.mutate({ item_id: item.id, availability: 'clean' })}
+          />
+        </Card>
+      </Pressable>
+    );
+  };
+
+  const header = (
+    <>
       <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.md }}>
         Laundry
       </Text>
@@ -137,9 +174,9 @@ export function LaundryScreen(): React.JSX.Element {
         <Button
           // The count is IN the label, so the button states exactly what it will do. A
           // reversible action does not need an "are you sure" dialog; it needs an honest label.
-          label={toggleAvailability.isPending ? 'Putting them away…' : `Mark ${selectedCount} clean`}
+          label={isMutating ? 'Putting them away…' : `Mark ${selectedCount} clean`}
           accent="pink"
-          disabled={toggleAvailability.isPending}
+          disabled={isMutating}
           onPress={() => void markSelectedClean()}
           style={{ marginBottom: tokens.spacing.md }}
         />
@@ -150,37 +187,19 @@ export function LaundryScreen(): React.JSX.Element {
           {`${failedCount} couldn't be updated. Pull down to refresh and try again.`}
         </Text>
       )}
+    </>
+  );
 
-      {items.map((item) => {
-        const selected = isSelected(basket, item.id);
-        return (
-          <Pressable
-            key={item.id}
-            onPress={() => setBasket(toggle(basket, item.id))}
-            accessibilityRole="checkbox"
-            accessibilityState={{ checked: selected }}
-            accessibilityLabel={`${item.color ?? item.category}, in the wash`}
-          >
-            <Card variant="surface" padding="md" style={selected ? selectedRow : row}>
-              <View>
-                <Text variant="body" tone="primary">
-                  {item.color ?? item.category}
-                </Text>
-                <AvailabilityChip availability="dirty" style={{ marginTop: tokens.spacing.xs }} />
-              </View>
-              {/* The single-garment action stays: tapping the row selects, and this is the
-                  one-off path for someone who wants exactly one thing back without building a
-                  selection at all. */}
-              <Button
-                label={selected ? 'Selected' : 'Mark clean'}
-                intent="secondary"
-                disabled={selected || toggleAvailability.isPending}
-                onPress={() => toggleAvailability.mutate({ item_id: item.id, availability: 'clean' })}
-              />
-            </Card>
-          </Pressable>
-        );
-      })}
+  return (
+    <Screen padding="lg">
+      <FlatList
+        data={items}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        extraData={`${[...basket.ids].sort().join(',')}|${isMutating}`}
+        ListHeaderComponent={header}
+        showsVerticalScrollIndicator={false}
+      />
     </Screen>
   );
 }

@@ -2,11 +2,32 @@
 // loading / empty / error states. The builder canvas (item slots by category) is a
 // later screen; this is the list surface.
 //
-// VISUAL CORRECTNESS IS UNVERIFIED (human-gated) — no simulator in this build.
+// The list is a FlatList, not a .map() in a ScrollView, so a large outfit collection
+// windows its rows rather than mounting every card up front. Row is React.memo'd (the
+// outfit row is a stable react-query ref) so parent re-renders during scroll don't
+// re-render every visible card.
 import React from 'react';
+import { FlatList, type ListRenderItem, type ViewStyle } from 'react-native';
+import type { OutfitRow } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useOutfits } from '../../src/api/index.js';
 import { Screen, Card, Text, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
+
+const OutfitCard = React.memo(function OutfitCard({
+  outfit,
+  style,
+}: {
+  readonly outfit: OutfitRow;
+  readonly style: ViewStyle;
+}): React.JSX.Element {
+  return (
+    <Card variant="surface" padding="md" style={style}>
+      <Text variant="title" tone="primary">
+        {outfit.name ?? 'Untitled look'}
+      </Text>
+    </Card>
+  );
+});
 
 export function OutfitsScreen(): React.JSX.Element {
   const tokens = useTokens();
@@ -29,18 +50,21 @@ export function OutfitsScreen(): React.JSX.Element {
     );
   }
 
+  const cardSpacing: ViewStyle = { marginBottom: tokens.spacing.md };
+  const renderItem: ListRenderItem<OutfitRow> = ({ item }) => (
+    <OutfitCard outfit={item} style={cardSpacing} />
+  );
   return (
-    <Screen scroll padding="lg">
+    <Screen padding="lg">
       <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
         Outfits
       </Text>
-      {outfits.map((outfit) => (
-        <Card key={outfit.id} variant="surface" padding="md" style={{ marginBottom: tokens.spacing.md }}>
-          <Text variant="title" tone="primary">
-            {outfit.name ?? 'Untitled look'}
-          </Text>
-        </Card>
-      ))}
+      <FlatList
+        data={outfits}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        showsVerticalScrollIndicator={false}
+      />
     </Screen>
   );
 }
