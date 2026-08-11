@@ -11,7 +11,7 @@
 // VISUAL CORRECTNESS IS UNVERIFIED (human-gated) — no simulator in this build.
 import React from 'react';
 import { View, type ViewStyle } from 'react-native';
-import { suggestItems, toSuggestionItems, suggestionNote } from '@closet/shared';
+import { suggestItems, toSuggestionItems, suggestionNote, outfitVerdict, suggestionRationale } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useLogWear } from '../../src/api/index.js';
 import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
@@ -39,6 +39,9 @@ export function SuggestionsScreen(): React.JSX.Element {
   // no trust and lets the empty state tell the truth.
   const query = useWardrobe({});
   const logWear = useLogWear();
+  // "Why this?" disclosure toggle. Declared with the other hooks, before any early return,
+  // so the hook order is stable regardless of loading/fallback branches (Rules of Hooks).
+  const [showWhy, setShowWhy] = React.useState(false);
 
   if (query.isPending) return <LoadingState message="Putting together today's look…" />;
   if (query.isError) {
@@ -83,6 +86,19 @@ export function SuggestionsScreen(): React.JSX.Element {
   // clash (which the product deliberately never scolds). The card omits the strip entirely
   // rather than printing filler.
   const note = suggestionNote(selectedRows);
+
+  // The fuller "why we suggested this" explanation (D-003 Step 4/5). Derived from the SAME
+  // verdict the note uses (outfitVerdict), so the one-liner and the explanation cannot
+  // disagree. hasPalette/paletteInfluencedOrder are false today: mobile has no palette-read
+  // seam yet (only useUpsertPalette), and suggestItems here is called WITHOUT paletteFamilies,
+  // so the rationale honestly says color guidance is not steering today's pick.
+  const verdict = outfitVerdict(selectedRows);
+  const rationale = suggestionRationale({
+    selectedCount: selectedRows.length,
+    verdict,
+    hasPalette: false,
+    paletteInfluencedOrder: false,
+  });
 
   // Gentle highlight strip — advisory, never a red error/nag (docs/03).
   const highlight: ViewStyle = {
@@ -131,6 +147,32 @@ export function SuggestionsScreen(): React.JSX.Element {
             </Text>
           </View>
         )}
+
+        {/* "Why this?" — the opt-in explanation (D-003 Step 4/5). Collapsed by default so the
+            card stays calm; expanded it states the warmth reasoning and the honest limits of
+            the color guidance (self-chosen palette, approximate families). Advisory tone, never
+            a lecture. */}
+        <Button
+          label={showWhy ? 'Hide why' : 'Why this?'}
+          intent="ghost"
+          onPress={() => setShowWhy((prev) => !prev)}
+          style={{ marginTop: tokens.spacing.md }}
+        />
+        {showWhy && (
+          <View style={{ marginTop: tokens.spacing.sm }}>
+            {rationale.map((line) => (
+              <Text
+                key={line}
+                variant="caption"
+                tone="secondary"
+                style={{ marginTop: tokens.spacing.xs }}
+              >
+                {line}
+              </Text>
+            ))}
+          </View>
+        )}
+
         <Button
           label={logWear.isPending ? 'Logging…' : 'I wore this'}
           disabled={logWear.isPending}

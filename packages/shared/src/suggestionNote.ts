@@ -39,7 +39,12 @@ const NOTE_BY_VERDICT: Readonly<Record<Exclude<HarmonyVerdict, 'clash'>, string>
 // Returns NULL rather than a filler sentence in three cases: fewer than two garments with
 // recognisable colours (nothing to pair), and a clash (see the voice rule). A UI that
 // renders null as "no note" is telling the truth; a filler sentence is not.
-export function suggestionNote(items: readonly NoteItemLike[]): string | null {
+// The color-harmony verdict for a suggested set, or null when there is nothing to compare
+// (fewer than two garments with recognised colours). Exposed so the one-line note AND the
+// fuller rationale (suggestionRationale) derive from the SAME verdict rather than each
+// recomputing it — two computations of one thing is how the note and the explanation would
+// silently disagree.
+export function outfitVerdict(items: readonly NoteItemLike[]): HarmonyVerdict | null {
   const families: ColorFamily[] = [];
   for (const item of items) {
     if (item.color !== null && isColorFamily(item.color)) families.push(item.color);
@@ -71,8 +76,13 @@ export function suggestionNote(items: readonly NoteItemLike[]): string | null {
       if (RANK[verdict] < RANK[worst]) worst = verdict;
     }
   }
+  return worst;
+}
 
-  // A clash says nothing. She picked her own clothes; the app is not her critic.
-  if (worst === 'clash') return null;
+export function suggestionNote(items: readonly NoteItemLike[]): string | null {
+  const worst = outfitVerdict(items);
+  // Nothing to compare, or a clash — a clash says nothing (she picked her own clothes; the
+  // app is not her critic). Both yield no note.
+  if (worst === null || worst === 'clash') return null;
   return NOTE_BY_VERDICT[worst];
 }

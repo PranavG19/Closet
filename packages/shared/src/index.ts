@@ -32,3 +32,4 @@ export * from './palette.js';
 export * from './subscriptionDisclosure.js';
 export * from './wardrobeSuggestion.js';
 export * from './suggestionNote.js';
+export * from './suggestionRationale.js';
