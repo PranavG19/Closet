@@ -11,6 +11,7 @@
 // VISUAL CORRECTNESS IS UNVERIFIED (human-gated) — no simulator in this build.
 import React from 'react';
 import { View, type ViewStyle } from 'react-native';
+import * as Crypto from 'expo-crypto';
 import { suggestItems, toSuggestionItems, suggestionNote, outfitVerdict, suggestionRationale } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useLogWear, usePalette } from '../../src/api/index.js';
@@ -23,10 +24,13 @@ import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from
 // selection is still real, and every warmth ordering and monotonicity property holds.
 const ASSUMED_TEMP_C = 18;
 
-// client_id is minted by the CALLER at tap time (idempotency). uuid via the RN
-// crypto global; a retry of the same tap reuses this id so the wear row dedups.
+// client_id is minted by the CALLER at tap time (idempotency); a retry of the same tap reuses
+// this id so the wear row dedups. Uses expo-crypto, NOT `globalThis.crypto.randomUUID()` — the
+// RN/Hermes runtime has no global `crypto`, so the global form throws at tap time (proven on the
+// simulator via the outfit-builder save, which had the identical bug). expo-crypto is already a
+// declared dependency used for the Apple-auth nonce.
 function mintClientId(): string {
-  return (globalThis.crypto as { randomUUID(): string }).randomUUID();
+  return Crypto.randomUUID();
 }
 
 export function SuggestionsScreen(): React.JSX.Element {
