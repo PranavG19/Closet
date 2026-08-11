@@ -26,6 +26,12 @@
       "path": "packages/mobile/features/navigation"
     },
     {
+      "entry": "packages/mobile/features/onboarding/index.ts",
+      "exports": [],
+      "name": "@closet/mobile/features/onboarding",
+      "path": "packages/mobile/features/onboarding"
+    },
+    {
       "entry": "packages/mobile/features/outfits/index.ts",
       "exports": [],
       "name": "@closet/mobile/features/outfits",

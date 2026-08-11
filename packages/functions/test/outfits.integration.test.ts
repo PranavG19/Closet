@@ -9,6 +9,7 @@ import { createOutfit } from '../src/outfits/create.js';
 import { listOutfits } from '../src/outfits/list.js';
 import {
   applyMigrations,
+  expectRlsDenies,
   makeCaller,
   makeSuperuserExecutor,
   makeTenantExecutor,
@@ -130,11 +131,18 @@ describe('outfits endpoint — idempotent create + FK isolation', () => {
     expect(parsed.success).toBe(true);
   });
 
-  it('list is RLS-scoped — A never sees B outfits', async () => {
+  // RENAMED + STRENGTHENED. listOutfits → repo.listByUser(ctx.userId), i.e. A's own id
+  // in `WHERE user_id = $1`, so B's row is filtered out by that predicate before RLS is
+  // ever consulted — this body stayed green with outfits_select_own widened to
+  // USING (true) (fire-drilled). The endpoint assertion is kept: it is the wire-level
+  // proof that the handler does not leak B's name to A. The RLS claim in the title is
+  // now measured through A's tenant executor with no predicate, fire-drilled in-place.
+  it('list excludes B outfits at the endpoint, and RLS denies A an unfiltered read', async () => {
     const execB = makeTenantExecutor(pool, USER_B);
     await execB.query(`INSERT INTO public.outfits (user_id, name) VALUES ($1,'B-secret')`, [USER_B]);
     const res = await callerA.call(listOutfits);
     const body = (await res.json()) as { outfits: { name: string | null }[] };
     expect(body.outfits.some((o) => o.name === 'B-secret')).toBe(false);
+    await expectRlsDenies(superuser, execA, 'outfits', USER_B);
   });
 });

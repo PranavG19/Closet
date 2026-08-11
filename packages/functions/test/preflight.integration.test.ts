@@ -21,14 +21,20 @@
 //   B.1 is the real external oracle for it: the Storage service itself, not our code.
 //
 // HOW IT STAYS HONEST IN CI. There is no real project in CI, so every env-dependent
-// block self-skips via `describe.skipIf` on its own required-env probe, and the
-// module prints an unmistakable PREFLIGHT SKIPPED banner naming exactly which checks
-// did NOT run. A skip must never read as a pass. As of writing, A.1/A.2/A.3/A.4/B.1
-// are WRITTEN BUT NEVER EXECUTED — their first real run IS the deploy gate.
+// block self-skips via `skipIf(!canRun('<id>'))` and the module prints an unmistakable
+// PREFLIGHT SKIPPED banner naming exactly which checks did NOT run and which env vars
+// each is waiting on. A skip must never read as a pass. Both the gates and the banner
+// derive from ONE table (CHECKS), and S.0 fails the build if they ever diverge — see
+// the note above CHECKS for the A.2b hole that made this necessary. As of writing,
+// A.1/A.2/A.3/A.4/B.1 are WRITTEN BUT NEVER EXECUTED — their first real run IS the
+// deploy gate.
 //
-// A.0 is the exception: it needs no project and runs everywhere, because the trap it
-// closes (a shim with no config.toml entry deploys with the gateway's JWT verify ON,
-// which rejects our valid asymmetric JWTs) is observable from the tree alone.
+// A.0 and S.0 are the exceptions: they need no project and run everywhere. A.0's trap
+// (a shim with no config.toml entry deploys with the gateway's JWT verify ON, which
+// rejects our valid asymmetric JWTs) is observable from the tree alone; S.0's trap (a
+// gated block that vanishes without the banner naming it) is observable by PARSING
+// this file. S.0's guarantee is real but bounded to this file's collector-level gates —
+// its own header states the exact ceiling, including what it cannot see.
 //
 // THE RESPONSE IS NEVER THE ORACLE, same rule as the rest of the gauntlet: A.1 reads
 // the row back through the user's OWN RLS-scoped read path; B.1 grades a refused
@@ -44,6 +50,11 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { Pool } from 'pg';
 import { z } from 'zod';
+// S.0 parses THIS FILE with the real compiler rather than regexing it: a regex cannot
+// balance parens or model nesting, and both holes were exploited (see S.0's note).
+// `typescript` is already a root devDependency — no new dependency, and the parse of
+// this one file costs ~20ms.
+import ts from 'typescript';
 import { makeSubscriptionsRepo, type QueryExecutor } from '@closet/db';
 import { Uuid, parseBoundary } from '@closet/shared';
 import { envValue } from '../src/auth/env.js';
@@ -55,49 +66,129 @@ import { makePgExecutor, makeServiceExecutor, type Sql } from '../src/auth/execu
 // block, so no check can fire by accident on a developer who merely has a stale
 // DATABASE_URL exported. It is also echoed in failure messages so a green run
 // names WHICH project it proved.
-const PROJECT_REF = envValue('PREFLIGHT_PROJECT_REF');
-const SERVICE_URL = envValue('SUPABASE_DB_SERVICE_URL');
-const APP_URL = envValue('DATABASE_URL');
-const JWKS_URL = envValue('JWKS_URL');
-const FUNCTIONS_BASE_URL = envValue('PREFLIGHT_FUNCTIONS_BASE_URL');
-const SUPABASE_URL = envValue('PREFLIGHT_SUPABASE_URL');
-const ANON_KEY = envValue('PREFLIGHT_SUPABASE_ANON_KEY');
-const USER_A_JWT = envValue('PREFLIGHT_USER_A_JWT');
-const USER_B_JWT = envValue('PREFLIGHT_USER_B_JWT');
+//
+// Every env var preflight reads is read HERE, once, keyed by its real name — so the
+// CHECKS table below can name its requirements as var names and the banner can print
+// exactly which ones are missing.
+const PREFLIGHT_ENV = {
+  PREFLIGHT_PROJECT_REF: envValue('PREFLIGHT_PROJECT_REF'),
+  SUPABASE_DB_SERVICE_URL: envValue('SUPABASE_DB_SERVICE_URL'),
+  DATABASE_URL: envValue('DATABASE_URL'),
+  JWKS_URL: envValue('JWKS_URL'),
+  PREFLIGHT_FUNCTIONS_BASE_URL: envValue('PREFLIGHT_FUNCTIONS_BASE_URL'),
+  PREFLIGHT_SUPABASE_URL: envValue('PREFLIGHT_SUPABASE_URL'),
+  PREFLIGHT_SUPABASE_ANON_KEY: envValue('PREFLIGHT_SUPABASE_ANON_KEY'),
+  PREFLIGHT_USER_A_JWT: envValue('PREFLIGHT_USER_A_JWT'),
+  PREFLIGHT_USER_B_JWT: envValue('PREFLIGHT_USER_B_JWT'),
+} as const;
+type PreflightEnvVar = keyof typeof PREFLIGHT_ENV;
 
-const present = (...values: readonly (string | undefined)[]): boolean =>
-  values.every((value) => value !== undefined && value !== '');
+const PROJECT_REF = PREFLIGHT_ENV.PREFLIGHT_PROJECT_REF;
+const SERVICE_URL = PREFLIGHT_ENV.SUPABASE_DB_SERVICE_URL;
+const APP_URL = PREFLIGHT_ENV.DATABASE_URL;
+const JWKS_URL = PREFLIGHT_ENV.JWKS_URL;
+const FUNCTIONS_BASE_URL = PREFLIGHT_ENV.PREFLIGHT_FUNCTIONS_BASE_URL;
+const SUPABASE_URL = PREFLIGHT_ENV.PREFLIGHT_SUPABASE_URL;
+const ANON_KEY = PREFLIGHT_ENV.PREFLIGHT_SUPABASE_ANON_KEY;
+const USER_A_JWT = PREFLIGHT_ENV.PREFLIGHT_USER_A_JWT;
+const USER_B_JWT = PREFLIGHT_ENV.PREFLIGHT_USER_B_JWT;
 
-const CAN_RUN_ENTITLEMENT = present(PROJECT_REF, SERVICE_URL, APP_URL);
-const CAN_RUN_JWKS = present(PROJECT_REF, JWKS_URL);
-const CAN_RUN_LEDGER = present(PROJECT_REF, SERVICE_URL);
-const CAN_RUN_ROUTES = present(PROJECT_REF, FUNCTIONS_BASE_URL);
-const CAN_RUN_STORAGE = present(
-  PROJECT_REF,
-  SUPABASE_URL,
-  ANON_KEY,
-  USER_A_JWT,
-  USER_B_JWT,
-  JWKS_URL,
-);
+// ─── the skip ledger: ONE source of truth for gating AND for the banner ──────
+// THE BUG THIS SHAPE EXISTS TO PREVENT. There used to be a `CAN_RUN_*` flag list and
+// a separate banner array, i.e. two parallel lists that could disagree — and they did:
+// A.2b was gated on PREFLIGHT_USER_A_JWT via an inline `present(...)` that no flag and
+// no banner line knew about. With PREFLIGHT_PROJECT_REF + JWKS_URL set but no user JWT,
+// A.2b — the ONLY check that drives the production makeJwksVerifier against a real
+// token, and so the only one that catches a JWKS belonging to a DIFFERENT project —
+// vanished from the run while the banner printed no A.2 line at all. Exit 0. A skip
+// read as a pass, which is the exact thing this file's header forbids.
+//
+// So: one row per GATED BLOCK (not per check family — A.2a and A.2b have different
+// requirements and are gated separately, therefore they are two rows), the row's
+// `requires` is what gates it, and the banner is derived from the same rows. The
+// "S.0" meta-check below is what keeps it that way: it PARSES this file and fails if
+// any conditional gate is not exactly `!canRun('<id>')` for a row here, if a row has
+// no gate, or if a gate is nested inside a gate that requires MORE env than it does.
+// Adding a gated block without a row is a FAILING TEST, not a silent hole. S.0's own
+// header states precisely what that does and does not cover — read it before relying
+// on it.
+interface PreflightCheck {
+  readonly requires: readonly PreflightEnvVar[];
+  readonly description: string;
+}
+
+const CHECKS = {
+  'A.1': {
+    requires: ['PREFLIGHT_PROJECT_REF', 'SUPABASE_DB_SERVICE_URL', 'DATABASE_URL'],
+    description: 'service_role really bypasses RLS (TRAP A — the money write)',
+  },
+  'A.2a': {
+    requires: ['PREFLIGHT_PROJECT_REF', 'JWKS_URL'],
+    description: 'JWKS reachability + shape (every authed request)',
+  },
+  'A.2b': {
+    requires: ['PREFLIGHT_PROJECT_REF', 'JWKS_URL', 'PREFLIGHT_USER_A_JWT'],
+    description:
+      'the PRODUCTION makeJwksVerifier accepts a REAL user token — the only check ' +
+      'that catches a JWKS from the wrong project (A.2a passes on any live JWKS)',
+  },
+  'A.3': {
+    requires: ['PREFLIGHT_PROJECT_REF', 'SUPABASE_DB_SERVICE_URL'],
+    description: 'migration ledger matches the numbered files on disk',
+  },
+  'A.4': {
+    requires: ['PREFLIGHT_PROJECT_REF', 'PREFLIGHT_FUNCTIONS_BASE_URL'],
+    description: 'every route answers with the HANDLER 401, not the gateway 401',
+  },
+  'B.1': {
+    requires: [
+      'PREFLIGHT_PROJECT_REF',
+      'PREFLIGHT_SUPABASE_URL',
+      'PREFLIGHT_SUPABASE_ANON_KEY',
+      'PREFLIGHT_USER_A_JWT',
+      'PREFLIGHT_USER_B_JWT',
+      'JWKS_URL',
+    ],
+    description: 'Storage RLS binds to sub on originals + cutouts (TRAP B — privacy)',
+  },
+} as const satisfies Record<string, PreflightCheck>;
+
+type CheckId = keyof typeof CHECKS;
+const CHECK_IDS: readonly CheckId[] = Object.keys(CHECKS) as CheckId[];
+
+function missingEnvFor(id: CheckId): readonly PreflightEnvVar[] {
+  return CHECKS[id].requires.filter((name) => {
+    const value = PREFLIGHT_ENV[name];
+    return value === undefined || value === '';
+  });
+}
+
+// The ONLY sanctioned way to gate a block. Every skipIf in this file must call it
+// (S.0 enforces that), which is what makes an unnamed skip unrepresentable.
+function canRun(id: CheckId): boolean {
+  return missingEnvFor(id).length === 0;
+}
 
 // The banner. process.stdout (not console, not the structured logger — this is test
 // output, and it must survive whatever reporter is in use) so a skipped run can
-// never be mistaken for a proven one.
+// never be mistaken for a proven one. It names the MISSING VARS per check, so a
+// partial env (the state that hid A.2b) reads as the partial env it is.
 function announceSkips(): void {
-  const skipped: readonly string[] = [
-    CAN_RUN_ENTITLEMENT ? '' : 'A.1 service_role really bypasses RLS (TRAP A — the money write)',
-    CAN_RUN_JWKS ? '' : 'A.2 JWKS reachability + shape (every authed request)',
-    CAN_RUN_LEDGER ? '' : 'A.3 migration ledger matches the numbered files on disk',
-    CAN_RUN_ROUTES ? '' : 'A.4 every route answers with the HANDLER 401, not the gateway 401',
-    CAN_RUN_STORAGE ? '' : 'B.1 Storage RLS binds to sub on originals + cutouts (TRAP B — privacy)',
-  ].filter((line) => line !== '');
+  const skipped = CHECK_IDS.map((id) => ({ id, missing: missingEnvFor(id) })).filter(
+    (entry) => entry.missing.length > 0,
+  );
   if (skipped.length === 0) return;
   process.stdout.write(
     `\n${'='.repeat(78)}\n` +
       `PREFLIGHT SKIPPED — NOT RUN AGAINST A REAL PROJECT. THIS IS NOT A PASS.\n` +
       `${'='.repeat(78)}\n` +
-      skipped.map((line) => `  · UNVERIFIED: ${line}\n`).join('') +
+      skipped
+        .map(
+          ({ id, missing }) =>
+            `  · UNVERIFIED: ${id} ${CHECKS[id].description}\n` +
+            `      needs: ${missing.join(', ')}\n`,
+        )
+        .join('') +
       `\nThese checks are the docs/DEPLOY-RUNBOOK.md step-9 deploy gate. They require a\n` +
       `REAL deployed Supabase project. Set PREFLIGHT_PROJECT_REF (+ the vars documented in\n` +
       `.env.example) and re-run to actually prove them:\n` +
@@ -156,6 +247,384 @@ function sqlState(thrown: unknown): string {
   }
   return 'unknown';
 }
+
+// ─── S.0 — the skip ledger is COMPLETE (NO PROJECT NEEDED, ALWAYS RUNS) ──────
+// The meta-check that makes an unnamed skip hard to write by accident. Like A.0 it
+// needs no project, so it runs in CI on every commit.
+//
+// It PARSES THIS FILE with the TypeScript compiler (not a regex — see WHY below) and
+// enforces four things about every describe/it/test call in it:
+//   1. GATE SHAPE. If the call carries a conditional modifier, the condition must be
+//      exactly `!canRun('<id>')` for an id in CHECKS. A compound condition
+//      (`!canRun('A.2a') || USER_A_JWT === undefined`) or an ad-hoc env probe — which
+//      is exactly what the original A.2b gate was — is REPORTED, because the banner
+//      cannot name env it does not know about. Balanced-paren parsing is what makes
+//      "reported" true rather than "truncated to its first clause and passed".
+//   2. EVERY conditional modifier counts, not just skipIf. MODIFIERS below is asserted
+//      against the INSTALLED vitest, so `runIf` (which the old regex ignored entirely,
+//      failing OPEN) and the unconditional `.skip`/`.only`/`.todo`/`.fails` are all in
+//      scope. `.only` is included because it narrows the run to itself, which silently
+//      drops every other check.
+//   3. NESTING. A gate's EFFECTIVE requirement is the union of its own `requires` and
+//      those of every enclosing gate. We enforce parent-requires ⊆ child-requires, so
+//      union == the child's own row and the banner (which reads rows) stays truthful.
+//      Chosen over "derive the banner from the union" because it keeps ONE row per
+//      block as the single source of truth: with the subset property the union is a
+//      no-op, so there is no second, computed notion of what a block needs. Without
+//      it, a child whose own env IS satisfied vanishes inside a hungrier parent and
+//      canRun(child) is true, so nothing prints an UNVERIFIED line for it. That is the
+//      exact A.2a ⊇ A.2b relation the comment above A.2b leans on.
+//   4. NO ORPHAN ROWS. Every id in CHECKS must be gated by a REAL gate expression
+//      found in the parse — not merely mentioned somewhere in the file text. A row
+//      whose block was deleted would otherwise make the banner promise a check that no
+//      longer exists, and a lone comment naming the id would satisfy a text search.
+//
+// WHY A PARSE AND NOT A REGEX. The previous version regexed for `.skipIf(` with
+// `([^)]*\))?` and orphan-checked with a whole-file `source.includes()`. Auditors broke
+// it four ways, each reproduced with exit 0 and S.0 green: `.runIf` was not in the
+// pattern at all (invisible, not reported); `[^)]*` stopped at the first `)` so a
+// compound condition passed on its first clause while the block was really gated on
+// unnamed env; nesting was unmodeled; and a COMMENT mentioning `canRun('A.2b')` kept
+// the orphan check green after the entire A.2b block was deleted. `typescript` is
+// already a root devDependency, so the compiler costs no new dependency and ~20ms.
+//
+// WHAT S.0 DOES NOT COVER — the honest ceiling of a self-parse:
+//   · It reasons about THIS FILE ONLY. A gated block in another file, or a helper in
+//     another module that returns a gate condition, is out of scope.
+//   · It is STATIC. `canRun` could be rewritten to always return true, or CHECKS rows
+//     given wrong `requires`, and every S.0 check would still pass — S.0 proves the
+//     gates and the banner read the SAME rows, never that a row's `requires` is the
+//     real requirement of the code inside the block. Nothing here reads a block's body
+//     to see which env it actually touches.
+//   · A block with NO conditional modifier is not a gate and is not checked. Code that
+//     makes a test vacuous from the inside (an early `return`, a `ctx.skip()`, a
+//     try/catch swallowing the assertion, a `requires` list padded with a var that is
+//     never set) is invisible to S.0. Only the collector-level gate is modeled.
+//   · MODIFIERS is asserted against the installed vitest, so a vitest upgrade that
+//     ADDS a conditional modifier fails S.0 loudly rather than silently widening the
+//     hole. That assertion is the tripwire, not a proof about future versions.
+//   · `.only` ON A RUNNING BLOCK DEFEATS S.0 ENTIRELY, and no check here can catch it:
+//     `.only` deselects S.0 itself, so S.0's assertions never execute to complain.
+//     Three red teams confirmed it — `describe.only` on A.0 gives `3 passed | 20 skipped`,
+//     exit 0, unchanged banner; `it.only` gives `1 passed | 22 skipped`. It even launders
+//     the literal A.2b bug: reintroduce that bug and add `.only` in the same diff and the
+//     suite ships green. The ONLY defense is outside this file — vitest's `allowOnly`,
+//     i.e. `CI=true`, which turns a stray `.only` into a hard error. The deploy command
+//     this file's own banner prints (below) does NOT set it. Treat a `.only` in this file
+//     as a release blocker, and prefer running the deploy gate with CI=true.
+//   · A module-level `if (COND) { describe(...) }` wrapper removes blocks from collection
+//     while their `!canRun('<id>')` gate text is still physically in the AST, so the
+//     orphan check still passes (red team C5: 23 -> 21 tests, S.0 green). Gate blocks
+//     ONLY with the sanctioned modifier, never with surrounding control flow.
+//   · An aliased or extended collector (`const g = describe; g.skipIf(...)`,
+//     `it.extend({})`) is not recognised as a gate at all — invisible, not reported.
+//   · No gate is BOUND to the row it names: S.0 checks a gate's shape and that every id
+//     has some gate, never that this id is THIS block's requirement. Two blocks can share
+//     one id so one vanishes under the other's cover, and a `description` string is
+//     unanchored to the body it advertises.
+// So the claim is bounded, and narrower than "no gated block can vanish unnamed": within
+// this file, a describe/it/test cannot be CONDITIONALLY GATED BY A MODIFIER except by
+// `!canRun('<id>')` on a CHECKS row whose requires are a superset of every enclosing
+// gate's — every row must have such a gate, and the banner must actually be printed.
+// Blocks can still be removed from the run by `.only`, by control flow around the
+// collector, or by an aliased collector; a block that DOES run can still assert nothing.
+// S.0 makes the banner faithful for modifier-gated blocks. It is not a general guarantee
+// that the suite ran, nor that a listed check proves anything.
+const SELF_PATH = fileURLToPath(import.meta.url);
+const SELF_SOURCE = readFile(SELF_PATH, 'utf8');
+
+// The collector roots a gate can hang off. `it === test` and `describe === suite` are
+// the same objects in vitest, so all four names are treated alike.
+const COLLECTOR_ROOTS = ['describe', 'it', 'test', 'suite'] as const;
+
+// Every property on a vitest collector that can stop a block from running as written.
+// `skipIf`/`runIf` take a condition; the rest are unconditional. Asserted against the
+// installed vitest below, so this list cannot silently fall behind the runner.
+const MODIFIERS = ['skipIf', 'runIf', 'skip', 'only', 'todo', 'fails'] as const;
+const CONDITIONAL_MODIFIERS: readonly string[] = ['skipIf', 'runIf'];
+const MODIFIER_SET: ReadonlySet<string> = new Set(MODIFIERS);
+const CAN_RUN_CONDITION = /^!canRun\('([^']*)'\)$/;
+
+// A gate found in the parse: which modifier(s), the verbatim condition text, the
+// CHECKS id if the condition is the sanctioned shape, and its enclosing gates.
+interface FoundGate {
+  readonly line: number;
+  readonly title: string;
+  readonly modifiers: readonly string[];
+  readonly condition: string;
+  readonly checkId: CheckId | undefined;
+  readonly enclosing: readonly FoundGate[];
+}
+
+// `describe.skipIf(x)('t', fn)` parses as a call whose callee is a call whose callee is
+// a property access. Walk that spine to the root identifier, recording each property
+// and the arguments it was invoked with (if any).
+interface ChainLink {
+  readonly name: string;
+  readonly args: readonly ts.Expression[] | undefined;
+}
+interface Chain {
+  readonly root: string;
+  readonly links: readonly ChainLink[];
+}
+
+function resolveChain(expression: ts.Expression): Chain | undefined {
+  if (ts.isIdentifier(expression)) return { root: expression.text, links: [] };
+  if (ts.isPropertyAccessExpression(expression)) {
+    const base = resolveChain(expression.expression);
+    if (base === undefined) return undefined;
+    return { root: base.root, links: [...base.links, { name: expression.name.text, args: undefined }] };
+  }
+  if (ts.isCallExpression(expression)) {
+    // The invocation of the last link: `…skipIf(cond)` → attach cond to `skipIf`.
+    const base = resolveChain(expression.expression);
+    const last = base?.links.at(-1);
+    if (base === undefined || last === undefined) return undefined;
+    return {
+      root: base.root,
+      links: [...base.links.slice(0, -1), { name: last.name, args: [...expression.arguments] }],
+    };
+  }
+  return undefined;
+}
+
+// True for the `skipIf(cond)` node itself, as opposed to the `(...)('title', fn)` that
+// registers the block. Only the outermost call is the block, so the inner one is
+// skipped to avoid counting one gate twice.
+function isModifierInvocation(node: ts.CallExpression): boolean {
+  const { parent } = node;
+  return parent !== undefined && ts.isCallExpression(parent) && parent.expression === node;
+}
+
+function findGates(source: ts.SourceFile): readonly FoundGate[] {
+  const found: FoundGate[] = [];
+  const visit = (node: ts.Node, enclosing: readonly FoundGate[]): void => {
+    let inner = enclosing;
+    if (ts.isCallExpression(node) && !isModifierInvocation(node)) {
+      const chain = resolveChain(node.expression);
+      const gating = chain?.links.filter((link) => MODIFIER_SET.has(link.name)) ?? [];
+      if (chain !== undefined && COLLECTOR_ROOTS.some((root) => root === chain.root) && gating.length > 0) {
+        // Unconditional modifiers (.skip/.only/…) have no args; render them as the
+        // modifier name so the failure message shows what was actually written.
+        const conditional = gating.filter((link) => CONDITIONAL_MODIFIERS.includes(link.name));
+        const condition =
+          conditional.length === 1 && conditional[0]?.args?.length === 1
+            ? (conditional[0]?.args?.[0]?.getText(source) ?? '')
+            : gating.map((link) => `.${link.name}`).join('');
+        const isPlainSkipIf = gating.length === 1 && gating[0]?.name === 'skipIf';
+        const matched = isPlainSkipIf ? CAN_RUN_CONDITION.exec(condition) : null;
+        const id = matched?.[1];
+        const gate: FoundGate = {
+          line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1,
+          title: node.arguments[0]?.getText(source).slice(0, 60) ?? '(untitled)',
+          modifiers: gating.map((link) => link.name),
+          condition,
+          checkId: CHECK_IDS.find((known) => known === id),
+          enclosing,
+        };
+        found.push(gate);
+        inner = [...enclosing, gate];
+      }
+    }
+    node.forEachChild((child) => visit(child, inner));
+  };
+  visit(source, []);
+  return found;
+}
+
+const GATES: Promise<readonly FoundGate[]> = SELF_SOURCE.then((text) =>
+  findGates(ts.createSourceFile(SELF_PATH, text, ts.ScriptTarget.ESNext, true)),
+);
+
+describe('S.0 skip accounting — no gated block can vanish without the banner naming it', () => {
+  it('MODIFIERS covers every conditional/skipping modifier the INSTALLED vitest exposes', () => {
+    // The tripwire for hole B1 (`runIf` was absent from the old regex, so a runIf-gated
+    // block was INVISIBLE rather than reported). Derived from the real collector
+    // objects, so a vitest upgrade that adds one fails here instead of widening the
+    // scanner's blind spot. `each`/`for`/`extend`/`scoped`/hooks build tests rather
+    // than suppress them, and are not gates.
+    const NON_GATING = new Set([
+      'each',
+      'for',
+      'extend',
+      'scoped',
+      'override',
+      'fn',
+      'length',
+      'name',
+      'prototype',
+      'describe',
+      'suite',
+      'beforeAll',
+      'afterAll',
+      'beforeEach',
+      'afterEach',
+      'aroundAll',
+      'aroundEach',
+      'concurrent',
+      'sequential',
+      'shuffle',
+    ]);
+    const exposed = [describe, it].flatMap((collector) => Object.getOwnPropertyNames(collector));
+    const unmodeled = [...new Set(exposed)]
+      .filter((name) => !NON_GATING.has(name) && !MODIFIER_SET.has(name))
+      .sort();
+    expect(
+      unmodeled,
+      `The installed vitest exposes collector modifiers S.0 does not model: ${unmodeled.join(', ')}.\n` +
+        `An unmodeled modifier is a gate S.0 cannot see at all — the block vanishes from the run\n` +
+        `with no banner line and no S.0 failure (this is how a .runIf gate slipped through).\n` +
+        `FIX: add it to MODIFIERS (and to CONDITIONAL_MODIFIERS if it takes a condition), or to\n` +
+        `NON_GATING if it genuinely cannot suppress a block.`,
+    ).toEqual([]);
+  });
+
+  // These two checks scan raw lines, so they must not match their OWN comments and failure
+  // messages (which quote the very shapes they ban). A line is prose if it is a comment or
+  // is inside a quoted/backticked message — crude, but it only ever makes a check MISS a
+  // line, never fire falsely, and every real gate in this file is plain unquoted code.
+  const isProse = (text: string): boolean =>
+    /^\s*(?:\/\/|\*|\/\*)/.test(text) || /^\s*[`'"]/.test(text) || /`\s*\+\s*$/.test(text);
+
+  it('announceSkips() is called unconditionally at top level (a silent banner is the whole bug)', async () => {
+    // Red-team C1: `announceSkips();` -> `if (envValue('CI') !== undefined) announceSkips();`
+    // left all 14 skips unnamed with every other S.0 check green. S.0 proved the banner
+    // DERIVES from CHECKS but never that it is actually PRINTED, so the one line that makes
+    // skips honest was itself ungoverned. Wrapping it in any condition, or indenting it into
+    // a block, restores the original sin at 6x scale.
+    const source = await SELF_SOURCE;
+    const calls = source
+      .split('\n')
+      .map((text, index) => ({ text, line: index + 1 }))
+      .filter((row) => !isProse(row.text))
+      .filter((row) => /announceSkips\s*\(\s*\)\s*;/.test(row.text));
+    const unconditional = calls.filter((row) => /^announceSkips\(\);\s*$/.test(row.text));
+    expect(
+      { callCount: calls.length, unconditionalCount: unconditional.length },
+      `Found: ${calls.map((row) => `L${row.line} ${row.text.trim()}`).join(' | ') || '(none)'}\n` +
+        `The banner call must appear exactly once, unindented, as its own statement at module top\n` +
+        `level. Anything else (a conditional wrapper, an indent into a function or block) means a\n` +
+        `run can skip checks and print NOTHING — exit 0, and a skip reads as a pass. That is the\n` +
+        `exact failure this file exists to prevent.\n` +
+        `FIX: restore the bare \`announceSkips();\` call.`,
+    ).toEqual({ callCount: 1, unconditionalCount: 1 });
+  });
+
+  it('no block is gated by an options-object { skip } (a gate shape the AST walk cannot see)', async () => {
+    // Red-team #3: vitest 4 also gates via the options object —
+    //   it.skipIf(!canRun('A.2b'))('A.2b ...', { skip: envValue('X') !== 'never' }, async () => {
+    // The sanctioned !canRun gate stays present and satisfied, so the gate-shape and orphan
+    // checks both pass while the block silently does not run. It is a plain argument, not a
+    // property-access chain, so resolveChain cannot reach it. Banning the shape outright is
+    // cheaper and stricter than modeling it.
+    const source = await SELF_SOURCE;
+    const offenders = source
+      .split('\n')
+      .map((text, index) => ({ text, line: index + 1 }))
+      .filter((row) => !isProse(row.text))
+      .filter((row) => /\{[^}]*\b(?:skip|only|todo|fails)\s*:/.test(row.text))
+      .map((row) => `L${row.line} ${row.text.trim()}`);
+    expect(
+      offenders,
+      `An options-object gate ({ skip: ... }) suppresses a block without any modifier chain, so\n` +
+        `the AST walk never sees it and the banner never names it. Do not gate this file that way.\n` +
+        `FIX: gate on \`!canRun('<id>')\` with a CHECKS row, which the banner derives from.`,
+    ).toEqual([]);
+  });
+
+  it('every conditional gate is exactly !canRun(<id>) from the CHECKS table', async () => {
+    const gates = await GATES;
+    const ungoverned = gates
+      .filter((gate) => gate.checkId === undefined)
+      .map((gate) => `L${gate.line} ${gate.modifiers.join('/')}(${gate.condition}) on ${gate.title}`);
+    expect(
+      ungoverned,
+      `These gates are not derived from the CHECKS table: ${ungoverned.join(' | ')}.\n` +
+        `A gated block whose condition is an ad-hoc env probe, a COMPOUND expression, or an\n` +
+        `unconditional .skip/.only/.todo DISAPPEARS (or narrows the run) with no banner line,\n` +
+        `because announceSkips() only knows about CHECKS. That is exactly how A.2b — the only\n` +
+        `check that drives the production makeJwksVerifier against a REAL user token, and so the\n` +
+        `only one that catches a JWKS from the WRONG PROJECT — vanished from a run that printed\n` +
+        `no A.2 line and exited 0. A compound condition is the same hole wearing a canRun() mask:\n` +
+        `the extra clause is env the banner cannot name.\n` +
+        `CONSEQUENCE: a skip reads as a pass and the deploy gate silently stops gating.\n` +
+        `FIX: add a row to CHECKS naming ALL the block's required env, and gate on exactly\n` +
+        `\`!canRun('<id>')\` — nothing else in the condition.`,
+    ).toEqual([]);
+  });
+
+  it('every CHECKS row is gated by a real gate expression (a comment mentioning it is not one)', async () => {
+    const gates = await GATES;
+    const gatedIds = new Set(gates.map((gate) => gate.checkId));
+    const orphans = CHECK_IDS.filter((id) => !gatedIds.has(id));
+    expect(
+      orphans,
+      `These CHECKS rows gate nothing: ${orphans.join(', ')}.\n` +
+        `The banner would list them as "UNVERIFIED" (or, worse, stay silent about them when the\n` +
+        `env IS present) for a block that no longer exists — the banner must describe the real\n` +
+        `suite, not a stale intention. This is matched against PARSED gate expressions, so a\n` +
+        `comment or a string mentioning canRun('<id>') does not satisfy it: an auditor deleted the\n` +
+        `whole A.2b block, left one comment behind, and the old whole-file text search stayed green.\n` +
+        `FIX: either restore the gated block or delete the row.`,
+    ).toEqual([]);
+  });
+
+  it('no gate is nested inside a gate that requires MORE env than it does', async () => {
+    const gates = await GATES;
+    // The banner reads CHECKS rows, so a row is only truthful if the block's EFFECTIVE
+    // requirement equals its own. Enforcing parent ⊆ child makes the union of the
+    // nesting chain collapse to the child's own row.
+    const violations = gates.flatMap((gate) => {
+      const childId = gate.checkId;
+      if (childId === undefined) return []; // already reported by the gate-shape check
+      const childRequires = new Set<string>(CHECKS[childId].requires);
+      return gate.enclosing.flatMap((parent) => {
+        const parentId = parent.checkId;
+        if (parentId === undefined) return [];
+        const extra = CHECKS[parentId].requires.filter((name) => !childRequires.has(name));
+        return extra.length === 0
+          ? []
+          : [`${childId} (L${gate.line}) is nested in ${parentId} which also needs ${extra.join(', ')}`];
+      });
+    });
+    expect(
+      violations,
+      `These nested gates can vanish with NO banner line: ${violations.join(' | ')}.\n` +
+        `A child block inside a hungrier parent never runs when the parent's extra env is absent —\n` +
+        `but canRun(child) is TRUE, so announceSkips() prints nothing for it. The skip is unnamed,\n` +
+        `which is the whole failure mode this file exists to prevent (it is how A.2b was lost).\n` +
+        `CONSEQUENCE: the banner claims a check ran, or says nothing at all, while it silently did\n` +
+        `not — a skip reading as a pass.\n` +
+        `FIX: add the parent's extra env to the CHECK's own \`requires\` (making it a superset, as\n` +
+        `A.2b is of A.2a), or move the block out of the parent.`,
+    ).toEqual([]);
+  });
+
+  it('every required env var is one the file actually reads (a typo would gate on nothing)', () => {
+    // PREFLIGHT_ENV is the single read point; a `requires` entry outside it would be
+    // permanently "missing" (or permanently satisfied) regardless of the real env.
+    const unknownVars = CHECK_IDS.flatMap((id) =>
+      CHECKS[id].requires.filter((name) => !(name in PREFLIGHT_ENV)).map((name) => `${id}:${name}`),
+    );
+    expect(
+      unknownVars,
+      `CHECKS names env vars that PREFLIGHT_ENV does not read: ${unknownVars.join(', ')}.`,
+    ).toEqual([]);
+  });
+
+  it('PREFLIGHT_PROJECT_REF is required by EVERY check (the master opt-in cannot be bypassed)', () => {
+    const withoutMasterOptIn = CHECK_IDS.filter(
+      (id) => !CHECKS[id].requires.includes('PREFLIGHT_PROJECT_REF'),
+    );
+    expect(
+      withoutMasterOptIn,
+      `These checks can fire without PREFLIGHT_PROJECT_REF: ${withoutMasterOptIn.join(', ')}.\n` +
+        `The master opt-in is what stops preflight from firing against the wrong database on a\n` +
+        `developer who merely has a stale DATABASE_URL exported — including the A.1 block, which\n` +
+        `WRITES public.subscriptions.`,
+    ).toEqual([]);
+  });
+});
 
 // ─── A.0 — shim ↔ config.toml parity (NO PROJECT NEEDED, ALWAYS RUNS) ────────
 // The trap: `supabase functions deploy` verifies the caller's JWT AT THE GATEWAY
@@ -243,7 +712,7 @@ const SERVICE_IDENTITY_FAILURE =
   `FIX: set SUPABASE_DB_SERVICE_URL to a connection string whose role is the RLS-exempt\n` +
   `service_role (or a BYPASSRLS role with write grants on subscriptions + webhook_events).`;
 
-describe.skipIf(!CAN_RUN_ENTITLEMENT)('A.1 TRAP A — SUPABASE_DB_SERVICE_URL is a real service_role identity', () => {
+describe.skipIf(!canRun('A.1'))('A.1 TRAP A — SUPABASE_DB_SERVICE_URL is a real service_role identity', () => {
   let servicePool: Pool;
   let appPool: Pool;
   let serviceExec: QueryExecutor;
@@ -348,7 +817,7 @@ const JwksDocument = z.object({
   keys: z.array(z.object({ kty: z.string() }).passthrough()).min(1),
 });
 
-describe.skipIf(!CAN_RUN_JWKS)('A.2 JWKS_URL resolves and yields usable keys', () => {
+describe.skipIf(!canRun('A.2a'))('A.2 JWKS_URL resolves and yields usable keys', () => {
   it('A.2a the JWKS endpoint answers 200 with at least one key', async () => {
     const url = JWKS_URL ?? '';
     let status = 0;
@@ -373,7 +842,9 @@ describe.skipIf(!CAN_RUN_JWKS)('A.2 JWKS_URL resolves and yields usable keys', (
     expect(() => parseBoundary(JwksDocument, body, 'preflight.jwks')).not.toThrow();
   });
 
-  it.skipIf(!present(USER_A_JWT))(
+  // A.2b requires a superset of A.2a's env (the user JWT on top), so this cannot be
+  // reached with the outer describe skipped. Its own gate is what the banner names.
+  it.skipIf(!canRun('A.2b'))(
     'A.2b the PRODUCTION verifier (makeJwksVerifier) accepts a real user token and yields a uuid sub',
     async () => {
       // End-to-end over the exact production seam, not a hand-rolled fetch: proves
@@ -395,7 +866,7 @@ async function migrationNamesOnDisk(): Promise<string[]> {
     .sort();
 }
 
-describe.skipIf(!CAN_RUN_LEDGER)('A.3 the deployed migration ledger matches the numbered files on disk', () => {
+describe.skipIf(!canRun('A.3'))('A.3 the deployed migration ledger matches the numbered files on disk', () => {
   let ledgerPool: Pool;
   let applied: string[];
   let onDisk: string[];
@@ -457,7 +928,7 @@ const HandlerErrorEnvelope = z.object({
   error: z.object({ code: z.string(), message: z.string() }),
 });
 
-describe.skipIf(!CAN_RUN_ROUTES)('A.4 deployed routes are guarded by withAuth, not the Supabase gateway', () => {
+describe.skipIf(!canRun('A.4'))('A.4 deployed routes are guarded by withAuth, not the Supabase gateway', () => {
   let routes: string[];
 
   beforeAll(async () => {
@@ -556,7 +1027,7 @@ function storageProbe(baseUrl: string, anonKey: string): StorageProbe {
 const ok = (status: number): boolean => status >= 200 && status < 300;
 const refused = (status: number): boolean => status === 400 || status === 401 || status === 403 || status === 404;
 
-describe.skipIf(!CAN_RUN_STORAGE)('B.1 TRAP B — Storage RLS binds the path prefix to the requester’s sub', () => {
+describe.skipIf(!canRun('B.1'))('B.1 TRAP B — Storage RLS binds the path prefix to the requester’s sub', () => {
   let probe: StorageProbe;
   let subA: string;
   let subB: string;

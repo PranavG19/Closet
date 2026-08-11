@@ -1,7 +1,7 @@
 // List / filter wardrobe items (F4). Keyset-paginated on (user_id, created_at, id),
-// server-clamped to MAX_PAGE_SIZE — the clamp is a server guarantee, not a client
-// courtesy. identity from ctx.userId (the verified sub), never the body/query.
-import { makeWardrobeRepo } from '@closet/db';
+// server-clamped — the clamp is a server guarantee, not a client courtesy. identity
+// from ctx.userId (the verified sub), never the body/query.
+import { clampLimit, makeWardrobeRepo } from '@closet/db';
 import { parseBoundary, parseBoundarySafe } from '@closet/shared';
 import type { AuthedHandler } from '../auth/withAuth.js';
 import { jsonResponse, errorResponse, errorFromThrown } from '../auth/respond.js';
@@ -9,8 +9,6 @@ import {
   ListWardrobeRequest,
   WardrobeCursor,
   WardrobeListResult,
-  MAX_PAGE_SIZE,
-  DEFAULT_PAGE_SIZE,
   encodeCursor,
   decodeCursor,
 } from './schemas.js';
@@ -26,8 +24,11 @@ export const listWardrobe: AuthedHandler = async (req, { userId, exec }) => {
     const url = new URL(req.url);
     const request = parseBoundary(ListWardrobeRequest, queryToObject(url), 'wardrobe.list.query');
 
-    // Server clamp (load-bearing): never trust the client's limit.
-    const limit = Math.min(request.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+    // Server clamp (load-bearing): never trust the client's limit. This is the SAME
+    // clampLimit the repo applies, so the `limit` used for the next_cursor decision below
+    // cannot drift from the LIMIT the query actually ran — clamping twice against two
+    // independently-declared caps is how the handler silently truncates a raised cap.
+    const limit = clampLimit(request.limit);
 
     let cursor: { createdAt: string; id: string } | undefined;
     if (request.cursor !== undefined) {

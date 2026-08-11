@@ -6,9 +6,6 @@
 import { z } from 'zod';
 import { Uuid, Timestamptz, WardrobeItemRow, WardrobeCategory, Availability } from '@closet/shared';
 
-export const MAX_PAGE_SIZE = 100;
-export const DEFAULT_PAGE_SIZE = 50;
-
 // The list-query request. `limit` is advisory — the handler clamps it regardless.
 export const ListWardrobeRequest = z
   .object({

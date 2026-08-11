@@ -12,7 +12,11 @@
 // unit and integration test runs under NODE, where `zod` resolves from node_modules. The
 // integration suite exercises the HANDLERS, not the Deno shims. So the whole test wall is green
 // and the deployed artifact cannot start. The only vantage that sees this is the import map
-// itself, read against the emitted dist — which is what this file does.
+// itself, read against BOTH trees Deno loads: the emitted dist AND the .ts shims under
+// supabase/functions — which is what this file does.
+//
+// NOT a Deno typecheck. A real `deno check` over the shims would also catch export-shape drift,
+// but it needs a runner under scripts/ (human-owned). Follow-up: add that gate.
 //
 // It lives here as a TEST rather than in scripts/gates/ because scripts/ is human-owned (the
 // agent cannot add to its own gate infrastructure). A test in the unit project runs on every
@@ -25,30 +29,39 @@ import { fileURLToPath } from 'node:url';
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../../..');
 const IMPORT_MAP_PATH = join(REPO_ROOT, 'supabase/import_map.json');
 
-// The dist trees the shims actually load, per the import map's own @closet/* entries.
-const DIST_ROOTS = [
-  'packages/shared/dist',
-  'packages/db/dist',
-  'packages/functions/dist',
+// Every tree Deno loads at boot, and the extension it loads there.
+//
+// The .ts shims under supabase/functions are the DEPLOYED ENTRYPOINTS — Deno reads them
+// directly, not a compiled copy — and they carry specifiers that appear NOWHERE in dist:
+// `pg` (only supabase/functions/_shared/pool.ts imports a driver) and the
+// `@closet/functions/` prefix key (dist files reach each other relatively). Scanning only
+// dist made both invisible: deleting them from the map left this suite 3-passed/exit-0
+// while real `deno check` emitted TS2307 "not in import map" at those exact lines.
+const SCAN_ROOTS: readonly { dir: string; extension: string }[] = [
+  { dir: 'packages/shared/dist', extension: '.js' },
+  { dir: 'packages/db/dist', extension: '.js' },
+  { dir: 'packages/functions/dist', extension: '.js' },
+  { dir: 'supabase/functions', extension: '.ts' },
 ];
 
 function readImportMap(): { imports: Record<string, string> } {
   return JSON.parse(readFileSync(IMPORT_MAP_PATH, 'utf8')) as { imports: Record<string, string> };
 }
 
-function jsFilesUnder(dir: string): string[] {
+function sourceFilesUnder(dir: string, extension: string): string[] {
   const absolute = join(REPO_ROOT, dir);
   let entries: string[];
   try {
     entries = readdirSync(absolute);
   } catch {
-    // dist not built yet — the caller asserts on that separately rather than passing vacuously.
+    // Tree absent (dist not built). The PER-ROOT vacuity assertion below fails on this
+    // rather than letting a sibling root's file count paper over it.
     return [];
   }
   return entries.flatMap((entry) => {
     const path = join(dir, entry);
-    if (statSync(join(REPO_ROOT, path)).isDirectory()) return jsFilesUnder(path);
-    return path.endsWith('.js') ? [path] : [];
+    if (statSync(join(REPO_ROOT, path)).isDirectory()) return sourceFilesUnder(path, extension);
+    return path.endsWith(extension) ? [path] : [];
   });
 }
 
@@ -56,8 +69,8 @@ function jsFilesUnder(dir: string): string[] {
 // (npm: / node: / https:). Those are exactly the ones Deno can only resolve via the map.
 function bareSpecifiers(source: string): string[] {
   const found = new Set<string>();
-  // Matches `from '<spec>'` and `import '<spec>'` in emitted ESM. The dist is tsc output, so
-  // the shapes are predictable — no need for a full parser.
+  // Matches `from '<spec>'` and `import '<spec>'`. Both inputs are hand-written or tsc-emitted
+  // ESM with one import per line, so the shapes are predictable — no need for a full parser.
   for (const match of source.matchAll(/(?:from|import)\s*['"]([^'"]+)['"]/g)) {
     const spec = match[1]!;
     if (/^[./]/.test(spec)) continue;
@@ -74,19 +87,27 @@ function isMapped(spec: string, imports: Record<string, string>): boolean {
   return Object.keys(imports).some((key) => key.endsWith('/') && spec.startsWith(key));
 }
 
-describe('supabase/import_map.json covers every bare import in the deployed dist', () => {
-  const distFiles = DIST_ROOTS.flatMap(jsFilesUnder);
+describe('supabase/import_map.json covers every bare import Deno loads at boot', () => {
+  const filesByRoot = new Map(
+    SCAN_ROOTS.map((root) => [root.dir, sourceFilesUnder(root.dir, root.extension)] as const),
+  );
+  const scannedFiles = [...filesByRoot.values()].flat();
 
-  it('the dist is actually built, so this suite is not vacuous', () => {
-    // Without this the whole file would silently pass on an unbuilt tree — the same class of
-    // false green it exists to prevent.
-    expect(distFiles.length).toBeGreaterThan(0);
+  // PER-ROOT, not aggregate. An aggregate `total > 0` averages a missing tree away: with
+  // packages/functions/dist absent, the other roots' 34 files kept the count non-zero and the
+  // suite passed against an effectively empty map. Each root must stand on its own.
+  it.each(SCAN_ROOTS)('$dir is present and scanned, so this suite is not vacuous', ({ dir }) => {
+    expect(
+      filesByRoot.get(dir)!.length,
+      `No files scanned under ${dir}. Every specifier reachable through it is unchecked — ` +
+        `run \`pnpm -w exec tsc --build\` if it is a dist tree.`,
+    ).toBeGreaterThan(0);
   });
 
   it('every bare specifier resolves through the map', () => {
     const { imports } = readImportMap();
     const unmapped = new Map<string, string[]>();
-    for (const file of distFiles) {
+    for (const file of scannedFiles) {
       const source = readFileSync(join(REPO_ROOT, file), 'utf8');
       for (const spec of bareSpecifiers(source)) {
         if (isMapped(spec, imports)) continue;

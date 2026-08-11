@@ -9,6 +9,7 @@ import { makeWardrobeRepo } from '../src/repos/wardrobe.repo.js';
 import { applyMigrations } from './helpers/applyMigrations.js';
 import { makeSuperuserExecutor, makeTenantExecutor, type QueryExecutor } from './helpers/executor.js';
 import { startPg, type PgHarness } from './helpers/pgContainer.js';
+import { expectRlsDenies } from './helpers/rls-oracle.js';
 
 const USER_A = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1';
 const USER_B = 'b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2';
@@ -52,12 +53,18 @@ describe('makeOutfitItemsRepo — composite-FK isolation', () => {
     ).rejects.toMatchObject({ code: '23503' });
   });
 
-  it('B sees none of A outfit_items; superuser cross-owner join = 0', async () => {
+  // The listByOutfit half is a REPO-PREDICATE proof, not an RLS proof: USER_B goes
+  // into the repo's own `WHERE user_id = $1`, so 0 rows come back even with
+  // outfit_items_select_own widened to USING (true) — verified by fire-drill. Kept
+  // (a repo that dropped the predicate would regress), with the RLS claim now
+  // measured by an unfiltered probe. The cross-owner join stays as it was.
+  it('B listByOutfit returns none of A outfit_items (repo predicate) + RLS denies unfiltered; join = 0', async () => {
     const item = await makeWardrobeRepo(execA).create(USER_A, { category: 'top' });
     const outfit = await makeOutfitsRepo(execA).create(USER_A, 'a2');
     await makeOutfitItemsRepo(execA).add(USER_A, outfit.id, { item_id: item.id });
     const bSees = await makeOutfitItemsRepo(execB).listByOutfit(USER_B, outfit.id);
     expect(bSees.length).toBe(0);
+    await expectRlsDenies(superuser, execB, 'outfit_items', USER_A);
     const join = await superuser.query<{ n: string }>(
       `SELECT count(*)::text AS n FROM public.outfit_items oi
        JOIN public.wardrobe_items w ON w.id = oi.item_id AND w.user_id <> oi.user_id`,

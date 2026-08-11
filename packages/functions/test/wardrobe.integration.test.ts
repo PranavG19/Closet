@@ -5,6 +5,7 @@
 // as app_user; the container superuser control proves RLS is actually in effect.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Pool } from 'pg';
+import { MAX_PAGE_SIZE } from '@closet/db';
 import { withAuth } from '../src/auth/withAuth.js';
 import { listWardrobe } from '../src/wardrobe/list.js';
 import { toggleAvailability } from '../src/wardrobe/availability.js';
@@ -63,17 +64,22 @@ describe('wardrobe endpoint — list/clamp, toggle, dedupe MERGE', () => {
     expect(res.status).toBe(401);
   });
 
-  it('list clamps limit to <= 100 and pages all rows exactly once', async () => {
+  it('list clamps limit to MAX_PAGE_SIZE and pages all rows exactly once', async () => {
     const seedUser = 'd4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4';
     const execSeed = makeTenantExecutor(pool, seedUser);
-    for (let i = 0; i < 130; i += 1) await seedItem(execSeed, seedUser);
+    for (let i = 0; i < MAX_PAGE_SIZE + 30; i += 1) await seedItem(execSeed, seedUser);
     const caller = makeCaller(pool, seedUser);
 
     const clampedRes = await caller.call(listWardrobe, { query: '?limit=100000' });
     expect(clampedRes.status).toBe(200);
     const clamped = (await clampedRes.json()) as ListResult;
-    expect(clamped.items.length).toBeLessThanOrEqual(100);
-    expect(clamped.items.length).toBe(100);
+    // Asserted against the IMPORTED cap, not a literal 100. The cap used to be declared a
+    // third time inside functions/src/wardrobe/schemas.ts, and the handler clamped a second
+    // time against that private copy — so raising the repo's cap left the endpoint silently
+    // truncating to its own stale number with no test failing (both constants were
+    // individually "correct"). Binding the assertion to the single definition means the drift
+    // is now impossible to introduce without this line going red.
+    expect(clamped.items.length).toBe(MAX_PAGE_SIZE);
     expect(clamped.next_cursor).not.toBeNull();
 
     // Page through with the endpoint's cursor; assert every id exactly once.
@@ -90,7 +96,7 @@ describe('wardrobe endpoint — list/clamp, toggle, dedupe MERGE', () => {
       cursor = body.next_cursor;
       if (cursor === null) break;
     }
-    expect(seen.size).toBe(130);
+    expect(seen.size).toBe(MAX_PAGE_SIZE + 30);
   });
 
   it('malformed cursor → 400 (never a silent full scan)', async () => {

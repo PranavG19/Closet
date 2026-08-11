@@ -10,6 +10,7 @@ import { makeWardrobeRepo } from '../src/repos/wardrobe.repo.js';
 import { applyMigrations } from './helpers/applyMigrations.js';
 import { makeSuperuserExecutor, makeTenantExecutor, type QueryExecutor } from './helpers/executor.js';
 import { startPg, type PgHarness } from './helpers/pgContainer.js';
+import { expectRlsDenies } from './helpers/rls-oracle.js';
 
 const USER_A = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1';
 const USER_B = 'b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2';
@@ -56,7 +57,14 @@ describe('makeWardrobeRepo — RLS-scoped as app_user', () => {
     expect(bList.some((r) => r.id === created.id)).toBe(false);
   });
 
-  it('setAvailability confines to owner; B toggling A row → null (RLS)', async () => {
+  // RENAMED. The old title said "(RLS)", but nothing here consulted a policy:
+  // b.setAvailability(USER_B, ...) puts B's OWN id in the repo's `WHERE user_id = $1`,
+  // so the UPDATE matches 0 rows and returns null even with RLS switched off. What it
+  // honestly proves is that the repo's own predicate confines the write — worth
+  // keeping, since a repo that dropped `user_id = $1` would become exploitable. The
+  // RLS half is proven by expectRlsDenies below (and, for the UPDATE policy
+  // specifically, by the unfiltered-UPDATE probe at the bottom of this file).
+  it('setAvailability is repo-predicate-confined — B toggling A row → null (NOT an RLS proof)', async () => {
     const a = makeWardrobeRepo(execA);
     const item = await a.create(USER_A, { category: 'shoes' });
     const toggled = await a.setAvailability(USER_A, item.id, 'dirty');
@@ -70,6 +78,9 @@ describe('makeWardrobeRepo — RLS-scoped as app_user', () => {
       [item.id],
     );
     expect(check.rows[0]?.availability).toBe('dirty');
+    // The actual boundary, independent of the repo's SQL: an unfiltered read through
+    // B's tenant context, plus a fire-drill proving that read CAN see A.
+    await expectRlsDenies(superuser, execB, 'wardrobe_items', USER_A);
   });
 
   it('keyset listByUser clamps limit to <= 100 and pages without dupes/gaps', async () => {
@@ -104,7 +115,17 @@ describe('makeWardrobeRepo — RLS-scoped as app_user', () => {
     expect(seen.size).toBe(120);
   });
 
-  it('RLS-in-effect control — C sees 0 while superuser confirms rows exist', async () => {
+  // RENAMED + STRENGTHENED. The old title claimed "RLS-in-effect"; the body called
+  // listByUser(USER_C), whose `WHERE user_id = $1` is USER_C's own id, so the 0-row
+  // result was produced by the repo predicate and would hold with RLS off. Both
+  // original assertions are kept (they do show the repo returns an empty list for a
+  // tenant with no rows), and the RLS claim in the title is now actually measured.
+  it('RLS-in-effect — C unfiltered read excludes A, and DOES see A once RLS is off', async () => {
+    // Seeded here rather than inherited from an earlier `it`: the superCount control
+    // below only means something if A definitely owns a row, and relying on execution
+    // order made this test collapse into "expected 0 to be greater than 0" whenever it
+    // was run in isolation (`-t`).
+    await makeWardrobeRepo(execA).create(USER_A, { category: 'accessory' });
     const superCount = await superuser.query<{ n: string }>(
       `SELECT count(*)::text AS n FROM public.wardrobe_items`,
     );
@@ -112,5 +133,37 @@ describe('makeWardrobeRepo — RLS-scoped as app_user', () => {
     const execC = makeTenantExecutor(pool, USER_C);
     const cList = await makeWardrobeRepo(execC).listByUser(USER_C);
     expect(cList.length).toBe(0);
+    await expectRlsDenies(superuser, execC, 'wardrobe_items', USER_A);
+  });
+
+  // THE GAP THIS CLOSES. `wardrobe_items_update_own` had no test anywhere that could
+  // fail: every UPDATE call site (setAvailability) carries `WHERE user_id = $1`, so
+  // widening the policy to USING (true) left the whole wall green. Only an UNFILTERED
+  // UPDATE through a tenant context reaches the policy.
+  //
+  // WHY THERE IS NO `WHERE` AND NO `RETURNING` — this is the whole trick, and getting
+  // it wrong silently re-vacuates the test. Postgres also applies SELECT policies to
+  // an UPDATE that has a WHERE or a RETURNING clause, so a probe written as
+  // `UPDATE ... RETURNING id` is saved by wardrobe_items_select_own and stays GREEN
+  // with the UPDATE policy at USING (true) — measured, not assumed (see the fire-drill
+  // note in the run log). Stripped of both clauses the statement reads no column, so
+  // the UPDATE policy's USING is the ONLY thing choosing the target rows.
+  //
+  // That forces the oracle to be external anyway: a superuser read of A's row, from a
+  // vantage the UPDATE does not control.
+  it('wardrobe_items_update_own — an UNFILTERED tenant UPDATE cannot touch another tenant row', async () => {
+    const item = await makeWardrobeRepo(execA).create(USER_A, { category: 'outerwear' });
+    await makeWardrobeRepo(execA).setAvailability(USER_A, item.id, 'clean');
+
+    // B asks to mark EVERY row it is allowed to touch unavailable. No predicate, no
+    // RETURNING: the UPDATE policy alone decides what that set is.
+    await execB.query(`UPDATE public.wardrobe_items SET availability = 'unavailable'`);
+
+    const after = await superuser.query<{ availability: string; user_id: string }>(
+      `SELECT availability, user_id FROM public.wardrobe_items WHERE id = $1`,
+      [item.id],
+    );
+    expect(after.rows[0]?.user_id).toBe(USER_A);
+    expect(after.rows[0]?.availability).toBe('clean');
   });
 });

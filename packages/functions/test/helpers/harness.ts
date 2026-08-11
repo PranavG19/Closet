@@ -10,8 +10,9 @@ import { withAuth, type AuthedHandler } from '../../src/auth/withAuth.js';
 import { makeTenantExecutor, makeSuperuserExecutor, type QueryExecutor } from '../../../db/test/helpers/executor.js';
 import { applyMigrations } from '../../../db/test/helpers/applyMigrations.js';
 import { startPg, type PgHarness } from '../../../db/test/helpers/pgContainer.js';
+import { expectRlsDenies } from '../../../db/test/helpers/rls-oracle.js';
 
-export { applyMigrations, makeTenantExecutor, makeSuperuserExecutor, startPg };
+export { applyMigrations, makeTenantExecutor, makeSuperuserExecutor, startPg, expectRlsDenies };
 export type { QueryExecutor, PgHarness };
 
 // A caller bound to one verified sub. `call` invokes the handler as that user.

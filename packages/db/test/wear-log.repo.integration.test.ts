@@ -8,6 +8,7 @@ import { makeWardrobeRepo } from '../src/repos/wardrobe.repo.js';
 import { applyMigrations } from './helpers/applyMigrations.js';
 import { makeSuperuserExecutor, makeTenantExecutor, type QueryExecutor } from './helpers/executor.js';
 import { startPg, type PgHarness } from './helpers/pgContainer.js';
+import { expectRlsDenies } from './helpers/rls-oracle.js';
 
 const USER_A = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1';
 const USER_B = 'b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2';
@@ -65,7 +66,11 @@ describe('makeWearLogRepo — idempotent append + atomic flip', () => {
     expect(wearCount.rows[0]?.n).toBe('1');
   });
 
-  it('cross-tenant item in append raises FK 23503; B sees none of A wear rows', async () => {
+  // The 23503 half is a real structural proof and is untouched. The listByUser half is
+  // NOT an RLS proof — USER_B is the repo's own `WHERE user_id = $1`, so it stayed green
+  // with wear_log_select_own widened to USING (true) (fire-drilled). Kept as the repo
+  // -predicate assertion it is; the RLS claim is measured by the unfiltered probe.
+  it('cross-tenant item in append raises FK 23503; B listByUser excludes A rows + RLS denies unfiltered', async () => {
     const aItem = await makeWardrobeRepo(execA).create(USER_A, { category: 'top' });
     // B naming A's item under B's user_id → no wardrobe_items(B, aItem) parent.
     await expect(
@@ -74,5 +79,6 @@ describe('makeWearLogRepo — idempotent append + atomic flip', () => {
     await makeWearLogRepo(execA).appendWear({ userId: USER_A, itemId: aItem.id, clientId: 'ax', flipToDirty: false });
     const bList = await makeWearLogRepo(execB).listByUser(USER_B);
     expect(bList.some((r) => r.client_id === 'ax')).toBe(false);
+    await expectRlsDenies(superuser, execB, 'wear_log', USER_A);
   });
 });

@@ -7,6 +7,7 @@ import { makeParseJobsRepo } from '../src/repos/parse-jobs.repo.js';
 import { applyMigrations } from './helpers/applyMigrations.js';
 import { makeSuperuserExecutor, makeTenantExecutor, type QueryExecutor } from './helpers/executor.js';
 import { startPg, type PgHarness } from './helpers/pgContainer.js';
+import { expectRlsDenies } from './helpers/rls-oracle.js';
 
 const USER_A = 'a1a1a1a1-a1a1-41a1-81a1-a1a1a1a1a1a1';
 const USER_B = 'b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2';
@@ -157,7 +158,14 @@ describe('makeParseJobsRepo — idempotency + atomic claim', () => {
     expect(winners).toBe(1);
   });
 
-  it('cross-tenant read control — B sees none of A jobs; B claim of A job → null', async () => {
+  // MIXED, and now labelled that way. `getById(USER_A, ...)` passes the OTHER tenant's
+  // id, so it lands in the repo's `WHERE user_id = $1` as A and only RLS can suppress
+  // the row — that half is a GENUINE policy probe (fire-drilled: widening
+  // parse_jobs_select_own to USING (true) makes it fail). `claim(USER_B, ...)` and
+  // `listByUser(USER_B)` pass B's own id, so they are repo-predicate assertions and
+  // stayed green under the same mutant. All three are kept; the unfiltered probe is
+  // added so the RLS claim does not rest on the getById half alone.
+  it('B getById of A job → null (RLS); B claim/list of A job → null (repo predicate)', async () => {
     const a = makeParseJobsRepo(execA);
     const job = await a.create(USER_A, {
       source_photo_hash: 'H3',
@@ -169,5 +177,6 @@ describe('makeParseJobsRepo — idempotency + atomic claim', () => {
     expect(await b.claim(USER_B, job!.id)).toBeNull();
     const bList = await b.listByUser(USER_B);
     expect(bList.some((r) => r.id === job!.id)).toBe(false);
+    await expectRlsDenies(superuser, execB, 'parse_jobs', USER_A);
   });
 });

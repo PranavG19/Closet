@@ -27,7 +27,12 @@
 // same 0013 policy the upload did, so a key outside the caller's prefix is refused by
 // the database rather than blessed by a bypass. Neither the token, the anon key, nor
 // any vendor body is ever logged.
-import { StorageObjectKey, parseBoundary } from '@closet/shared';
+import {
+  StorageObjectKey,
+  parseBoundary,
+  sourcePhotoObjectKey,
+  type SourcePhotoScope,
+} from '@closet/shared';
 import { z } from 'zod';
 import { requireEnv } from '../auth/env.js';
 import {
@@ -45,19 +50,19 @@ const ORIGINALS_BUCKET = 'originals';
 // call, short enough that a leaked URL is worthless quickly.
 const SIGNED_URL_TTL_SECONDS = 300;
 
-export interface SourcePhotoScope {
-  readonly userId: string;
-  readonly sourcePhotoHash: string;
-}
-
 // The object key for an approved original. Segment 1 MUST be the owner (0013's
 // predicate); the per-photo hash scopes one photo to one object, so a re-parse of the
 // same photo resolves to the same key. `original` carries no extension: the content
 // type travels as object metadata, and an extension would be one more client-shaped
 // string in a security-relevant name.
-export function sourcePhotoObjectKey(scope: SourcePhotoScope): string {
-  return `${scope.userId}/${scope.sourcePhotoHash}/original`;
-}
+//
+// THE IMPLEMENTATION MOVED TO @closet/shared and is re-exported here so existing
+// callers and this file's own test are unchanged. It moved because the CLIENT must
+// compose the identical key to upload to, and mobile cannot import @closet/functions —
+// so this being function-local forced a second hand-written composer of one
+// security-relevant string with no compile-time link between them. That is the same
+// shape as the `{job_id}/{user_id}` inversion bug this repo already ate.
+export { sourcePhotoObjectKey, type SourcePhotoScope };
 
 // Supabase's sign response. Parsed at the boundary — a vendor payload that is not
 // this shape yields a BoundaryParseError, never a fabricated URL.

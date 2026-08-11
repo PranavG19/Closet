@@ -13,6 +13,7 @@ export interface QueryExecutor {
   query<Row = unknown>(sql: string, params?: readonly unknown[]): Promise<{ rows: Row[] }>;
 }
 
+export * from './pagination.js';
 export * from './wardrobe.repo.js';
 export * from './parse-jobs.repo.js';
 export * from './outfits.repo.js';

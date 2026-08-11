@@ -11,20 +11,13 @@ import type {
   Availability,
 } from '@closet/shared';
 import type { QueryExecutor } from './index.js';
+// The server page-size clamp lives in ONE place (pagination.ts) — it was declared
+// identically here, in wear-log.repo.ts, and a third time in functions/src/wardrobe/schemas.ts.
+import { clampLimit } from './pagination.js';
 
 const PROJECTION = `id, user_id, category, color, pattern, attributes, availability,
   cutout_path, parse_job_id, phash::text AS phash,
   to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS updated_at`;
-
-// Server page-size clamp (docs/06 §4): a caller asking for more gets MAX_PAGE_SIZE.
-export const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 50;
-
-function clampLimit(limit: number | undefined): number {
-  const requested = limit ?? DEFAULT_PAGE_SIZE;
-  if (!Number.isFinite(requested) || requested < 1) return 1;
-  return Math.min(Math.floor(requested), MAX_PAGE_SIZE);
-}
 
 export interface WardrobeListFilters {
   readonly category?: string;

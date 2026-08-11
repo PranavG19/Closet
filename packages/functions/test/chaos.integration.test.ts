@@ -371,8 +371,8 @@ describe('Tier-4 chaos — adversarial temporal + scale conditions, state-oracle
 
       // The failed jobs persisted status='failed' with 0 items (no partial garbage).
       // ORDER BY hash so rows[0] is deterministically FAN-FAIL-0 (the one we resume).
-      const failed = await superuser.query<{ id: string; source_photo_hash: string; status: string; error_reason: string | null }>(
-        `SELECT id, source_photo_hash, status, error_reason FROM public.parse_jobs
+      const failed = await superuser.query<{ id: string; source_photo_hash: string; status: string; error_reason: string | null; claimed_at: string | null }>(
+        `SELECT id, source_photo_hash, status, error_reason, claimed_at FROM public.parse_jobs
          WHERE user_id = $1 AND source_photo_hash LIKE 'FAN-FAIL-%'
          ORDER BY source_photo_hash`,
         [USER],
@@ -382,17 +382,17 @@ describe('Tier-4 chaos — adversarial temporal + scale conditions, state-oracle
         expect(job.status).toBe('failed');
         expect(job.error_reason).toBe('provider_failed');
         expect(await itemsForJob(job.id)).toBe(0);
+        // markFailed MUST release the lease. If it leaks claimed_at, the job is stuck
+        // behind the full CLAIM_LEASE and the user gets 409 on a job nobody is parsing.
+        expect(job.claimed_at).toBeNull();
       }
 
       // ---- RESUME: a failed job is re-claimable once its lease expires, and a
       // healthy re-run commits EXACTLY ONE item (no dup from the failed attempt).
       expect(failed.rows[0]!.source_photo_hash).toBe('FAN-FAIL-0');
       const failedJobId = failed.rows[0]!.id;
-      // Simulate lease expiry (claimed_at cleared) — claim() gates on a 2-min lease,
-      // so a just-failed job is not instantly re-claimable; this is the crash-recover
-      // window, mirroring the parse-photo resume oracle.
-      await superuser.query(`UPDATE public.parse_jobs SET claimed_at = NULL WHERE id = $1`, [failedJobId]);
-
+      // No lease fixture needed: markFailed already released it (asserted above), so a
+      // failed job is immediately re-claimable. Re-running must commit EXACTLY ONE item.
       const healthyPorts = makePorts(() => false);
       const healthyHandler = makeParsePhoto(() => healthyPorts, unthrottledSpendLimiter);
       const resume = await caller.call(healthyHandler, {

@@ -19,14 +19,7 @@ const COLS = `id, user_id, item_id, outfit_id, to_char(worn_at AT TIME ZONE 'UTC
 // the formatted text produced by COLS in the INSERT ... RETURNING — re-applying the
 // to_char there would AT TIME ZONE a text value (timezone(unknown,text) error).
 const COLS_PASSTHROUGH = `id, user_id, item_id, outfit_id, worn_at, client_id`;
-const MAX_PAGE_SIZE = 100;
-const DEFAULT_PAGE_SIZE = 50;
-
-function clampLimit(limit: number | undefined): number {
-  const requested = limit ?? DEFAULT_PAGE_SIZE;
-  if (!Number.isFinite(requested) || requested < 1) return 1;
-  return Math.min(Math.floor(requested), MAX_PAGE_SIZE);
-}
+import { clampLimit } from './pagination.js';
 
 export interface AppendWearArgs {
   readonly userId: string;
