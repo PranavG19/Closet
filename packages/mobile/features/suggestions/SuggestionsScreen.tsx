@@ -13,7 +13,7 @@ import React from 'react';
 import { View, type ViewStyle } from 'react-native';
 import { suggestItems, toSuggestionItems, suggestionNote, outfitVerdict, suggestionRationale } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
-import { useWardrobe, useLogWear } from '../../src/api/index.js';
+import { useWardrobe, useLogWear, usePalette } from '../../src/api/index.js';
 import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 
 // Weather is a ROADMAP feature — there is no WeatherPort implementation and no server seam
@@ -39,6 +39,10 @@ export function SuggestionsScreen(): React.JSX.Element {
   // no trust and lets the empty state tell the truth.
   const query = useWardrobe({});
   const logWear = useLogWear();
+  // Her self-identified palette (B1). Absent → { hues: [] }, so no colour signal. Its
+  // loading/error is NOT gated on: the suggestion runs immediately without a palette and
+  // gains the tie-break once the read arrives, rather than blocking today's look on it.
+  const palette = usePalette();
   // "Why this?" disclosure toggle. Declared with the other hooks, before any early return,
   // so the hook order is stable regardless of loading/fallback branches (Rules of Hooks).
   const [showWhy, setShowWhy] = React.useState(false);
@@ -52,7 +56,16 @@ export function SuggestionsScreen(): React.JSX.Element {
   // returns either a wearable set or an explicit fallback, so there is no undefined case to
   // guard beyond the fallback branch.
   const rows = query.data.items;
-  const suggestion = suggestItems({ items: toSuggestionItems(rows), tempC: ASSUMED_TEMP_C });
+  // Her palette families, if the read has landed (advisory, may be empty). Passed to the
+  // heuristic as the WITHIN-TIER tie-break: among equally-warm clean garments, an in-palette
+  // one is preferred — never across warmth tiers, so the weather guarantee is untouched.
+  const paletteFamilies = palette.data?.hues ?? [];
+  const hasPalette = paletteFamilies.length > 0;
+  const suggestion = suggestItems({
+    items: toSuggestionItems(rows),
+    tempC: ASSUMED_TEMP_C,
+    ...(hasPalette ? { paletteFamilies } : {}),
+  });
 
   if (suggestion.fallback) {
     // The heuristic's own reason distinguishes "closet is empty" from "everything is in the
@@ -89,15 +102,24 @@ export function SuggestionsScreen(): React.JSX.Element {
 
   // The fuller "why we suggested this" explanation (D-003 Step 4/5). Derived from the SAME
   // verdict the note uses (outfitVerdict), so the one-liner and the explanation cannot
-  // disagree. hasPalette/paletteInfluencedOrder are false today: mobile has no palette-read
-  // seam yet (only useUpsertPalette), and suggestItems here is called WITHOUT paletteFamilies,
-  // so the rationale honestly says color guidance is not steering today's pick.
+  // disagree. hasPalette is now REAL (her B1 palette read); paletteInfluencedOrder is true
+  // only when the tie-break actually changed the selection — recomputed by running the
+  // heuristic WITHOUT the palette and comparing the chosen ids, so the rationale never
+  // claims the palette steered a pick it didn't.
   const verdict = outfitVerdict(selectedRows);
+  const paletteInfluencedOrder = ((): boolean => {
+    if (!hasPalette) return false;
+    const withoutPalette = suggestItems({ items: toSuggestionItems(rows), tempC: ASSUMED_TEMP_C });
+    if (withoutPalette.fallback) return false;
+    const a = withoutPalette.items.map((i) => i.id).join(',');
+    const b = suggestion.items.map((i) => i.id).join(',');
+    return a !== b;
+  })();
   const rationale = suggestionRationale({
     selectedCount: selectedRows.length,
     verdict,
-    hasPalette: false,
-    paletteInfluencedOrder: false,
+    hasPalette,
+    paletteInfluencedOrder,
   });
 
   // Gentle highlight strip — advisory, never a red error/nag (docs/03).

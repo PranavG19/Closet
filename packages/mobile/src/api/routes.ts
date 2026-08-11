@@ -13,6 +13,7 @@ export const ROUTES = {
   logWear: { path: 'wear-log', method: 'POST' },
   upsertPalette: { path: 'palette-upsert', method: 'POST' },
   readEntitlement: { path: 'palette-entitlement', method: 'GET' },
+  readPalette: { path: 'palette-read', method: 'GET' },
   parsePhoto: { path: 'parse-photo', method: 'POST' },
   // Account self-service. `deleteAccount` is the irreversible purge Apple Review
   // Guideline 5.1.1(v) requires be reachable IN-APP; `exportMyData` is the

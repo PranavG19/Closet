@@ -19,6 +19,7 @@ import type {
   OutfitListResponse,
   WearLogRow,
   PaletteProfileRow,
+  PaletteReadResponse,
   EntitlementResponse,
 } from '@closet/shared';
 import type {
@@ -37,6 +38,7 @@ export const queryKeys = {
   wardrobe: (params: ListWardrobeParams) => ['wardrobe', params] as const,
   outfits: () => ['outfits'] as const,
   entitlement: () => ['entitlement'] as const,
+  palette: () => ['palette'] as const,
 } as const;
 
 export function useWardrobe(params: ListWardrobeParams = {}): UseQueryResult<WardrobeListResult> {
@@ -50,6 +52,15 @@ export function useWardrobe(params: ListWardrobeParams = {}): UseQueryResult<War
 export function useOutfits(): UseQueryResult<OutfitListResponse> {
   const client = useApiClient();
   return useQuery({ queryKey: queryKeys.outfits(), queryFn: () => client.listOutfits() });
+}
+
+// The self-identified palette (B1), read for the daily suggestion's advisory tie-break.
+// An absent palette resolves to { hues: [] } server-side, so a user who hasn't taken the
+// quiz gets a clean empty list rather than an error — the suggestion screen then simply
+// runs without a colour signal.
+export function usePalette(): UseQueryResult<PaletteReadResponse> {
+  const client = useApiClient();
+  return useQuery({ queryKey: queryKeys.palette(), queryFn: () => client.readPalette() });
 }
 
 export function useEntitlement(): UseQueryResult<EntitlementResponse> {
@@ -111,8 +122,14 @@ export function useLogWear(): UseMutationResult<WearLogRow, Error, LogWearReques
 
 export function useUpsertPalette(): UseMutationResult<PaletteProfileRow, Error, UpsertPaletteRequest> {
   const client = useApiClient();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: (request: UpsertPaletteRequest) => client.upsertPalette(request),
+    // Saving the quiz must refresh the palette read so today's suggestion picks up the new
+    // colours immediately (the tie-break + the "we leaned toward your palette" rationale).
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.palette() });
+    },
   });
 }
 

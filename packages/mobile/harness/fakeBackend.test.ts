@@ -59,6 +59,11 @@ describe('harness fake backend — canned data is schema-valid (parses through t
     expect(result.expires_at).toBeNull();
   });
 
+  it('readPalette parses the normalised family-token list', async () => {
+    const result = await makeClient(true).readPalette();
+    expect(result.hues).toEqual(['camel', 'rose']);
+  });
+
   it('exportMyData parses the full subject-access document', async () => {
     const doc = await makeClient(true).exportMyData();
     expect(doc.wardrobe_items.length).toBeGreaterThan(0);

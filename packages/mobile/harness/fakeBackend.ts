@@ -112,6 +112,11 @@ function responseFor(route: keyof typeof ROUTES, options: FakeBackendOptions): u
       return { id: '99999999-9999-4999-8999-999999999991', user_id: USER, item_id: ITEM_IDS.whiteTop, outfit_id: null, worn_at: NOW, client_id: 'harness-client-id' };
     case 'upsertPalette':
       return { user_id: USER, hues: { season: 'autumn', flattering: ['camel', 'rose', 'olive'] } };
+    case 'readPalette':
+      // The NORMALISED read shape (a flat string[] of family tokens) the real read-palette
+      // handler returns — NOT the opaque stored `hues` the upsert echoes. `camel` matches the
+      // clean camel coat, so the advisory tie-break is observable in the harness suggestion.
+      return { hues: ['camel', 'rose'] };
     case 'parsePhoto':
       return { job: PARSE_JOB, items: [WARDROBE_ITEMS[0]] };
     case 'deleteAccount':

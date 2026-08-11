@@ -6,6 +6,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Pool } from 'pg';
 import { upsertPalette } from '../src/palette/upsert-palette.js';
+import { readPalette } from '../src/palette/read-palette.js';
 import { readEntitlement } from '../src/palette/read-entitlement.js';
 import {
   applyMigrations,
@@ -90,6 +91,42 @@ describe('palette + entitlement endpoints', () => {
     expect(everythingAcanSee.rows).toHaveLength(1);
     expect(everythingAcanSee.rows[0]?.user_id).toBe(USER_A);
     expect(everythingAcanSee.rows[0]?.hues).toEqual(['aonly']);
+  });
+
+  it('palette read default — a user who has not taken the quiz reads { hues: [] } (not 404)', async () => {
+    // A FRESH user with no palette row (the tests above already wrote A and B). Absent row →
+    // empty list with 200, mirroring how read-entitlement treats an absent money row.
+    const USER_C = 'c3c3c3c3-c3c3-43c3-83c3-c3c3c3c3c3c3';
+    const callerC = makeCaller(pool, USER_C);
+    const res = await callerC.call(readPalette);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ hues: [] });
+  });
+
+  it('palette read round-trips the upserted families, RLS-scoped', async () => {
+    await callerA.call(upsertPalette, { body: { hues: ['camel', 'rose'] } });
+    const aRes = await callerA.call(readPalette);
+    expect(aRes.status).toBe(200);
+    expect(await aRes.json()).toEqual({ hues: ['camel', 'rose'] });
+    // B reads its OWN palette, never A's — scoped by the same RLS the cross-tenant test proves.
+    await callerB.call(upsertPalette, { body: { hues: ['navy'] } });
+    const bRes = await callerB.call(readPalette);
+    expect(await bRes.json()).toEqual({ hues: ['navy'] });
+  });
+
+  it('palette read normalises opaque jsonb — non-string entries are dropped', async () => {
+    // The quiz only ever writes string tokens, but the stored `hues` is opaque jsonb: a
+    // hand-written or legacy row could hold a nested object. Seed such a row via the
+    // superuser (the upsert schema would reject it) and confirm the read returns only the
+    // clean string tokens, never a mixed array the client would have to interpret.
+    await superuser.query(
+      `INSERT INTO public.palette_profile (user_id, hues) VALUES ($1, $2::jsonb)
+       ON CONFLICT (user_id) DO UPDATE SET hues = EXCLUDED.hues`,
+      [USER_A, JSON.stringify(['camel', { season: 'autumn' }, 42, 'rose'])],
+    );
+    const res = await callerA.call(readPalette);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ hues: ['camel', 'rose'] });
   });
 
   it('palette malformed body (extra key, strict) → 400', async () => {

@@ -23,6 +23,7 @@ import {
   OutfitListResponse,
   WearLogRow,
   PaletteProfileRow,
+  PaletteReadResponse,
   EntitlementResponse,
   // The error envelope is declared in shared so this client and the server's
   // errorResponse() cannot drift — they used to, silently. See schemas/errors.ts.
@@ -198,6 +199,12 @@ export class ApiClient {
   readEntitlement(): Promise<EntitlementResponse> {
     return this.request('readEntitlement', (res) =>
       parseBoundary(EntitlementResponse, res, 'readEntitlement'),
+    );
+  }
+
+  readPalette(): Promise<PaletteReadResponse> {
+    return this.request('readPalette', (res) =>
+      parseBoundary(PaletteReadResponse, res, 'readPalette'),
     );
   }
 
