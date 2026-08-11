@@ -36,9 +36,17 @@ export default defineConfig({
           include: [
             'packages/*/src/**/*.test.ts',
             'packages/*/features/**/*.test.ts',
+            // Pure-logic test-helper unit tests (e.g. the perf percentile math oracle,
+            // helpers/perf.test.ts). These live under test/ because the helper is test
+            // infra, but the test itself is pure (no container) and MUST run in the fast
+            // lane — without this line it matched no project and silently never ran (the
+            // aggregate-emptiness trap this repo has hit before). Container-backed helper
+            // tests do NOT belong here; they carry the .integration/.perf suffix and are
+            // excluded below, so a new one cannot accidentally join the fast wall.
+            'packages/*/test/helpers/**/*.test.ts',
             'scripts/**/*.test.mjs',
           ],
-          exclude: ['**/*.integration.test.ts', 'node_modules/**', 'dist/**'],
+          exclude: ['**/*.integration.test.ts', '**/*.perf.test.ts', 'node_modules/**', 'dist/**'],
           passWithNoTests: true,
         },
       },
@@ -49,6 +57,26 @@ export default defineConfig({
           exclude: ['node_modules/**', 'dist/**'],
           testTimeout: 60_000,
           hookTimeout: 60_000,
+          passWithNoTests: true,
+          setupFiles: ['packages/db/test/detect-container-runtime.ts'],
+        },
+      },
+      {
+        // Tier-5 perf/SLO lane (docs/05 Tier-5). Its OWN project, deliberately NOT part
+        // of `pnpm verify`'s test:unit/test:integration steps, because sampling N runs of
+        // every operation blows the synchronous p95<90s gate budget (Rule 4). Run it
+        // on-demand / nightly with `pnpm test:perf`. Same real-Postgres substrate as
+        // integration, so it needs the container-runtime setup and the long timeouts.
+        // Runs single-file (fileParallelism off): concurrent Postgres containers on the
+        // dev VM contend for CPU and would distort the very wall-clock numbers this
+        // lane exists to measure.
+        test: {
+          name: 'perf',
+          include: ['packages/*/test/**/*.perf.test.ts'],
+          exclude: ['node_modules/**', 'dist/**'],
+          testTimeout: 180_000,
+          hookTimeout: 180_000,
+          fileParallelism: false,
           passWithNoTests: true,
           setupFiles: ['packages/db/test/detect-container-runtime.ts'],
         },

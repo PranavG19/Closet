@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:integration": "vitest run --project integration",
+    "test:perf": "vitest run --project perf",
     "db:migrate": "node scripts/db-migrate.mjs up",
     "db:migrate:down": "node scripts/db-migrate.mjs down",
     "db:migrate:redo": "node scripts/db-migrate.mjs redo",
