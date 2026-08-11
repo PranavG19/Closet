@@ -101,6 +101,39 @@ describe('openai-vision adapter — LLM efficiency knobs', () => {
     const body = await capturedBody({});
     expect(body['response_format']).toEqual({ type: 'json_object' });
   });
+
+  // Payload-leanness guard: the token bill is (prompt + image + output). max_tokens caps
+  // output and detail caps the image; this catches the THIRD axis — accidental PROMPT bloat.
+  // A regression that doubled the instruction, sent the image twice, or appended a
+  // conversation history would inflate every single parse's input cost silently. These
+  // assert the request stays exactly as lean as designed: two messages, one image, and a
+  // bounded instruction size (measured excluding the image URL, which is a signed link, not
+  // tokens the model reads).
+  it('sends EXACTLY two messages — one system instruction + one user turn, no history bloat', async () => {
+    const body = await capturedBody({});
+    const messages = body['messages'] as unknown[];
+    expect(messages).toHaveLength(2);
+    expect((messages[0] as { role: string }).role).toBe('system');
+    expect((messages[1] as { role: string }).role).toBe('user');
+  });
+
+  it('sends EXACTLY one image (never duplicated — a dup silently doubles the image token cost)', async () => {
+    const body = await capturedBody({});
+    const userContent = (body['messages'] as { content: unknown }[])[1]!.content as { type: string }[];
+    const imageParts = userContent.filter((p) => p.type === 'image_url');
+    expect(imageParts).toHaveLength(1);
+  });
+
+  it('keeps the prompt bounded — the instruction does not balloon past a sane ceiling', async () => {
+    const body = await capturedBody({});
+    const messages = body['messages'] as { role: string; content: unknown }[];
+    const systemText = messages[0]!.content as string;
+    const userText = ((messages[1]!.content as { type: string; text?: string }[]).find((p) => p.type === 'text')?.text) ?? '';
+    // The extraction instruction is ~1.2KB of fixed vocabulary; 3000 chars is generous
+    // headroom that still trips loudly if someone doubles it or pastes a corpus into the
+    // prompt. This is an efficiency FLOOR, not a style rule — it bounds per-call input cost.
+    expect(systemText.length + userText.length).toBeLessThan(3000);
+  });
 });
 
 describe('openai-vision adapter — parse-don\'t-cast (garbage never reaches the domain)', () => {
