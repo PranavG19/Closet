@@ -35,6 +35,17 @@ export const HARMONY_VERDICTS = [
   'monochromatic',
   'analogous',
   'complementary',
+  // Two established schemes the first cut folded into 'clash': on the 12-family wheel
+  // one index step = 30°, so distance 4 = 120° (triadic — three hues evenly spaced) and
+  // distance 5 = 150° (split-complementary — the two hues flanking a complement). Both
+  // are standard, harmonious relationships (Itten / mainstream color theory), just with
+  // more tension than analogous. Naming them stops the note from going silent on a pairing
+  // that actually holds together. Distances 2 (60°) and 3 (90°) stay 'clash' — genuinely
+  // weaker. NOTE: this is the HSL/additive wheel (red↔cyan complement), NOT the RYB
+  // painter's wheel (red↔green); the 12 families are the evenly-spaced HSL hue names, so
+  // do not "fix" the complement to red-green or every verdict shifts.
+  'triadic',
+  'split-complementary',
   'neutral',
   'clash',
 ] as const;
@@ -54,8 +65,10 @@ function verdictFor(a: ColorFamily, b: ColorFamily): HarmonyVerdict {
   const distance = Math.min(raw, CHROMATIC.length - raw); // 0..6 on the 12-hue wheel
   if (distance === 0) return 'monochromatic';
   if (distance === 1) return 'analogous';
-  if (distance === CHROMATIC.length / 2) return 'complementary';
-  return 'clash';
+  if (distance === CHROMATIC.length / 2) return 'complementary'; // 6 steps = 180°
+  if (distance === 4) return 'triadic'; // 120°
+  if (distance === 5) return 'split-complementary'; // 150°
+  return 'clash'; // distances 2 (60°) and 3 (90°) — the genuinely weaker pairings
 }
 
 function pairKey(a: ColorFamily, b: ColorFamily): string {

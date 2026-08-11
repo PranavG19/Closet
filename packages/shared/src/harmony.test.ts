@@ -83,6 +83,25 @@ describe('harmony — structural laws', () => {
     // green (index 4) opposite magenta (index 10), distance 6.
     expect(harmony('green', 'magenta')).toBe('complementary');
   });
+
+  // CHROMATIC index order: red0 orange1 yellow2 chartreuse3 green4 teal5 cyan6 azure7
+  // blue8 violet9 magenta10 pink11. One step = 30°. These four cases pin the verdicts the
+  // first cut collapsed into 'clash'; before naming distances 4 and 5 they returned
+  // 'clash', so this discriminates the change rather than passing vacuously.
+  it('distance 4 (120°) is triadic — an established even-spaced harmony, not a clash', () => {
+    expect(harmony('red', 'green')).toBe('triadic'); // |0-4| = 4
+    expect(harmony('orange', 'teal')).toBe('triadic'); // |1-5| = 4
+  });
+
+  it('distance 5 (150°) is split-complementary — the softer contrast, not a clash', () => {
+    expect(harmony('red', 'teal')).toBe('split-complementary'); // |0-5| = 5
+    expect(harmony('yellow', 'azure')).toBe('split-complementary'); // |2-7| = 5
+  });
+
+  it('distances 2 (60°) and 3 (90°) remain clash — genuinely weaker pairings', () => {
+    expect(harmony('red', 'yellow')).toBe('clash'); // |0-2| = 2
+    expect(harmony('red', 'chartreuse')).toBe('clash'); // |0-3| = 3
+  });
 });
 
 describe('isColorFamily — parse guard', () => {

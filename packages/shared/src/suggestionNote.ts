@@ -29,6 +29,8 @@ const NOTE_BY_VERDICT: Readonly<Record<Exclude<HarmonyVerdict, 'clash'>, string>
   monochromatic: 'A tonal look — one colour, quietly layered.',
   analogous: 'These sit next to each other on the wheel; the blend is easy.',
   complementary: 'Opposite hues — this one has some contrast to it.',
+  triadic: 'Colours spaced evenly around the wheel — a lively, balanced mix.',
+  'split-complementary': 'A softer take on contrast — near-opposite hues that still play well.',
   neutral: 'Neutral-anchored, so it goes with everything else you own.',
 };
 
@@ -49,12 +51,17 @@ export function suggestionNote(items: readonly NoteItemLike[]): string | null {
   // The verdict for the outfit is the verdict of its two LEAST harmonious garments — the
   // pair that actually determines whether the look holds together. Taking the best pair
   // instead would let one safe combination vouch for an outfit that clashes elsewhere.
+  // Lower rank = less harmonious = the pair that decides the outfit's note. Triadic and
+  // split-complementary are harmonious but higher-tension than a straight complementary,
+  // so they sit just above clash and below complementary.
   const RANK: Readonly<Record<HarmonyVerdict, number>> = {
     clash: 0,
-    complementary: 1,
-    analogous: 2,
-    monochromatic: 3,
-    neutral: 4,
+    triadic: 1,
+    'split-complementary': 2,
+    complementary: 3,
+    analogous: 4,
+    monochromatic: 5,
+    neutral: 6,
   };
 
   let worst: HarmonyVerdict = 'neutral';
