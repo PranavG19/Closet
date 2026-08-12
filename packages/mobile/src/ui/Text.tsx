@@ -1,12 +1,13 @@
 // Token-only Text primitive. Picks a typography scale entry + a semantic color
 // token by name — a component NEVER passes a literal color or fontSize. This is
-// the only place RN's <Text> is styled with type tokens.
+// the only place RN's <Text> is styled with type tokens. The pure variant/tone/family
+// resolution lives in textStyle.ts so it can be unit-tested without a renderer.
 import React from 'react';
-import { Text as RNText, type TextProps as RNTextProps, type TextStyle } from 'react-native';
+import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 import { useTokens } from '../tokens/index.js';
+import { resolveTextStyle, type TextVariant, type TextTone } from './textStyle.js';
 
-export type TextVariant = 'display' | 'title' | 'body' | 'caption';
-export type TextTone = 'primary' | 'secondary' | 'tertiary' | 'onAccent';
+export type { TextVariant, TextTone };
 
 export interface TextProps extends RNTextProps {
   readonly variant?: TextVariant;
@@ -15,21 +16,11 @@ export interface TextProps extends RNTextProps {
 
 export function Text({
   variant = 'body',
-  tone = 'primary',
+  tone,
   style,
   ...rest
 }: TextProps): React.JSX.Element {
   const tokens = useTokens();
-  const scale = tokens.typography[variant];
-  const composed: TextStyle = {
-    color: tokens.color.text[tone],
-    fontSize: scale.fontSize,
-    lineHeight: scale.lineHeight,
-    fontWeight: scale.fontWeight,
-    // Unconditional. This used to be a conditional spread guarding against
-    // `family: undefined`, which meant the app shipped with no fontFamily set and nothing
-    // could tell. The token is now required, so there is nothing to guard.
-    fontFamily: tokens.typography.family,
-  };
+  const composed = resolveTextStyle(tokens, variant, tone);
   return <RNText style={[composed, style]} {...rest} />;
 }

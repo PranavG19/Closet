@@ -13,7 +13,7 @@ import { useTokens } from '../../src/tokens/index.js';
 import { useOutfits, useDeleteOutfit, useRenameOutfit } from '../../src/api/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
-import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
+import { Screen, Text, Button, Divider, SectionHeader, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 import { OutfitBuilderScreen } from './OutfitBuilderScreen.js';
 
 // "3 pieces" / "1 piece" / "No pieces yet" — singular/plural correct, and an honest empty
@@ -111,53 +111,65 @@ const OutfitCard = React.memo(function OutfitCard({
     setEditing(false);
   };
 
+  // A bare row on the canvas (law 2: not a card), divided by a hairline. An untitled look wears
+  // its placeholder name in the serif `note` italic (synthesis §3.5); a named one is `title`.
   return (
-    <Card variant="surface" padding="md" style={style}>
-      <Text variant="title" tone="primary">
-        {outfit.name ?? 'Untitled look'}
-      </Text>
-      <Text variant="caption" tone="secondary" style={{ marginTop: tokens.spacing.xs }}>
-        {piecesLabel(outfit.item_count)}
-      </Text>
-      {outfit.preview_paths.length > 0 && (
-        <OutfitPreviewStrip paths={outfit.preview_paths} uris={uris} />
-      )}
-      {editing ? (
-        <>
-          <TextInput
-            value={draft}
-            onChangeText={setDraft}
-            autoFocus
-            maxLength={80}
-            placeholder="Name this look"
-            placeholderTextColor={tokens.color.text.tertiary}
-            accessibilityLabel="Outfit name"
-            editable={!renaming}
-            style={nameInput}
-          />
-          <View style={{ flexDirection: 'row', marginTop: tokens.spacing.sm, gap: tokens.spacing.sm }}>
-            <Button label={renaming ? 'Saving…' : 'Save'} disabled={renaming} onPress={commitRename} />
-            <Button label="Cancel" intent="ghost" disabled={renaming} onPress={() => setEditing(false)} />
+    <View style={style}>
+      <Divider />
+      <View style={{ paddingTop: tokens.spacing.lg }}>
+        {outfit.name !== null ? (
+          <Text variant="title" tone="primary">
+            {outfit.name}
+          </Text>
+        ) : (
+          <Text variant="note" tone="secondary">
+            Untitled look
+          </Text>
+        )}
+        <Text variant="overline" style={{ marginTop: tokens.spacing.xs }}>
+          {piecesLabel(outfit.item_count)}
+        </Text>
+        {outfit.preview_paths.length > 0 && (
+          <OutfitPreviewStrip paths={outfit.preview_paths} uris={uris} />
+        )}
+        {editing ? (
+          <>
+            <TextInput
+              value={draft}
+              onChangeText={setDraft}
+              autoFocus
+              maxLength={80}
+              placeholder="Name this look"
+              placeholderTextColor={tokens.color.text.tertiary}
+              accessibilityLabel="Outfit name"
+              editable={!renaming}
+              style={nameInput}
+            />
+            <View style={{ flexDirection: 'row', marginTop: tokens.spacing.md, gap: tokens.spacing.xl }}>
+              <Button label={renaming ? 'Saving…' : 'Save'} intent="link" disabled={renaming} onPress={commitRename} />
+              <Button label="Cancel" intent="ghost" disabled={renaming} onPress={() => setEditing(false)} />
+            </View>
+          </>
+        ) : !armed ? (
+          <View style={{ flexDirection: 'row', marginTop: tokens.spacing.md, gap: tokens.spacing.xl }}>
+            <Button label="Rename" intent="link" onPress={beginRename} />
+            <Button label="Remove" intent="ghost" onPress={() => setArmed(true)} />
           </View>
-        </>
-      ) : !armed ? (
-        <View style={{ flexDirection: 'row', marginTop: tokens.spacing.sm, gap: tokens.spacing.sm }}>
-          <Button label="Rename" intent="ghost" onPress={beginRename} />
-          <Button label="Remove" intent="ghost" onPress={() => setArmed(true)} />
-        </View>
-      ) : (
-        <View style={{ flexDirection: 'row', marginTop: tokens.spacing.sm, gap: tokens.spacing.sm }}>
-          <Button
-            label={deleting ? 'Removing…' : 'Delete this look'}
-            intent="accent"
-            accent="red"
-            disabled={deleting}
-            onPress={() => onDelete(outfit.id)}
-          />
-          <Button label="Keep" intent="ghost" disabled={deleting} onPress={() => setArmed(false)} />
-        </View>
-      )}
-    </Card>
+        ) : (
+          <View style={{ flexDirection: 'row', marginTop: tokens.spacing.md, gap: tokens.spacing.xl }}>
+            {/* the destructive action wears the red rule (synthesis §3.1 exception) — quiet, not a fill */}
+            <Button
+              label={deleting ? 'Removing…' : 'Delete this look'}
+              intent="link"
+              accent="red"
+              disabled={deleting}
+              onPress={() => onDelete(outfit.id)}
+            />
+            <Button label="Keep" intent="ghost" disabled={deleting} onPress={() => setArmed(false)} />
+          </View>
+        )}
+      </View>
+    </View>
   );
 });
 
@@ -211,6 +223,7 @@ export function OutfitsScreen(): React.JSX.Element {
   if (outfits.length === 0) {
     return (
       <EmptyState
+        eyebrow="Your looks"
         title="No outfits yet"
         body="Build a look from your closet and save it here."
         actionLabel="Build an outfit"
@@ -219,7 +232,7 @@ export function OutfitsScreen(): React.JSX.Element {
     );
   }
 
-  const cardSpacing: ViewStyle = { marginBottom: tokens.spacing.md };
+  const rowSpacing: ViewStyle = { marginBottom: tokens.spacing.lg };
   const renderItem: ListRenderItem<OutfitSummary> = ({ item }) => (
     <OutfitCard
       outfit={item}
@@ -228,23 +241,23 @@ export function OutfitsScreen(): React.JSX.Element {
       onRename={onRename}
       deleting={deletingId === item.id}
       renaming={renamingId === item.id}
-      style={cardSpacing}
+      style={rowSpacing}
     />
   );
   return (
     <Screen padding="lg">
-      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.md }}>
-        Outfits
-      </Text>
-      <Button
-        label="Build a look"
-        onPress={() => setBuilding(true)}
-        style={{ marginBottom: tokens.spacing.lg }}
+      {/* Masthead: eyebrow + serif title, with the quiet build action on the shared baseline. */}
+      <SectionHeader
+        eyebrow="Your looks"
+        title="Outfits"
+        titleVariant="display"
+        action={{ label: 'Build a look', onPress: () => setBuilding(true) }}
       />
       <FlatList
         data={outfits}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
+        style={{ marginTop: tokens.spacing.lg }}
         // Re-render visible cards when signed URLs land OR a delete starts/ends (both change
         // identity/value); without this the memo'd cards would keep stale wells / button state.
         extraData={`${Object.keys(uris).length}|${deletingId ?? ''}|${renamingId ?? ''}`}

@@ -15,6 +15,7 @@ import type { WardrobeItemRow } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useCreateOutfit } from '../../src/api/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
+import { useScreenLoad } from '../../src/metrics/index.js';
 import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 import {
   EMPTY_DRAFT,
@@ -124,6 +125,8 @@ export function OutfitBuilderScreen({ onDone, onCancel }: OutfitBuilderScreenPro
   // Draft + hooks declared before any early return so hook order is stable (Rules of Hooks).
   const [draft, setDraft] = React.useState<Draft>(EMPTY_DRAFT);
   const cutouts = useCutoutUris(query.data?.items ?? []);
+  // Mount → first-ready metric. Ready = the closet-to-build-from resolved.
+  useScreenLoad('outfit_builder', query.isSuccess);
 
   if (query.isPending) return <LoadingState message="Loading your closet…" />;
   if (query.isError) {

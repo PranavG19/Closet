@@ -26,6 +26,7 @@ import { useTokens } from '../../src/tokens/index.js';
 import { useEntitlement } from '../../src/api/index.js';
 import { Screen, Card, Text, Button, LoadingState, ErrorState } from '../../src/ui/index.js';
 import { useOffer, usePurchase, useRestore } from './hooks.js';
+import { useScreenLoad } from '../../src/metrics/index.js';
 
 const VALUE_POINTS: readonly string[] = [
   'Unlimited garment parsing',
@@ -39,6 +40,9 @@ export function PaywallScreen(): React.JSX.Element {
   const offer = useOffer();
   const purchase = usePurchase();
   const restore = useRestore();
+  // Mount → first-ready metric. Ready = the entitlement check resolved (the first gate the screen
+  // waits on; the offer load follows). Unconditional, before any early return (Rules of Hooks).
+  useScreenLoad('paywall', entitlement.isSuccess);
 
   // A one-line status under the button. Deliberately not an alert or a modal: a
   // cancellation must produce NO interruption (it is the most common outcome of tapping

@@ -10,13 +10,15 @@
 //
 // VISUAL CORRECTNESS IS UNVERIFIED (human-gated) — no simulator in this build.
 import React from 'react';
-import { View, type ViewStyle } from 'react-native';
+import { View, Image, type ImageStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import * as Crypto from 'expo-crypto';
 import { suggestItems, toSuggestionItems, suggestionNote, outfitVerdict, suggestionRationale } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useLogWear, usePalette, useRecentWears } from '../../src/api/index.js';
+import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
-import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
+import { Screen, Hero, Text, Button, Divider, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 
 // Weather is a ROADMAP feature — there is no WeatherPort implementation and no server seam
 // for it (docs/06 §9 records the deliberate absence). suggestItems requires a temperature,
@@ -52,6 +54,11 @@ export function SuggestionsScreen(): React.JSX.Element {
   // immediately without it and gains the "don't re-pick yesterday's pieces" tie-break once the
   // read lands, rather than blocking today's look on a wear-log fetch.
   const recentWears = useRecentWears();
+  // Signed cutout URLs for the wardrobe rows, keyed by item id — the hero renders the suggested
+  // garment's real cutout when its URL has been signed. NOT gated on (same as WardrobeScreen):
+  // the hero shows its empty well until the URL arrives. Declared before any early return so the
+  // hook order is stable (Rules of Hooks); it reads the rows from the query once resolved.
+  const cutouts = useCutoutUris(query.data?.items ?? []);
   // "Why this?" disclosure toggle. Declared with the other hooks, before any early return,
   // so the hook order is stable regardless of loading/fallback branches (Rules of Hooks).
   const [showWhy, setShowWhy] = React.useState(false);
@@ -123,118 +130,113 @@ export function SuggestionsScreen(): React.JSX.Element {
   // only when the tie-break actually changed the selection — recomputed by running the
   // heuristic WITHOUT the palette and comparing the chosen ids, so the rationale never
   // claims the palette steered a pick it didn't.
-  const verdict = outfitVerdict(selectedRows);
+  //
+  // Computed ONLY while the panel is open. The two influence checks each re-run suggestItems
+  // over the whole closet purely to attribute the "Why this?" copy — work that is discarded on
+  // every render where showWhy is false (the default). Gating it here keeps the default render
+  // to the single primary suggestItems call above instead of three.
   const chosenIds = suggestion.items.map((i) => i.id).join(',');
-  const paletteInfluencedOrder = ((): boolean => {
-    if (!hasPalette) return false;
-    const withoutPalette = suggestItems({ items: toSuggestionItems(rows), tempC: ASSUMED_TEMP_C });
-    if (withoutPalette.fallback) return false;
-    return withoutPalette.items.map((i) => i.id).join(',') !== chosenIds;
-  })();
-  // freshnessInfluencedOrder: true only when dropping recentlyWornIds changes the pick — same
-  // honest re-run-and-compare as palette, so the rationale never claims freshness moved a pick
-  // it didn't. Compared against the palette-aware selection (freshness ranks below palette), so
-  // this isolates freshness's own contribution.
-  const freshnessInfluencedOrder = ((): boolean => {
-    if (recentlyWornIds.length === 0) return false;
-    const withoutFreshness = suggestItems({
-      items: toSuggestionItems(rows),
-      tempC: ASSUMED_TEMP_C,
-      ...(hasPalette ? { paletteFamilies } : {}),
-    });
-    if (withoutFreshness.fallback) return false;
-    return withoutFreshness.items.map((i) => i.id).join(',') !== chosenIds;
-  })();
-  const rationale = suggestionRationale({
-    selectedCount: selectedRows.length,
-    verdict,
-    hasPalette,
-    paletteInfluencedOrder,
-    freshnessInfluencedOrder,
-  });
+  const rationale = showWhy
+    ? suggestionRationale({
+        selectedCount: selectedRows.length,
+        verdict: outfitVerdict(selectedRows),
+        hasPalette,
+        // paletteInfluencedOrder: true only when the tie-break actually changed the selection —
+        // re-run the heuristic WITHOUT the palette and compare the chosen ids.
+        paletteInfluencedOrder: ((): boolean => {
+          if (!hasPalette) return false;
+          const withoutPalette = suggestItems({ items: toSuggestionItems(rows), tempC: ASSUMED_TEMP_C });
+          if (withoutPalette.fallback) return false;
+          return withoutPalette.items.map((i) => i.id).join(',') !== chosenIds;
+        })(),
+        // freshnessInfluencedOrder: true only when dropping recentlyWornIds changes the pick —
+        // same honest re-run-and-compare, against the palette-aware selection (freshness ranks
+        // below palette), so this isolates freshness's own contribution.
+        freshnessInfluencedOrder: ((): boolean => {
+          if (recentlyWornIds.length === 0) return false;
+          const withoutFreshness = suggestItems({
+            items: toSuggestionItems(rows),
+            tempC: ASSUMED_TEMP_C,
+            ...(hasPalette ? { paletteFamilies } : {}),
+          });
+          if (withoutFreshness.fallback) return false;
+          return withoutFreshness.items.map((i) => i.id).join(',') !== chosenIds;
+        })(),
+      })
+    : [];
 
-  // Gentle highlight strip — advisory, never a red error/nag (docs/03).
-  const highlight: ViewStyle = {
-    borderLeftWidth: 3,
-    borderLeftColor: tokens.color.accentDecorative.pink,
-    paddingLeft: tokens.spacing.md,
-    marginTop: tokens.spacing.md,
-  };
-  const heroWell: ViewStyle = {
-    // Portrait 4:5 gallery frame (was 1:1) with the hero radius (lg=28) to match the card's
-    // softness — the suggested garment gets a magazine-format frame, not a thumbnail.
-    aspectRatio: 4 / 5,
-    borderRadius: tokens.radius.lg,
-    backgroundColor: tokens.color.bg.sunken,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: tokens.spacing.md,
-  };
+  // The rest of the look, as a subtitle under the hero title ("with black denim & boots").
+  const withLine =
+    selectedRows.length > 1
+      ? `with ${selectedRows
+          .slice(1)
+          .map((row) => row.color ?? row.category)
+          .join(', ')}`
+      : undefined;
+
+  // The suggested garment's real cutout, once its URL is signed. Falls back to the Hero's own
+  // empty well (a sunken band) when absent — never a category word over the hero.
+  const heroUri = cutouts.data?.[hero.id];
+  const heroCutout: ImageStyle = { width: '70%', height: '70%', resizeMode: 'contain' };
+  // The look's title: the garment's colour+category as an editorial line ("Camel outerwear").
+  const heroTitle = hero.color !== null ? `${hero.color} ${hero.category}` : hero.category;
 
   return (
-    <Screen scroll padding="lg">
-      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
-        Today
-      </Text>
-      <Card variant="surface" padding="lg" style={{ borderRadius: tokens.radius.lg }}>
-        <View style={heroWell} accessibilityLabel={`Suggested ${hero.category}`}>
-          <Text variant="caption" tone="tertiary">
-            {hero.category}
-          </Text>
-        </View>
-        <Text variant="title" tone="primary">
-          {hero.color ?? hero.category}
-        </Text>
-        {/* The rest of the look the heuristic picked. Previously invisible: the screen
-            showed one garment and said nothing about what it was suggested WITH. */}
-        {selectedRows.length > 1 && (
-          <Text variant="body" tone="secondary" style={{ marginTop: tokens.spacing.xs }}>
-            {`with ${selectedRows
-              .slice(1)
-              .map((row) => row.color ?? row.category)
-              .join(', ')}`}
-          </Text>
+    <Screen scroll padding="none">
+      {/* The reveal: the garment fills a full-bleed hero, its name in serif over a scrim. */}
+      <Hero
+        height={452}
+        eyebrow="Today"
+        title={heroTitle}
+        {...(withLine !== undefined ? { subtitle: withLine } : {})}
+      >
+        {heroUri !== undefined ? (
+          <Image source={{ uri: heroUri }} style={heroCutout} accessible={false} />
+        ) : (
+          // Awaiting its cutout: a quiet branded hanger glyph, never a category word (brief law 1).
+          <Ionicons name="shirt-outline" size={72} color={tokens.color.text.tertiary} accessible={false} />
         )}
+      </Hero>
+
+      {/* The body floats on the canvas, divided by a hairline — not boxed in a card (law 2). */}
+      <View style={{ paddingHorizontal: tokens.spacing.xl, paddingTop: tokens.spacing.lg, gap: tokens.spacing.md }}>
         {note !== null && (
-          <View style={highlight}>
-            <Text variant="body" tone="secondary">
-              {note}
-            </Text>
-          </View>
+          <Text variant="note" tone="secondary">
+            {note}
+          </Text>
         )}
 
+        <Divider />
+
         {/* "Why this?" — the opt-in explanation (D-003 Step 4/5). Collapsed by default so the
-            card stays calm; expanded it states the warmth reasoning and the honest limits of
-            the color guidance (self-chosen palette, approximate families). Advisory tone, never
-            a lecture. */}
+            screen stays calm; expanded it states the warmth reasoning and the honest limits of
+            the color guidance (self-chosen palette, approximate families). Advisory, never a
+            lecture. A quiet ghost toggle, left-aligned. */}
         <Button
           label={showWhy ? 'Hide why' : 'Why this?'}
           intent="ghost"
           onPress={() => setShowWhy((prev) => !prev)}
-          style={{ marginTop: tokens.spacing.md }}
+          style={{ alignSelf: 'flex-start' }}
         />
         {showWhy && (
-          <View style={{ marginTop: tokens.spacing.sm }}>
+          <View style={{ gap: tokens.spacing.xs }}>
             {rationale.map((line) => (
-              <Text
-                key={line}
-                variant="caption"
-                tone="secondary"
-                style={{ marginTop: tokens.spacing.xs }}
-              >
+              <Text key={line} variant="caption" tone="secondary">
                 {line}
               </Text>
             ))}
           </View>
         )}
 
+        {/* The primary action — a quiet, confident underlined link, not a shouting pill (law 3). */}
         <Button
-          label={logWear.isPending ? 'Logging…' : 'I wore this'}
+          label={logWear.isPending ? 'Logging…' : 'Wore this today'}
+          intent="link"
           disabled={logWear.isPending}
           onPress={() => logWear.mutate({ item_id: hero.id, client_id: mintClientId() })}
-          style={{ marginTop: tokens.spacing.lg }}
+          style={{ marginTop: tokens.spacing.sm }}
         />
-      </Card>
+      </View>
     </Screen>
   );
 }

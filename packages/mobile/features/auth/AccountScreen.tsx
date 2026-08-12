@@ -26,7 +26,8 @@
 import React, { useState } from 'react';
 import { View, TextInput, Share, type ViewStyle, type TextStyle } from 'react-native';
 import { useTokens } from '../../src/tokens/index.js';
-import { Screen, Card, Text, Button, LoadingState } from '../../src/ui/index.js';
+import { Screen, Card, Text, Button, Divider, SectionHeader, LoadingState } from '../../src/ui/index.js';
+import { useScreenLoad } from '../../src/metrics/index.js';
 import { useSession } from '../../src/session/index.js';
 import { useDeleteAccount, useExportMyData } from '../../src/api/index.js';
 import {
@@ -84,6 +85,9 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
   const { user, signOut } = useSession();
   const exportMutation = useExportMyData();
   const deleteMutation = useDeleteAccount();
+  // Mount → ready metric. Account waits on no read (session is already present) — ready on mount,
+  // before the delete-pending early return so the hook order is stable (Rules of Hooks).
+  useScreenLoad('account', true);
 
   // Two-STAGE plus type-to-confirm: the destructive controls are not even mounted
   // until she opts in, so the text field cannot be pre-filled by a stray render.
@@ -137,23 +141,21 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
 
   return (
     <Screen scroll padding="lg">
-      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
-        Profile
-      </Text>
+      {/* Masthead — the tab is "You"; the eyebrow names the surface, the serif title greets. */}
+      <SectionHeader eyebrow="Your account" title="You" titleVariant="display" />
 
-      <Card padding="lg" style={section}>
-        <Text variant="caption" tone="tertiary">
-          Signed in as
-        </Text>
+      <View style={[section, { marginTop: tokens.spacing.xl }]}>
+        <Text variant="overline">Signed in as</Text>
         <Text variant="body" tone="primary">
           {user?.email ?? 'your private account'}
         </Text>
-        <Button label="Sign out" onPress={() => void signOut()} intent="secondary" />
-      </Card>
+        <Button label="Sign out" onPress={() => void signOut()} intent="link" />
+      </View>
 
       {extraSection}
 
-      <Card padding="lg" style={section}>
+      <Divider />
+      <View style={[section, { marginTop: tokens.spacing.xl }]}>
         <Text variant="title" tone="primary">
           Your data
         </Text>
@@ -164,7 +166,7 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
         <Button
           label="Export my data"
           onPress={onExport}
-          intent="secondary"
+          intent="link"
           disabled={exportMutation.isPending}
         />
         {exportMutation.isPending ? (
@@ -181,7 +183,8 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
           <View style={{ gap: tokens.spacing.md }}>
             <ExportReceipt summary={summarizeExport(exportMutation.data)} />
             {/* Rendered as selectable text so the document is retrievable even if
-                the OS share sheet is unavailable or truncates it. */}
+                the OS share sheet is unavailable or truncates it. This block EARNS a Card —
+                it is literally the export payload (synthesis §2 Card doctrine). */}
             <Card variant="sunken" padding="md">
               <Text variant="caption" tone="secondary" selectable>
                 {serializeExport(exportMutation.data)}
@@ -189,9 +192,10 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
             </Card>
           </View>
         ) : null}
-      </Card>
+      </View>
 
-      <Card padding="lg" style={section}>
+      <Divider />
+      <View style={[section, { marginTop: tokens.spacing.xl }]}>
         <Text variant="title" tone="primary">
           Delete my account
         </Text>
@@ -209,7 +213,8 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
           <Button
             label="Delete my account"
             onPress={() => setDeleteArmed(true)}
-            intent="secondary"
+            intent="link"
+            accent="red"
           />
         ) : (
           <View style={{ gap: tokens.spacing.md }}>
@@ -250,7 +255,7 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
             ) : null}
           </View>
         )}
-      </Card>
+      </View>
     </Screen>
   );
 }

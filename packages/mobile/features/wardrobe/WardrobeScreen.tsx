@@ -18,13 +18,14 @@
 // so a tile re-renders only when ITS OWN cutout URL arrives, not when any sibling's does.
 import React from 'react';
 import { View, Image, Pressable, FlatList, type ViewStyle, type ImageStyle, type ListRenderItem } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { Availability, WardrobeItemRow } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useToggleAvailability } from '../../src/api/index.js';
 import {
   Screen,
   Text,
-  AvailabilityChip,
+  SectionHeader,
   LoadingState,
   EmptyState,
   ErrorState,
@@ -33,7 +34,7 @@ import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { FilterBar } from './FilterBar.js';
 import { StatusSheet } from './StatusSheet.js';
-import { deriveListParams, hasActiveFilter, type WardrobeFilter } from './wardrobeFilters.js';
+import { deriveListParams, hasActiveFilter, availabilityLabel, type WardrobeFilter } from './wardrobeFilters.js';
 
 // Memoized: in a FlatList the parent re-renders on every windowing change, so without
 // this every visible tile would re-render whenever any one cutout URL arrived. The props
@@ -62,10 +63,11 @@ const ItemTile = React.memo(function ItemTile({
   // by it: a PNG cutout is alpha-composited (CutoutPort guarantees `hasAlpha`), so the well
   // IS the backdrop the garment is lifted off, not a placeholder to swap out.
   const well: ViewStyle = {
-    aspectRatio: 1,
-    // Deeply-rounded warm tray (lg=28) so each cutout reads as genuinely lifted off the
-    // page — the boutique-shelf feeling that is the product's whole promise.
-    borderRadius: tokens.radius.lg,
+    aspectRatio: 3 / 4,
+    // Barely-rounded (xs=6) so each cutout reads as a photographed object on a shelf, not a
+    // rounded chip — the editorial lookbook framing (brief law 1). Portrait 3:4, like a
+    // garment shot, not a square thumbnail.
+    borderRadius: tokens.radius.xs,
     backgroundColor: tokens.color.bg.sunken,
     alignItems: 'center',
     justifyContent: 'center',
@@ -90,24 +92,35 @@ const ItemTile = React.memo(function ItemTile({
             accessible={false}
           />
         ) : (
-          <Text variant="caption" tone="tertiary">
-            {item.category}
-          </Text>
+          // Awaiting its cutout (added before parse, or URL not yet signed): a quiet branded
+          // hanger glyph, NEVER a category word (brief law 1 — a word where a photo belongs is
+          // the slop tell). Decorative: the tile's own a11y label already names the garment.
+          <Ionicons name="shirt-outline" size={40} color={tokens.color.text.tertiary} accessible={false} />
         )}
       </View>
       <Text variant="body" tone="primary">
         {item.color ?? item.category}
       </Text>
-      {/* The chip is now the tap target for changing status (F7): it already SHOWS the state, so
-          tapping it to CHANGE the state is the least-surprising affordance. Wrapped rather than
-          made pressable itself so the chip stays a pure presentational primitive. */}
+      {/* The status line is the tap target for changing availability (F7): it SHOWS the state
+          (a state-coloured dot + an overline key), so tapping it to CHANGE the state is the
+          least-surprising affordance. A bare dot+overline rather than a pill — editorial, quiet
+          (brief law 2). The dot carries the state colour; the label keeps meaning off hue alone. */}
       <Pressable
         onPress={() => onPressStatus(item)}
         accessibilityRole="button"
         accessibilityLabel={`Change availability for ${item.color ?? item.category}`}
-        style={{ marginTop: tokens.spacing.xs, alignSelf: 'flex-start' }}
+        style={{ marginTop: tokens.spacing.xs, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }}
       >
-        <AvailabilityChip availability={item.availability} />
+        <View
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: tokens.radius.pill,
+            backgroundColor: tokens.color.state[item.availability],
+            marginRight: tokens.spacing.xs,
+          }}
+        />
+        <Text variant="overline">{availabilityLabel(item.availability)}</Text>
       </Pressable>
     </View>
   );
@@ -160,6 +173,7 @@ export function WardrobeScreen(): React.JSX.Element {
   if (items.length === 0 && !filtered) {
     return (
       <EmptyState
+        eyebrow="Your closet"
         title="Your closet is empty"
         body="Add your first pieces and they'll appear here as clean cutouts."
         actionLabel="Add clothing"
@@ -175,11 +189,16 @@ export function WardrobeScreen(): React.JSX.Element {
   const renderItem: ListRenderItem<WardrobeItemRow> = ({ item }) => (
     <ItemTile item={item} cutoutUri={cutouts.data?.[item.id]} onPressStatus={openStatusSheet} />
   );
+  // The piece count for the masthead — the current page's item count (the list is keyset-
+  // paginated server-side, so this is "pieces shown", framed simply as a quiet tally).
+  const pieceCount = items.length;
   return (
     <Screen padding="lg">
-      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.md }}>
-        Your closet
-      </Text>
+      {/* Masthead: eyebrow + serif title on a baseline row with a quiet right-aligned count. */}
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: tokens.spacing.md }}>
+        <SectionHeader eyebrow="Your closet" title="Closet" titleVariant="display" />
+        <Text variant="overline">{`${pieceCount} ${pieceCount === 1 ? 'piece' : 'pieces'}`}</Text>
+      </View>
       <FilterBar filter={filter} onChange={setFilter} />
       {items.length === 0 ? (
         // Filtered to nothing — DISTINCT from an empty closet. She owns clothes; this selection

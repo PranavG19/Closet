@@ -285,12 +285,3 @@ export class ApiClient {
     );
   }
 }
-
-// A default client wired to the real Supabase session token. Constructed lazily so
-// missing config surfaces at first call, not at import.
-let defaultClient: ApiClient | undefined;
-
-export function getApiClient(getToken: TokenSource): ApiClient {
-  defaultClient ??= new ApiClient({ getToken });
-  return defaultClient;
-}

@@ -14,12 +14,14 @@ import { View, Pressable, FlatList, type ViewStyle, type ListRenderItem } from '
 import type { WardrobeItemRow } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useToggleAvailability } from '../../src/api/index.js';
+import { useScreenLoad } from '../../src/metrics/index.js';
 import {
   Screen,
-  Card,
   Text,
   Button,
-  AvailabilityChip,
+  Divider,
+  SectionHeader,
+  SelectMark,
   LoadingState,
   EmptyState,
   ErrorState,
@@ -41,6 +43,9 @@ export function LaundryScreen(): React.JSX.Element {
   const toggleAvailability = useToggleAvailability();
   const [basket, setBasket] = React.useState(EMPTY_BASKET);
   const [failedCount, setFailedCount] = React.useState(0);
+  // Mount → first-ready metric. Ready = the dirty-items list resolved. Unconditional and before
+  // the effect + early returns below so the hook order is stable (Rules of Hooks).
+  useScreenLoad('laundry', query.isSuccess);
 
   const items = query.data?.items ?? [];
   // Joined, not the array: a refetch returns a new array instance with the same contents, so
@@ -61,7 +66,7 @@ export function LaundryScreen(): React.JSX.Element {
   }
 
   if (items.length === 0) {
-    return <EmptyState title="Nothing in the wash" body="Everything's ready to wear." />;
+    return <EmptyState eyebrow="In the wash" title="Nothing in the wash" body="Everything's ready to wear." />;
   }
 
   const visibleIds = items.map((item) => item.id);
@@ -94,25 +99,14 @@ export function LaundryScreen(): React.JSX.Element {
     setBasket(clear());
   };
 
+  // A bare hairline-divided row (law 2): a SelectMark + the garment name, with the one-off
+  // "mark clean" as a quiet link on the right. Selection is carried by the SelectMark, not a
+  // border tint (tinting would move the surface labels were contrast-checked against).
   const row: ViewStyle = {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: tokens.spacing.md,
-  };
-  const selectedRow: ViewStyle = {
-    ...row,
-    // Selection is marked with a border rather than a background tint: tinting the card would
-    // change the surface that every label and AvailabilityChip on it was contrast-checked
-    // against.
-    borderWidth: 2,
-    borderColor: tokens.color.accent.pink,
-  };
-  const actionBar: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: tokens.spacing.md,
+    paddingVertical: tokens.spacing.md,
   };
 
   // The hamper is a FlatList (windowed) rather than a .map() in a ScrollView. The header
@@ -130,64 +124,64 @@ export function LaundryScreen(): React.JSX.Element {
         accessibilityState={{ checked: selected }}
         accessibilityLabel={`${item.color ?? item.category}, in the wash`}
       >
-        <Card variant="surface" padding="md" style={selected ? selectedRow : row}>
-          <View>
+        <Divider />
+        <View style={row}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md }}>
+            <SelectMark selected={selected} />
             <Text variant="body" tone="primary">
               {item.color ?? item.category}
             </Text>
-            <AvailabilityChip availability="dirty" style={{ marginTop: tokens.spacing.xs }} />
           </View>
-          {/* The single-garment action stays: tapping the row selects, and this is the
-              one-off path for someone who wants exactly one thing back without building a
-              selection at all. */}
-          <Button
-            label={selected ? 'Selected' : 'Mark clean'}
-            intent="secondary"
-            disabled={selected || isMutating}
-            onPress={() => toggleAvailability.mutate({ item_id: item.id, availability: 'clean' })}
-          />
-        </Card>
+          {/* The one-off path: mark exactly one garment clean without building a selection.
+              A quiet link, not a filled button — the filled action is the batch bar only. */}
+          {!selected && (
+            <Button
+              label="Mark clean"
+              intent="link"
+              disabled={isMutating}
+              onPress={() => toggleAvailability.mutate({ item_id: item.id, availability: 'clean' })}
+            />
+          )}
+        </View>
       </Pressable>
     );
   };
 
   const header = (
-    <>
-      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.md }}>
-        Laundry
-      </Text>
-
-      <View style={actionBar}>
-        <Button
-          label={allSelected ? 'Clear selection' : 'Select all'}
-          intent="ghost"
-          onPress={() => setBasket(allSelected ? clear() : selectAll(visibleIds))}
-        />
-        {selectedCount > 0 && (
-          <Text variant="caption" tone="secondary">
-            {`${selectedCount} selected`}
-          </Text>
-        )}
-      </View>
+    <View style={{ marginBottom: tokens.spacing.sm }}>
+      <SectionHeader
+        eyebrow="In the wash"
+        title="Laundry"
+        titleVariant="display"
+        action={{
+          label: allSelected ? 'Clear' : 'Select all',
+          onPress: () => setBasket(allSelected ? clear() : selectAll(visibleIds)),
+        }}
+      />
 
       {selectedCount > 0 && (
-        <Button
-          // The count is IN the label, so the button states exactly what it will do. A
-          // reversible action does not need an "are you sure" dialog; it needs an honest label.
-          label={isMutating ? 'Putting them away…' : `Mark ${selectedCount} clean`}
-          accent="pink"
-          disabled={isMutating}
-          onPress={() => void markSelectedClean()}
-          style={{ marginBottom: tokens.spacing.md }}
-        />
+        <View style={{ marginTop: tokens.spacing.lg }}>
+          <Text variant="overline" style={{ marginBottom: tokens.spacing.xs }}>
+            {`${selectedCount} selected`}
+          </Text>
+          <Button
+            // The count is IN the label, so the button states exactly what it will do. A
+            // reversible action does not need an "are you sure" dialog; it needs an honest label.
+            // This is the ONE earned filled button on the screen (the committed batch action).
+            label={isMutating ? 'Putting them away…' : `Mark ${selectedCount} clean`}
+            accent="pink"
+            disabled={isMutating}
+            onPress={() => void markSelectedClean()}
+          />
+        </View>
       )}
 
       {failedCount > 0 && (
-        <Text variant="caption" tone="secondary" style={{ marginBottom: tokens.spacing.md }}>
+        <Text variant="caption" tone="secondary" style={{ marginTop: tokens.spacing.md }}>
           {`${failedCount} couldn't be updated. Pull down to refresh and try again.`}
         </Text>
       )}
-    </>
+    </View>
   );
 
   return (

@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import { View, type ViewStyle } from 'react-native';
 import { useTokens } from '../../src/tokens/index.js';
 import { Screen, Text, Button, ErrorState } from '../../src/ui/index.js';
+import { useScreenLoad } from '../../src/metrics/index.js';
 import { useSession, authErrorMessageFromThrown } from '../../src/session/index.js';
 
 export function SignInScreen(): React.JSX.Element {
@@ -25,6 +26,9 @@ export function SignInScreen(): React.JSX.Element {
   // null = nothing to say (never signed in yet, or she cancelled).
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Mount → ready metric. SignIn waits on no query — it is ready as soon as it mounts, so this
+  // records the sign-in screen's render cost (a near-zero duration is itself the signal).
+  useScreenLoad('sign_in', true);
 
   const attempt = (signIn: () => Promise<void>) => (): void => {
     setErrorMessage(null);

@@ -6,11 +6,20 @@ import { View, ActivityIndicator, type ViewStyle } from 'react-native';
 import { useTokens } from '../tokens/index.js';
 import { Text } from './Text.js';
 import { Button } from './Button.js';
-import { Card } from './Card.js';
 
 const centered = (gap: number): ViewStyle => ({
   flex: 1,
   alignItems: 'center',
+  justifyContent: 'center',
+  gap,
+});
+
+// Empty/error content is now a bare, LEFT-aligned authored section (brief law 2: "not
+// everything is a card") — an overline eyebrow, a title, supporting body, and a quiet `link`
+// action. It floats on the canvas, vertically centred but left-aligned, rather than boxed.
+const authoredBlock = (gap: number): ViewStyle => ({
+  flex: 1,
+  alignItems: 'flex-start',
   justifyContent: 'center',
   gap,
 });
@@ -34,29 +43,28 @@ export function LoadingState({ message }: { readonly message?: string }): React.
 export interface EmptyStateProps {
   readonly title: string;
   readonly body?: string;
+  // Optional uppercase eyebrow above the title (e.g. "YOUR CLOSET", "NOTHING SAVED YET").
+  readonly eyebrow?: string;
   readonly actionLabel?: string;
   readonly onAction?: () => void;
 }
 
-export function EmptyState({ title, body, actionLabel, onAction }: EmptyStateProps): React.JSX.Element {
+export function EmptyState({ title, body, eyebrow, actionLabel, onAction }: EmptyStateProps): React.JSX.Element {
   const tokens = useTokens();
-  // The content sits inside a soft floating card so an empty state reads as a designed, held
-  // moment rather than text stranded on the canvas (addresses the "sparse layout" feel).
   return (
-    <View style={centered(tokens.spacing.md)}>
-      <Card variant="surface" padding="lg" style={{ alignItems: 'center', gap: tokens.spacing.md, marginHorizontal: tokens.spacing.xl }}>
-        <Text variant="title" tone="primary" style={{ textAlign: 'center' }}>
-          {title}
+    <View style={[authoredBlock(tokens.spacing.md), { paddingHorizontal: tokens.spacing.xl }]}>
+      {eyebrow !== undefined ? <Text variant="overline">{eyebrow}</Text> : null}
+      <Text variant="display" tone="primary">
+        {title}
+      </Text>
+      {body !== undefined ? (
+        <Text variant="body" tone="secondary">
+          {body}
         </Text>
-        {body !== undefined ? (
-          <Text variant="body" tone="secondary" style={{ textAlign: 'center' }}>
-            {body}
-          </Text>
-        ) : null}
-        {actionLabel !== undefined && onAction !== undefined ? (
-          <Button label={actionLabel} onPress={onAction} intent="secondary" />
-        ) : null}
-      </Card>
+      ) : null}
+      {actionLabel !== undefined && onAction !== undefined ? (
+        <Button label={actionLabel} onPress={onAction} intent="link" />
+      ) : null}
     </View>
   );
 }
@@ -64,24 +72,24 @@ export function EmptyState({ title, body, actionLabel, onAction }: EmptyStatePro
 export interface ErrorStateProps {
   readonly title?: string;
   readonly body?: string;
+  readonly eyebrow?: string;
   readonly onRetry?: () => void;
 }
 
-export function ErrorState({ title, body, onRetry }: ErrorStateProps): React.JSX.Element {
+export function ErrorState({ title, body, eyebrow, onRetry }: ErrorStateProps): React.JSX.Element {
   const tokens = useTokens();
   return (
-    <View style={centered(tokens.spacing.md)}>
-      <Card variant="surface" padding="lg" style={{ alignItems: 'center', gap: tokens.spacing.md, marginHorizontal: tokens.spacing.xl }}>
-        <Text variant="title" tone="primary" style={{ textAlign: 'center' }}>
-          {title ?? 'Something went sideways'}
+    <View style={[authoredBlock(tokens.spacing.md), { paddingHorizontal: tokens.spacing.xl }]}>
+      {eyebrow !== undefined ? <Text variant="overline">{eyebrow}</Text> : null}
+      <Text variant="display" tone="primary">
+        {title ?? 'Something went sideways'}
+      </Text>
+      {body !== undefined ? (
+        <Text variant="body" tone="secondary">
+          {body}
         </Text>
-        {body !== undefined ? (
-          <Text variant="body" tone="secondary" style={{ textAlign: 'center' }}>
-            {body}
-          </Text>
-        ) : null}
-        {onRetry !== undefined ? <Button label="Try again" onPress={onRetry} intent="secondary" /> : null}
-      </Card>
+      ) : null}
+      {onRetry !== undefined ? <Button label="Try again" onPress={onRetry} intent="link" /> : null}
     </View>
   );
 }

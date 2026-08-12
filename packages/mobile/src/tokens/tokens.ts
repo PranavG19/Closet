@@ -12,6 +12,15 @@
 
 // A hex string. Kept as a nominal-ish alias so the intent ("this is a token
 // value, defined only in this file") reads at the call site.
+//
+// serifFamily is imported from a platform-forked module (serifFamily.ios/android.ts) rather
+// than computed via `Platform.select` here: tokens.ts is imported by contrast.test.ts in the
+// Node unit lane, and any static `import ... from 'react-native'` breaks that lane (rolldown
+// cannot parse RN's Flow index.js). The forked module imports nothing from react-native — it
+// just exports a string — so tokens.ts stays Node-importable while Metro still picks the right
+// face per platform. See serifFamily.ts.
+import { serifFamily } from './serifFamily.js';
+
 export type ColorValue = string;
 
 export interface ColorTokens {
@@ -98,6 +107,9 @@ export interface SpacingTokens {
 
 // Soft, consistent radii (docs/03: rounded corners on cards/sheets).
 export interface RadiusTokens {
+  // Barely-rounded corners on garment cutout wells / grid thumbs — the clothes read as
+  // photographed objects, not chips.
+  readonly xs: number;
   readonly sm: number;
   readonly md: number;
   readonly lg: number;
@@ -120,6 +132,12 @@ export interface TypographyScaleEntry {
   readonly fontSize: number;
   readonly lineHeight: number;
   readonly fontWeight: TypographyWeight;
+  // Optional style refinements. RN uses POINTS for letterSpacing (not em); textTransform
+  // and fontStyle carry the overline (uppercase) and note (serif italic) variants. Existing
+  // display/title/body/caption entries omit all three and compile unchanged.
+  readonly letterSpacing?: number;
+  readonly textTransform?: 'uppercase';
+  readonly fontStyle?: 'italic';
 }
 
 export type TypographyWeight = '400' | '500' | '600';
@@ -142,16 +160,24 @@ export interface TypographyTokens {
   // is a licensing + bundle-size decision the owner has to make; this is the honest default
   // in the meantime, and swapping it is a one-line change here.
   readonly family: string;
+  // The SERIF display face (the redesign's one structural type change). Platform-selected
+  // because a bare 'Georgia' silently falls back to the default SANS on Android — the same
+  // "absent typeface" bug the `family` comment above documents. iOS: Georgia; Android: the
+  // generic 'serif' (Noto Serif, bundled, no dependency). Only `display` and `note` use it.
+  readonly serifFamily: string;
   readonly weight: {
     readonly regular: TypographyWeight;
     readonly medium: TypographyWeight;
     readonly semibold: TypographyWeight;
   };
-  // Clear hierarchy: display (the reveal moment) → title → body → caption.
+  // Clear hierarchy: display (the reveal moment / one per screen) → title → body → caption.
+  // overline = tiny uppercase eyebrows + metadata keys; note = serif italic advisory line.
   readonly display: TypographyScaleEntry;
   readonly title: TypographyScaleEntry;
   readonly body: TypographyScaleEntry;
   readonly caption: TypographyScaleEntry;
+  readonly overline: TypographyScaleEntry;
+  readonly note: TypographyScaleEntry;
 }
 
 export interface Tokens {
@@ -227,6 +253,7 @@ export const lightTokens: Tokens = {
   radius: {
     // Larger radii are where "soft" lives — 18 on a standard card, 28 on the hero card
     // read pillowy and modern without tipping into toy-like.
+    xs: 6, // garment cutout wells / grid thumbs — reads as a photo, not a chip
     sm: 12, // chips, small controls
     md: 18, // default card / button radius
     lg: 28, // hero cards, sheets, the Today card
@@ -248,17 +275,28 @@ export const lightTokens: Tokens = {
     // Roboto on Android. Chosen deliberately over `undefined`: same rendering, but now the
     // typeface is a stated decision that a component reads, rather than an absence.
     family: 'System',
+    // Platform-forked at the module boundary (serifFamily.ios/android.ts) so Android does not
+    // silently fall back to sans. Georgia (iOS) / generic 'serif' = Noto Serif (Android) — both
+    // bundled with the OS, no font file, no licensing question.
+    serifFamily,
     weight: {
       regular: '400',
       medium: '500',
       semibold: '600',
     },
-    // A bigger, more confident hero + more air in the scale. 600 (semibold) is the top of
-    // the allowed weight union; at 34pt it's confident without reading loud (off-brand for
-    // "calm"). caption goes 400→500 so warm-gray metadata feels intentional, not faint.
-    display: { fontSize: 34, lineHeight: 42, fontWeight: '600' },
-    title: { fontSize: 22, lineHeight: 30, fontWeight: '600' },
+    // display is now SERIF at 28/34 (iOS Title-1 footprint). It was 34pt SANS; the redesign
+    // mockups pushed a 34–40pt serif that read too large — a serif carries more optical weight
+    // than the system sans at the same px, so 28pt serif ≈ the visual size of the old 34pt sans.
+    // Used at most ONCE per screen. caption stays 400→500 so warm-gray metadata reads intentional.
+    display: { fontSize: 28, lineHeight: 34, fontWeight: '600', letterSpacing: -0.3 },
+    title: { fontSize: 22, lineHeight: 28, fontWeight: '600' },
     body: { fontSize: 16, lineHeight: 25, fontWeight: '400' },
     caption: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
+    // Tiny uppercase eyebrow / metadata key. 11pt = the iOS legibility floor (never smaller);
+    // letterSpacing 2 ≈ 0.18em at 11px (RN uses points, not em). Defaults to tertiary tone in Text.
+    overline: { fontSize: 11, lineHeight: 16, fontWeight: '600', letterSpacing: 2, textTransform: 'uppercase' },
+    // Serif italic advisory line (the "why this" note, privacy promise, untitled-look names).
+    // family swap to serifFamily happens in Text, same as display.
+    note: { fontSize: 16, lineHeight: 23, fontWeight: '400', fontStyle: 'italic' },
   },
 };

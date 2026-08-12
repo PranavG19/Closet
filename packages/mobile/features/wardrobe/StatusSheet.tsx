@@ -62,8 +62,12 @@ export function StatusSheet({ item, onClose, onSelect, busy = false }: StatusShe
     >
       {/* Tap-outside closes. The inner Pressable swallows the tap so a press on the sheet body
           doesn't bubble up to the scrim and dismiss it. */}
-      <Pressable style={scrim} onPress={onClose} accessibilityLabel="Close">
-        <Pressable onPress={() => {}}>
+      <Pressable style={scrim} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
+        {/* accessible={false}: this Pressable exists only to swallow taps on the sheet body so
+            they don't bubble to the scrim and dismiss it. Without this, VoiceOver surfaces it as
+            an unlabeled interactive element; marking it inaccessible lets focus fall through to
+            the real controls (title, chip, status rows) it wraps. */}
+        <Pressable onPress={() => {}} accessible={false}>
           <Card padding="lg" style={sheet}>
             {item !== null && (
               <>

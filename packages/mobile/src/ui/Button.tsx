@@ -7,7 +7,7 @@ import { Pressable, type ViewStyle } from 'react-native';
 import { useTokens } from '../tokens/index.js';
 import { Text } from './Text.js';
 
-export type ButtonIntent = 'accent' | 'secondary' | 'ghost';
+export type ButtonIntent = 'accent' | 'secondary' | 'ghost' | 'link';
 export type ButtonAccent = 'pink' | 'red' | 'blue';
 
 export interface ButtonProps {
@@ -30,6 +30,35 @@ export function Button({
 }: ButtonProps): React.JSX.Element {
   const tokens = useTokens();
   const accentColor = tokens.color.accent[accent];
+
+  // `link` is the quiet, confident primary action (brief law 3): a left-aligned uppercase
+  // overline label sitting on a 2px accent rule — no filled box, no radius. It is its own
+  // shape, so it branches out of the filled-box base below.
+  if (intent === 'link') {
+    const linkBase: ViewStyle = {
+      minHeight: 44, // hit target ≥ 44pt even though the visible rule is shorter (docs/03)
+      alignSelf: 'flex-start', // left-aligned, never stretched (brief law 4)
+      justifyContent: 'center',
+      paddingBottom: tokens.spacing.xs, // 4pt gap between label and its rule
+      borderBottomWidth: 2,
+      borderBottomColor: accentColor,
+      opacity: disabled ? 0.5 : 1,
+    };
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
+        disabled={disabled}
+        onPress={onPress}
+        style={({ pressed }) => [linkBase, pressed ? { opacity: 0.85 } : null, style]}
+      >
+        {/* overline label at primary tone so it reads as an action, darker than a plain eyebrow */}
+        <Text variant="overline" tone="primary">
+          {label}
+        </Text>
+      </Pressable>
+    );
+  }
 
   const base: ViewStyle = {
     minHeight: 44, // hit target ≥ 44pt (docs/03 accessibility)

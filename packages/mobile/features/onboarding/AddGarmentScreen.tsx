@@ -32,7 +32,8 @@ import React from 'react';
 import { View, Image, Pressable, type ViewStyle, type ImageStyle } from 'react-native';
 import { approvePhoto } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
-import { Screen, Card, Text, Button, LoadingState, ErrorState } from '../../src/ui/index.js';
+import { Screen, Text, Button, Grid, SelectMark, Divider, LoadingState, ErrorState } from '../../src/ui/index.js';
+import { useScreenLoad } from '../../src/metrics/index.js';
 import { useSession } from '../../src/session/index.js';
 import {
   usePhotoIntakePort,
@@ -74,6 +75,10 @@ export function AddGarmentScreen(): React.JSX.Element {
   // A closed outcome token, never a server message (raw error text can carry a storage path
   // or an id — the PII rule). null = nothing to say.
   const [outcome, setOutcome] = React.useState<AddGarmentOutcome | null>(null);
+  // Mount → ready metric for the F1 scan flow — the conversion-critical path. Ready as soon as
+  // the port's availability is known (a synchronous port field), which is the moment the intro
+  // can render; unconditional and before any early return so the hook order is stable.
+  useScreenLoad('add', true);
 
   // PICK → SCREEN → ADMIT, in that order, all on device. Nothing here touches the network:
   // there is no upload call in this function and no way to reach one, because the upload seam
@@ -157,42 +162,38 @@ export function AddGarmentScreen(): React.JSX.Element {
   const promise = privacyPromise(intakePort.screeningAvailable);
   const notice = outcome === null ? null : outcomeMessage(outcome);
 
-  const tile: ViewStyle = { width: '48%', marginBottom: tokens.spacing.lg };
+  // The cutout well at radius.xs (a photo, not a chip). Approval is marked by a 2px pink RING
+  // on the well + a SelectMark badge, never a background tint — tinting would move the surface
+  // labels were contrast-checked against (synthesis §3.6; same call LaundryScreen made).
   const well: ViewStyle = {
     aspectRatio: 1,
-    borderRadius: tokens.radius.md,
+    borderRadius: tokens.radius.xs,
     backgroundColor: tokens.color.bg.sunken,
     marginBottom: tokens.spacing.sm,
     overflow: 'hidden',
   };
-  // Approval is marked with a border, not a background tint: tinting the card would change the
-  // surface every label on it was contrast-checked against (the same call LaundryScreen made).
   const approvedWell: ViewStyle = {
     ...well,
     borderWidth: 2,
     borderColor: tokens.color.accent.pink,
   };
   const thumbnail: ImageStyle = { width: '100%', height: '100%', resizeMode: 'cover' };
-  const grid: ViewStyle = {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  };
 
   if (current === 'intro') {
     return (
       <Screen scroll padding="lg">
-        <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.md }}>
+        <Text variant="overline" style={{ marginBottom: tokens.spacing.sm }}>
+          Add to your closet
+        </Text>
+        <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
           Add clothing
         </Text>
-        {/* THE PRIVACY MOMENT — stated before she opens her photo library, which is the point
-            at which it matters, and in a Card so it reads as the screen's substance rather
-            than a footnote. */}
-        <Card variant="sunken" padding="lg" style={{ marginBottom: tokens.spacing.lg }}>
-          <Text variant="body" tone="primary">
-            {promise}
-          </Text>
-        </Card>
+        {/* THE PRIVACY MOMENT — stated before she opens her photo library, which is the point at
+            which it matters. In the serif `note` italic so it reads as a considered promise, not
+            fine print — the app's defining privacy claim carries the editorial voice. */}
+        <Text variant="note" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
+          {promise}
+        </Text>
         <Text variant="body" tone="secondary" style={{ marginBottom: tokens.spacing.lg }}>
           Pick the photos you'd like in your closet. You'll see them here first and choose which
           ones to add.
@@ -210,6 +211,7 @@ export function AddGarmentScreen(): React.JSX.Element {
             {notice}
           </Text>
         )}
+        {/* The ONE earned filled action: opening the library is the committed step. */}
         <Button label="Choose photos" accent="pink" onPress={() => void importPhotos()} />
       </Screen>
     );
@@ -217,11 +219,14 @@ export function AddGarmentScreen(): React.JSX.Element {
 
   return (
     <Screen scroll padding="lg">
+      <Text variant="overline" style={{ marginBottom: tokens.spacing.sm }}>
+        Choose what to add
+      </Text>
       <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.md }}>
         Which ones?
       </Text>
-      {/* The promise is repeated here because THIS is the tap it describes. */}
-      <Text variant="body" tone="secondary" style={{ marginBottom: tokens.spacing.md }}>
+      {/* The promise is repeated here because THIS is the tap it describes — serif `note` voice. */}
+      <Text variant="note" tone="secondary" style={{ marginBottom: tokens.spacing.md }}>
         {promise}
       </Text>
       {setAside > 0 && (
@@ -235,13 +240,13 @@ export function AddGarmentScreen(): React.JSX.Element {
         </Text>
       )}
 
-      <Card variant="sunken" padding="md" style={grid}>
+      <Divider />
+      <Grid columns={2} gap={tokens.spacing.md} style={{ marginTop: tokens.spacing.lg }}>
         {intake.candidates.map(({ photo }, index) => {
           const chosen = isApproved(intake, photo.id);
           return (
             <Pressable
               key={photo.id}
-              style={tile}
               onPress={() => setIntake(toggleApproval(intake, photo.id))}
               // No testID convention exists in this repo, so the a11y props are the identifying
               // surface. `checkbox` + checked is the same shape LaundryScreen's rows use, and it
@@ -256,25 +261,31 @@ export function AddGarmentScreen(): React.JSX.Element {
                     screen reader. `cover` (not `contain`) because these are raw camera-roll
                     photos, not alpha cutouts — a letterboxed thumbnail is harder to recognise. */}
                 <Image source={{ uri: photo.uri }} style={thumbnail} accessible={false} />
+                {/* The selection badge, top-right on the tile — the same SelectMark the laundry
+                    rows use, so "chosen" reads identically across the app. */}
+                <View style={{ position: 'absolute', top: tokens.spacing.sm, right: tokens.spacing.sm }}>
+                  <SelectMark selected={chosen} />
+                </View>
               </View>
-              <Text variant="caption" tone={chosen ? 'primary' : 'tertiary'}>
+              <Text variant="overline" tone={chosen ? 'primary' : 'tertiary'}>
                 {chosen ? 'Adding' : 'Tap to add'}
               </Text>
             </Pressable>
           );
         })}
-      </Card>
+      </Grid>
 
       {/* The count is IN the label, so the button states exactly what it will do — and here
-          that matters more than anywhere else in the app, because what it will do is upload. */}
+          that matters more than anywhere else in the app, because what it will do is upload.
+          The ONE earned filled action on this screen (the committed upload). */}
       <Button
         label={approved.length === 0 ? 'Pick at least one' : `Add ${approved.length} to my closet`}
         accent="pink"
         disabled={approved.length === 0}
         onPress={() => void confirmApproved()}
-        style={{ marginBottom: tokens.spacing.md }}
+        style={{ marginTop: tokens.spacing.lg, marginBottom: tokens.spacing.md }}
       />
-      <Button label="Choose different photos" intent="ghost" onPress={() => void importPhotos()} />
+      <Button label="Choose different photos" intent="link" onPress={() => void importPhotos()} />
     </Screen>
   );
 }

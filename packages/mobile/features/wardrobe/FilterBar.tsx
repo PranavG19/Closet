@@ -21,6 +21,9 @@ import {
   type WardrobeFilter,
 } from './wardrobeFilters.js';
 
+// A filter chip rendered as an editorial UNDERLINE rail item, not a pill (brief law 2/3: quiet,
+// not everything a filled shape). The selected facet is dark text on a 2px accent rule; the rest
+// are quiet secondary labels. This reads as a magazine filter rail rather than a row of buttons.
 function Chip({
   label,
   selected,
@@ -33,16 +36,15 @@ function Chip({
   const tokens = useTokens();
   const base: ViewStyle = {
     minHeight: 36,
-    paddingVertical: tokens.spacing.xs,
-    paddingHorizontal: tokens.spacing.md,
-    borderRadius: tokens.radius.pill,
-    marginRight: tokens.spacing.sm,
+    paddingBottom: tokens.spacing.xs,
+    marginRight: tokens.spacing.lg,
     alignItems: 'center',
     justifyContent: 'center',
+    // The selected item carries a 2px accent rule; the unselected reserve the same 2px of
+    // transparent border so the baseline never shifts when selection moves.
+    borderBottomWidth: 2,
+    borderBottomColor: selected ? tokens.color.accent.pink : 'transparent',
   };
-  const variant: ViewStyle = selected
-    ? { backgroundColor: tokens.color.accent.pink }
-    : { borderWidth: 1, borderColor: tokens.color.border.hairline, backgroundColor: tokens.color.bg.surface };
   return (
     <Pressable
       accessibilityRole="button"
@@ -51,9 +53,9 @@ function Chip({
       accessibilityState={{ selected }}
       accessibilityLabel={label}
       onPress={onPress}
-      style={[base, variant]}
+      style={base}
     >
-      <Text variant="caption" tone={selected ? 'onAccent' : 'secondary'}>
+      <Text variant="overline" tone={selected ? 'primary' : 'tertiary'}>
         {label}
       </Text>
     </Pressable>
