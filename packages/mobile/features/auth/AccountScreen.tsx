@@ -24,12 +24,13 @@
 // not so loud that it dominates the screen?) is a JUDGEMENT ONLY A HUMAN LOOKING AT
 // IT CAN MAKE. Treat the layout as structural, not designed.
 import React, { useState } from 'react';
-import { View, TextInput, Share, type ViewStyle, type TextStyle } from 'react-native';
+import { View, TextInput, Share, Linking, type ViewStyle, type TextStyle } from 'react-native';
 import { useTokens } from '../../src/tokens/index.js';
 import { Screen, Card, Text, Button, Divider, SectionHeader, LoadingState } from '../../src/ui/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { useSession } from '../../src/session/index.js';
-import { useDeleteAccount, useExportMyData } from '../../src/api/index.js';
+import { useDeleteAccount, useExportMyData, useEntitlement } from '../../src/api/index.js';
+import { loadLegalLinks } from '../../src/config/legalLinks.js';
 import {
   DELETE_CONFIRMATION_WORD,
   confirmationToken,
@@ -85,6 +86,14 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
   const { user, signOut } = useSession();
   const exportMutation = useExportMyData();
   const deleteMutation = useDeleteAccount();
+  // Current membership status, shown as a plain plan line + a manage-subscription link. NOT
+  // gated on: the section renders "checking / couldn't check" rather than blocking the whole
+  // account surface on a billing read. Declared with the other hooks (Rules of Hooks).
+  const entitlement = useEntitlement();
+  // The App-Store-required legal destinations. privacy/terms are null until a real https URL
+  // is configured (EXPO_PUBLIC_*), in which case the row is hidden rather than linking to a
+  // dead placeholder. manage-subscriptions is Apple's fixed system deep link, always present.
+  const legal = loadLegalLinks();
   // Mount → ready metric. Account waits on no read (session is already present) — ready on mount,
   // before the delete-pending early return so the hook order is stable (Rules of Hooks).
   useScreenLoad('account', true);
@@ -152,6 +161,32 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
         <Button label="Sign out" onPress={() => void signOut()} intent="link" />
       </View>
 
+      <Divider />
+      <View style={[section, { marginTop: tokens.spacing.xl }]}>
+        <Text variant="title" tone="primary">
+          Membership
+        </Text>
+        {/* Plan status in plain words. Server is the truth (entitlement is webhook-written),
+            so we report what the read says and degrade honestly if it hasn't landed. */}
+        <Text variant="body" tone="secondary">
+          {entitlement.isSuccess
+            ? entitlement.data.entitlement_active
+              ? 'Premium — every feature is unlocked.'
+              : 'Free plan.'
+            : entitlement.isError
+              ? "We couldn't check your membership just now."
+              : 'Checking your membership…'}
+        </Text>
+        {/* Apple manages auto-renewable subscriptions from the App Store, not in-app — this
+            opens the user's own subscriptions there (also where she cancels; deleting the
+            account below does NOT cancel a store subscription). */}
+        <Button
+          label="Manage subscription"
+          intent="link"
+          onPress={() => void Linking.openURL(legal.manageSubscriptionsUrl)}
+        />
+      </View>
+
       {extraSection}
 
       <Divider />
@@ -193,6 +228,36 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
           </View>
         ) : null}
       </View>
+
+      {/* Legal. App Store 3.1.2 requires a functional Privacy Policy AND Terms of Use link
+          reachable in-app for a subscription app. Each row appears ONLY when a real https URL
+          is configured (EXPO_PUBLIC_PRIVACY_POLICY_URL / _TERMS_OF_USE_URL) — a hidden row is
+          strictly better at review than one that opens a 404. When BOTH are unset the whole
+          section collapses; that unset state is the one remaining human-required launch step. */}
+      {(legal.privacyPolicyUrl !== null || legal.termsOfUseUrl !== null) && (
+        <>
+          <Divider />
+          <View style={[section, { marginTop: tokens.spacing.xl }]}>
+            <Text variant="title" tone="primary">
+              Legal
+            </Text>
+            {legal.privacyPolicyUrl !== null && (
+              <Button
+                label="Privacy Policy"
+                intent="link"
+                onPress={() => void Linking.openURL(legal.privacyPolicyUrl!)}
+              />
+            )}
+            {legal.termsOfUseUrl !== null && (
+              <Button
+                label="Terms of Use"
+                intent="link"
+                onPress={() => void Linking.openURL(legal.termsOfUseUrl!)}
+              />
+            )}
+          </View>
+        </>
+      )}
 
       <Divider />
       <View style={[section, { marginTop: tokens.spacing.xl }]}>

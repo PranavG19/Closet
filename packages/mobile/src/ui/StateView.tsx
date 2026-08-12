@@ -27,10 +27,20 @@ const authoredBlock = (gap: number): ViewStyle => ({
 export function LoadingState({ message }: { readonly message?: string }): React.JSX.Element {
   const tokens = useTokens();
   return (
-    <View style={centered(tokens.spacing.md)}>
+    // A polite live region announcing the loading state to VoiceOver/TalkBack when this
+    // view appears (WCAG 4.1.3 Status Messages) — without it, a screen that swaps to a
+    // spinner reads as a silent, empty screen. accessibilityLabel gives the container a
+    // spoken name even when no message prop is passed.
+    <View
+      style={centered(tokens.spacing.md)}
+      accessibilityLiveRegion="polite"
+      accessibilityRole="progressbar"
+      accessibilityLabel={message ?? 'Loading'}
+    >
       {/* The primary accent (now AA-legal), not the faint decorative tone — a calm, present
-          brand moment on the warm canvas rather than a washed-out spinner. */}
-      <ActivityIndicator color={tokens.color.accent.pink} />
+          brand moment on the warm canvas rather than a washed-out spinner. Decorative to a
+          screen reader — the container above already announces the loading state. */}
+      <ActivityIndicator color={tokens.color.accent.pink} accessible={false} />
       {message !== undefined ? (
         <Text variant="body" tone="secondary">
           {message}
@@ -52,7 +62,11 @@ export interface EmptyStateProps {
 export function EmptyState({ title, body, eyebrow, actionLabel, onAction }: EmptyStateProps): React.JSX.Element {
   const tokens = useTokens();
   return (
-    <View style={[authoredBlock(tokens.spacing.md), { paddingHorizontal: tokens.spacing.xl }]}>
+    // Polite live region so the empty state is announced when it appears (WCAG 4.1.3).
+    <View
+      style={[authoredBlock(tokens.spacing.md), { paddingHorizontal: tokens.spacing.xl }]}
+      accessibilityLiveRegion="polite"
+    >
       {eyebrow !== undefined ? <Text variant="overline">{eyebrow}</Text> : null}
       <Text variant="display" tone="primary">
         {title}
@@ -79,7 +93,14 @@ export interface ErrorStateProps {
 export function ErrorState({ title, body, eyebrow, onRetry }: ErrorStateProps): React.JSX.Element {
   const tokens = useTokens();
   return (
-    <View style={[authoredBlock(tokens.spacing.md), { paddingHorizontal: tokens.spacing.xl }]}>
+    // An error is urgent: role="alert" (assertive) so VoiceOver/TalkBack interrupts and
+    // announces the failure the moment this view replaces the content, rather than leaving
+    // the user on a silently-swapped screen (WCAG 4.1.3 Status Messages).
+    <View
+      style={[authoredBlock(tokens.spacing.md), { paddingHorizontal: tokens.spacing.xl }]}
+      accessibilityLiveRegion="assertive"
+      accessibilityRole="alert"
+    >
       {eyebrow !== undefined ? <Text variant="overline">{eyebrow}</Text> : null}
       <Text variant="display" tone="primary">
         {title ?? 'Something went sideways'}
