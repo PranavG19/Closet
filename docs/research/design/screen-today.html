@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>closet — Today</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* palette — verbatim from ATELIER-BRIEF (packages/mobile/src/tokens/tokens.ts) */
+    --canvas:#F6F2EC; --surface:#FFFFFF; --sunken:#EDE6DB;
+    --ink:#221F1B; --sec:#655F58; --ter:#6C655C; --onAccent:#FFFFFF;
+    --pink:#B62E58; --red:#B33A2C; --blue:#396595;
+    --dpink:#E0708F; --dred:#D45647; --dblue:#5E8FC0;
+    --hair:#E4DCD0;
+    --clean:#4E8A6A; --dirty:#9A7A38; --unavail:#847E76;
+    /* fabric stand-ins */
+    --camel:#8a6f52; --black:#2b2b2f; --ivory:#e7e3dc; --rose:#9c5661;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Inter',-apple-system,system-ui,sans-serif;
+    --shadow:0 8px 24px rgba(58,46,35,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#171512;color:#E8E3DA;font-family:var(--sans);line-height:1.5;
+    -webkit-font-smoothing:antialiased;padding:56px 24px 96px;display:flex;flex-direction:column;align-items:center;gap:20px}
+  .eyebrow-page{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8A837A;font-weight:600}
+
+  /* phone frame */
+  .phone{width:340px;background:#000;border-radius:46px;padding:11px;box-shadow:0 40px 80px -20px rgba(0,0,0,.7)}
+  .screen{border-radius:36px;overflow:hidden;height:720px;position:relative;background:var(--canvas)}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:104px;height:26px;background:#000;border-radius:16px;z-index:30}
+  .status{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:13px;font-weight:600;z-index:20;color:#fff}
+
+  .today{height:100%;overflow-y:auto;color:var(--ink)}
+  .today::-webkit-scrollbar{display:none}
+
+  /* ---------- full-bleed hero: the garment IS the interface ---------- */
+  .hero{position:relative;height:452px;overflow:hidden;
+    background:linear-gradient(155deg,#cabaa6 0%,#b09a82 55%,#8d7660 100%)}
+  .hero .ovl{position:absolute;inset:0;
+    background:linear-gradient(180deg,rgba(20,16,12,.28) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 46%,rgba(20,16,12,.62) 100%)}
+  .hero svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:308px;
+    filter:drop-shadow(0 26px 32px rgba(60,44,30,.38))}
+  .hero .eye{position:absolute;top:58px;left:22px;color:#fff;opacity:.9;
+    font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:600}
+  .hero .state{position:absolute;top:58px;right:22px;color:#fff;font-size:11px;font-weight:600;
+    letter-spacing:.02em;display:flex;align-items:center;gap:6px;opacity:.92}
+  .hero .state .dot{width:6px;height:6px;border-radius:999px;background:var(--clean);
+    box-shadow:0 0 0 3px rgba(78,138,106,.28)}
+  .hero .htxt{position:absolute;left:22px;bottom:24px;right:22px;color:#fff}
+  .hero .htxt .t{font-family:var(--serif);font-weight:500;font-size:33px;line-height:1.03;letter-spacing:-.01em}
+  .hero .htxt .s{font-size:13.5px;opacity:.92;margin-top:6px;font-weight:500}
+
+  /* ---------- body: bare sections + hairlines, not stacked cards ---------- */
+  .cbody{padding:22px 22px 26px}
+  .rule{height:1px;background:var(--hair);margin:0 0 18px}
+
+  /* the harmony note (suggestionNote) — quiet serif italic, advisory, never a nag */
+  .note{font-family:var(--serif);font-style:italic;font-size:16px;color:#3b352e;line-height:1.46}
+
+  /* derived meta (warmth verdict + palette) — overline keys, sans values */
+  .meta{display:flex;gap:26px;margin-top:20px}
+  .meta .k{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ter);font-weight:600}
+  .meta .v{font-size:14px;margin-top:4px;color:#3b352e}
+
+  /* "Why this?" — opt-in disclosure (rendered EXPANDED here to surface real rationale) */
+  .why{margin-top:22px}
+  .why .toggle{font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;color:var(--sec);
+    display:inline-flex;align-items:center;gap:7px}
+  .why .toggle .car{font-size:9px;transform:translateY(1px)}
+  .why .lines{margin-top:12px;border-left:2px solid var(--dpink);padding-left:14px;
+    display:flex;flex-direction:column;gap:9px}
+  .why .lines p{font-size:13px;line-height:1.5;color:var(--sec)}
+
+  /* action row — quiet, confident, left-aligned; ONE restrained primary */
+  .act{margin-top:28px;display:flex;align-items:center;gap:18px}
+  .act .primary{font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;font-weight:600;
+    color:var(--ink);border-bottom:2px solid var(--pink);padding-bottom:6px}
+  .act .worn{margin-left:auto;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:600;color:var(--ter)}
+
+  /* ---------- 5-tab bar ---------- */
+  .tabs{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--hair);
+    display:flex;padding:12px 0 26px;z-index:20}
+  .tabs .tb{flex:1;text-align:center;font-size:10px;letter-spacing:.04em;color:var(--ter);font-weight:500}
+  .tabs .tb .i{font-size:17px;display:block;margin-bottom:4px}
+  .tabs .tb.on{color:var(--pink)}
+  .tabs .tb.on .i{font-family:var(--serif)}
+
+  .cap{color:#8A837A;font-size:12.5px;max-width:340px;text-align:center;line-height:1.5}
+</style>
+</head>
+<body>
+  <div class="eyebrow-page">closet · Today (daily suggestion)</div>
+
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>􀙇 􀛨 􀛨</span></div>
+
+    <div class="today">
+      <!-- HERO: the suggested anchor garment, full-bleed. Fabric-colored cutout, never a word. -->
+      <div class="hero">
+        <div class="ovl"></div>
+        <div class="eye">Today · mild, layered</div>
+        <div class="state"><span class="dot"></span>Ready to wear</div>
+        <!-- camel wool coat, worn open (fabric #8a6f52) -->
+        <svg viewBox="0 0 200 300" fill="none" aria-label="Suggested camel wool coat">
+          <path d="M70 40 L60 60 L40 80 L52 120 L64 110 L60 264 L140 264 L136 110 L148 120 L160 80 L140 60 L130 40 L120 34 Q100 52 80 34 Z" fill="#8a6f52"/>
+          <path d="M100 46 L100 254" stroke="#4c3c2e" stroke-width="2" opacity=".45"/>
+          <path d="M80 34 L92 96 L100 100 L108 96 L120 34" stroke="#6f5a42" stroke-width="1.5" fill="none" opacity=".7"/>
+          <circle cx="100" cy="120" r="2.4" fill="#3a2e22"/>
+          <circle cx="100" cy="150" r="2.4" fill="#3a2e22"/>
+          <circle cx="100" cy="180" r="2.4" fill="#3a2e22"/>
+        </svg>
+        <div class="htxt">
+          <!-- hero.color + a styled headline for the anchor piece -->
+          <div class="t">The camel coat,<br>worn open.</div>
+          <!-- fabric · the rest of the look (selectedRows.slice(1)) -->
+          <div class="s">Camel wool &middot; with black denim &amp; ivory knit</div>
+        </div>
+      </div>
+
+      <div class="cbody">
+        <div class="rule"></div>
+
+        <!-- suggestionNote(): the honest harmony one-liner, or omitted entirely when there's nothing to say -->
+        <div class="note">“Camel over black is quiet and high-contrast — it always reads considered.”</div>
+
+        <!-- derived from outfitVerdict + palette read -->
+        <div class="meta">
+          <div class="m"><div class="k">Warmth</div><div class="v">Layered · 3 pieces</div></div>
+          <div class="m"><div class="k">Palette</div><div class="v">In your camels</div></div>
+        </div>
+
+        <!-- "Why this?" disclosure, shown EXPANDED (showWhy=true) to render the real rationale lines -->
+        <div class="why">
+          <div class="toggle"><span class="car">▾</span>Why this</div>
+          <div class="lines">
+            <p>Warmer layers as it cools toward this evening — three pieces, coat on top.</p>
+            <p>You wore the grey knit yesterday, so we reached for pieces you haven't.</p>
+            <p>Nudged toward your camels — a palette you chose, matched loosely by family.</p>
+          </div>
+        </div>
+
+        <!-- ONE restrained primary action ("I wore this") + a quiet secondary count -->
+        <div class="act">
+          <div class="primary">Wore this today</div>
+          <div class="worn">Last worn · 9 days ago</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tb on"><span class="i">✦</span>Today</div>
+      <div class="tb"><span class="i">▢</span>Closet</div>
+      <div class="tb"><span class="i">＋</span>Add</div>
+      <div class="tb"><span class="i">▤</span>Outfits</div>
+      <div class="tb"><span class="i">◔</span>You</div>
+    </div>
+  </div></div>
+
+  <p class="cap">Today — the garment fills the frame, a serif headline names the look, the rationale is a quiet caption, the action is confident not loud. Populated + "Why this" expanded shown; other states in NOTES.</p>
+
+<!-- NOTES ==========================================================================
+
+SCREEN: Today (daily suggestion) — recomposed from packages/mobile/features/suggestions/SuggestionsScreen.tsx.
+Grounded ONLY in what that screen actually renders; no invented features (notably: NO reshuffle/
+refresh action — the real screen has none, so the approved comparison's ↻ icon is dropped).
+
+REAL CONTENT MAPPED (nothing invented):
+  • Hero garment       = suggestion.items[0] (heroItem); label was hero.color ?? hero.category.
+                         Rendered as a full-bleed camel-wool cutout instead of a beige well + word.
+  • "with …" line      = selectedRows.slice(1).map(color ?? category) → "with black denim & ivory knit".
+  • Harmony note        = suggestionNote(selectedRows) → the italic serif line. Omitted entirely when
+                         null (single-colour / unknown / clash) — the code renders no filler, so neither do we.
+  • Warmth / Palette    = outfitVerdict + hasPalette meta (layer count; "In your camels").
+  • "Why this?"         = the showWhy disclosure; rendered EXPANDED to surface suggestionRationale()
+                         lines (warmth reasoning, yesterday-freshness, honest self-chosen-palette limit).
+  • Primary action      = logWear ("I wore this" → "Wore this today"; pending state = "Logging…", see below).
+  • Status dot          = hero availability (clean = #4E8A6A), shown as a quiet overline in the hero.
+
+STATES THIS SCREEN HAS (this file renders the most representative populated state; others noted):
+  1. LOADING  — <LoadingState message="Putting together today's look…" />. Same hero frame, garment
+                area a soft shimmer over --sunken, text lines as skeleton bars. No spinner-in-a-void.
+  2. ERROR    — <ErrorState body="We couldn't build a suggestion." onRetry> — quiet retry as an
+                underlined caps action, left-aligned, not a centered alert.
+  3. EMPTY (nothing owned) — "Nothing to suggest yet" / "Add a few pieces and we'll style today's
+                look for you." CTA routes to Add.
+  4. EMPTY (all in wash)   — "Everything is in the wash" / "Mark something clean in Laundry…". Distinct
+                from #3 (the code deliberately separates these; do NOT collapse them).
+  5. WHY COLLAPSED — default; the disclosure is a single "Why this" toggle (no rationale lines shown).
+                This file shows the EXPANDED variant to make the real rationale content visible.
+  6. LOGGING  — logWear.isPending: primary reads "Logging…" and is disabled (reduced opacity).
+  7. NOTE ABSENT — when suggestionNote() returns null, the italic line is dropped and the meta row
+                sits directly under the hairline (rhythm preserved, no empty strip).
+
+ANTI-SLOP LAWS APPLIED (from ATELIER-BRIEF §"anti-slop laws"):
+  1. Clothes are the interface — a 452px full-bleed fabric-colored coat cutout is the hero; the old
+     330px beige well with the word "outerwear" is gone. Category words never stand in for a garment.
+  2. Not everything is a card — the whole screen is ONE full-bleed hero + a bare body section split by
+     a single hairline. Zero rounded-card-with-shadow wrappers. Cards earned no place here.
+  3. Quiet, confident actions — the loud full-width pink pill is replaced by one underlined uppercase
+     "Wore this today" (wine rule) + a quiet metadata counter. Accent used as punctuation (the rule,
+     the state dot), never a large fill.
+  4. Asymmetry + left-alignment — every element left-aligned to a 22px margin; eyebrow top-left, state
+     top-right, headline bottom-left over the image. Nothing dead-centered.
+  5. Type hierarchy with contrast — Fraunces serif display headline (maps to Georgia in-app) + 11px
+     .18–.24em uppercase overlines (eyebrow, meta keys, why-toggle) + restrained Inter body + a serif
+     italic note. Size AND style contrast.
+  6. Rhythm, not uniform padding — generous full-bleed hero, then tightening body rhythm (hairline →
+     note → meta → disclosure → action) with intentional, uneven vertical space.
+  7. Nav: 5 tabs — Today · Closet · Add · Outfits · You. Active = accent.pink with serif glyph. Account
+     lives under "You" (Apple 5.1.1(v) reachability preserved).
+
+TOKEN / PRIMITIVE ASSUMPTIONS BEYOND THE BRIEF:
+  • Serif DISPLAY at ~33px with -0.01em is the brief's one sanctioned structural token change (display→serif).
+  • A serif *italic* variant is used for the harmony note. The brief specifies display→serif but not an
+    italic style token; this assumes a `display` italic (or a `note` variant) is acceptable. If not, the
+    note falls back to sans body — flag for the token owner.
+  • The hero uses a fabric gradient background (#cabaa6→#8d7660) as a stand-in for the real cutout PNG's
+    backdrop; production renders the ApprovedPhoto cutout on --sunken, not a gradient.
+  • "Last worn · 9 days ago" secondary text assumes a wear-recency read is available at render; the real
+    screen has recentWears but does not currently surface a per-item "last worn" string. Treat as a
+    proposed addition, not existing copy — drop it if the data isn't wired.
+-->
+</body>
+</html>

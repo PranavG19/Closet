@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>closet — Outfits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,ital,wght@9..144,0,400;9..144,0,500;9..144,0,600;9..144,1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* palette — verbatim from ATELIER-BRIEF.md */
+    --canvas:#F6F2EC; --surface:#FFFFFF; --sunken:#EDE6DB;
+    --ink:#221F1B; --sec:#655F58; --ter:#6C655C; --onAccent:#FFFFFF;
+    --pink:#B62E58; --red:#B33A2C; --blue:#396595;
+    --dec-pink:#E0708F; --dec-red:#D45647; --dec-blue:#5E8FC0;
+    --hair:#E4DCD0;
+    --clean:#4E8A6A; --dirty:#9A7A38; --unavail:#847E76;
+    --wine:#9F4560; /* action rule, per approved reference */
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Inter',-apple-system,system-ui,sans-serif;
+    /* fabric fills */
+    --camel:#8a6f52; --black:#2b2b2f; --ivory:#e7e3dc; --rose:#9c5661;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#171512;color:#E8E3DA;font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;padding:56px 24px 96px;display:flex;flex-wrap:wrap;gap:48px;justify-content:center}
+  .col{display:flex;flex-direction:column;align-items:center}
+  .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8A837A;font-weight:600;margin-bottom:14px}
+  .cap{color:#8A837A;font-size:13px;margin-top:16px;max-width:340px;text-align:left}
+  .cap b{color:#F0C6D2;font-weight:500}
+
+  /* phone frame */
+  .phone{width:340px;background:#000;border-radius:46px;padding:11px;box-shadow:0 40px 80px -20px rgba(0,0,0,.7)}
+  .screen{border-radius:36px;overflow:hidden;height:720px;position:relative;background:var(--canvas)}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:104px;height:26px;background:#000;border-radius:16px;z-index:30}
+  .status{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:13px;font-weight:600;z-index:20}
+  .scroll{height:100%;overflow-y:auto;background:var(--canvas)}
+  .scroll::-webkit-scrollbar{display:none}
+
+  /* ---- masthead: left-aligned, asymmetric, serif display ---- */
+  .mast{padding:56px 22px 0}
+  .mast .eye{font-size:11px;letter-spacing:.20em;text-transform:uppercase;color:var(--ter);font-weight:600}
+  .mast .h{font-family:var(--serif);font-weight:500;font-size:34px;letter-spacing:-.01em;line-height:1.0;color:var(--ink);margin-top:6px}
+  .mast .row{display:flex;align-items:baseline;justify-content:space-between;margin-top:8px}
+  .mast .n{font-size:12px;color:var(--ter);letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+  /* quiet primary action: underlined caps, not a shouting pill */
+  .build{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink);border-bottom:2px solid var(--wine);padding-bottom:4px}
+
+  /* ---- featured look: full-bleed hero, garments are the hero ---- */
+  .hero{position:relative;height:392px;margin-top:22px;overflow:hidden;background:linear-gradient(158deg,#cabaa6 0%,#b6a086 52%,#8f7860 100%)}
+  .hero .ovl{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(20,16,12,.60) 100%)}
+  .hero .eye{position:absolute;top:18px;left:22px;color:#fff;opacity:.9;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:600}
+  /* the look = several pieces, arranged as a styled flat-lay, never category words */
+  .flat{position:absolute;inset:0}
+  .flat svg{position:absolute;filter:drop-shadow(0 20px 26px rgba(60,44,30,.34))}
+  .flat .coat{left:20px;top:74px;height:238px}
+  .flat .knit{left:150px;top:64px;height:150px}
+  .flat .denim{left:120px;top:150px;height:206px}
+  .flat .boot{right:14px;bottom:96px;height:96px}
+  .hero .htxt{position:absolute;left:22px;bottom:20px;right:22px;color:#fff}
+  .hero .htxt .t{font-family:var(--serif);font-weight:500;font-size:30px;line-height:1.02;letter-spacing:-.01em}
+  .hero .htxt .s{font-size:13px;opacity:.9;margin-top:5px}
+
+  /* ---- the saved-looks list: hairline-divided rows, NOT cards ---- */
+  .looks{padding:6px 22px 26px}
+  .sect{font-size:11px;letter-spacing:.20em;text-transform:uppercase;color:var(--ter);font-weight:600;margin:22px 0 4px}
+  .look{padding:18px 0;border-top:1px solid var(--hair)}
+  .look:first-of-type{border-top:none}
+  .look .top{display:flex;align-items:baseline;justify-content:space-between}
+  .look .nm{font-family:var(--serif);font-weight:500;font-size:20px;letter-spacing:-.01em;color:var(--ink)}
+  .look .nm.untitled{font-style:italic;color:var(--sec)}
+  .look .ct{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ter);font-weight:600;white-space:nowrap;margin-left:14px}
+  /* edge-to-edge cutout strip: the LOOK, not its name */
+  .strip{display:flex;gap:8px;margin-top:12px}
+  .strip .th{width:60px;height:60px;border-radius:12px;background:var(--sunken);overflow:hidden;display:flex;align-items:center;justify-content:center}
+  .strip .th svg{height:82%}
+  .strip .th.empty{}
+  /* quiet row actions — ghost text, appear as intent, no pills */
+  .acts{display:flex;gap:20px;margin-top:14px}
+  .acts .a{font-size:12px;letter-spacing:.10em;text-transform:uppercase;font-weight:600;color:var(--sec)}
+  .acts .a.armed{color:var(--red)}
+  .acts .a.keep{color:var(--ter)}
+  .acts .a.rule{border-bottom:2px solid var(--wine);color:var(--ink);padding-bottom:3px}
+
+  /* rename inline (rendered on the 2nd look) */
+  .rename{margin-top:12px}
+  .rename input{width:100%;min-height:42px;border:1px solid var(--hair);border-radius:12px;background:var(--surface);padding:0 14px;font-family:var(--sans);font-size:15px;color:var(--ink)}
+  .rename .r2{display:flex;gap:14px;margin-top:12px;align-items:center}
+  .rename .save{font-size:12px;letter-spacing:.10em;text-transform:uppercase;font-weight:600;color:var(--ink);border-bottom:2px solid var(--wine);padding-bottom:3px}
+  .rename .cancel{font-size:12px;letter-spacing:.10em;text-transform:uppercase;font-weight:600;color:var(--ter)}
+
+  /* tab bar — 5 tabs, active = wine underline */
+  .tabs{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--hair);display:flex;padding:12px 0 26px;z-index:20}
+  .tabs .tb{flex:1;text-align:center;font-size:10px;letter-spacing:.04em;color:var(--ter);font-weight:500;position:relative}
+  .tabs .tb .i{font-size:17px;display:block;margin-bottom:4px}
+  .tabs .tb.on{color:var(--wine)}
+  .tabs .tb.on::after{content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:-12px;width:22px;height:2px;background:var(--wine)}
+
+  /* ---- small-frame alternate-state renders ---- */
+  .mini{display:flex;gap:24px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+  .miniframe{width:200px}
+  .miniframe .lbl{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:#8A837A;font-weight:600;text-align:center;margin-bottom:8px}
+  .sframe{background:#000;border-radius:30px;padding:8px}
+  .sscreen{border-radius:24px;overflow:hidden;height:300px;background:var(--canvas);position:relative}
+  /* empty state */
+  .estate{padding:44px 22px 0}
+  .estate .eye{font-size:11px;letter-spacing:.20em;text-transform:uppercase;color:var(--ter);font-weight:600}
+  .estate .h{font-family:var(--serif);font-weight:500;font-size:24px;letter-spacing:-.01em;color:var(--ink);margin-top:6px;line-height:1.05}
+  .estate .b{font-size:13px;color:var(--sec);margin-top:10px;max-width:150px}
+  .estate .cta{margin-top:20px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink);border-bottom:2px solid var(--wine);padding-bottom:4px;display:inline-block}
+  /* ghost hanger motif so empty isn't a void */
+  .estate .ghost{position:absolute;right:-30px;bottom:6px;opacity:.5}
+  /* loading */
+  .lstate{padding:44px 22px 0}
+  .lstate .eye{font-size:11px;letter-spacing:.20em;text-transform:uppercase;color:var(--ter);font-weight:600}
+  .lstate .h{font-family:var(--serif);font-weight:500;font-size:24px;color:var(--ink);margin-top:6px}
+  .lstate .sk{margin-top:20px}
+  .lstate .bar{height:14px;border-radius:7px;background:var(--sunken);margin-bottom:10px}
+  .lstate .strip{display:flex;gap:8px;margin-top:6px}
+  .lstate .strip .th{width:44px;height:44px;border-radius:10px;background:var(--sunken)}
+  .lstate .msg{font-size:12px;color:var(--ter);margin-top:22px;font-style:italic;font-family:var(--serif)}
+  /* error */
+  .erstate{padding:44px 22px 0}
+  .erstate .dot{width:8px;height:8px;border-radius:999px;background:var(--red);display:inline-block;margin-bottom:14px}
+  .erstate .h{font-family:var(--serif);font-weight:500;font-size:22px;color:var(--ink);line-height:1.1}
+  .erstate .b{font-size:13px;color:var(--sec);margin-top:10px}
+  .erstate .retry{margin-top:20px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink);border-bottom:2px solid var(--wine);padding-bottom:4px;display:inline-block}
+</style>
+</head>
+<body>
+
+<!-- ============ MAIN: populated Outfits (armed-delete on one row) ============ -->
+<div class="col">
+  <div class="eyebrow">closet · Outfits — populated</div>
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="status" style="color:#fff"><span>9:41</span><span>&#xF87F; &#xF8BB;</span></div>
+    <div class="scroll">
+
+      <!-- masthead -->
+      <div class="mast">
+        <div class="eye">Your looks</div>
+        <div class="h">Outfits</div>
+        <div class="row">
+          <div class="n">9 saved</div>
+          <div class="build">Build a look</div>
+        </div>
+      </div>
+
+      <!-- featured saved look, full-bleed -->
+      <div class="hero">
+        <div class="flat">
+          <!-- camel coat -->
+          <svg class="coat" viewBox="0 0 200 300"><path d="M70 40 L60 60 L40 80 L52 120 L64 110 L60 260 L140 260 L136 110 L148 120 L160 80 L140 60 L130 40 L120 34 Q100 52 80 34 Z" fill="var(--camel)"/><path d="M100 46 L100 250" stroke="#4c3c2e" stroke-width="2" opacity=".5"/><circle cx="100" cy="120" r="2.4" fill="#3a2e22"/><circle cx="100" cy="150" r="2.4" fill="#3a2e22"/><circle cx="100" cy="180" r="2.4" fill="#3a2e22"/></svg>
+          <!-- ivory knit -->
+          <svg class="knit" viewBox="0 0 120 150"><path d="M40 24 L26 34 L18 58 L30 64 L36 54 L36 120 L84 120 L84 54 L90 64 L102 58 L94 34 L80 24 Q60 40 40 24Z" fill="var(--ivory)" stroke="#cfc7ba" stroke-width="1.5"/></svg>
+          <!-- black denim -->
+          <svg class="denim" viewBox="0 0 120 150"><path d="M44 20 L44 60 L34 140 L52 140 L60 78 L68 140 L86 140 L76 60 L76 20Z" fill="var(--black)"/></svg>
+          <!-- ankle boot -->
+          <svg class="boot" viewBox="0 0 100 100"><path d="M34 10 L34 60 L20 60 L18 76 L82 76 L82 62 Q66 60 62 46 L58 10Z" fill="#3a3330"/></svg>
+        </div>
+        <div class="ovl"></div>
+        <div class="eye">Most-worn · saved look</div>
+        <div class="htxt">
+          <div class="t">The camel coat,<br>done in black.</div>
+          <div class="s">Camel wool · ivory knit · black denim · 4 pieces</div>
+        </div>
+      </div>
+
+      <!-- saved-looks list -->
+      <div class="looks">
+        <div class="sect">All saved looks</div>
+
+        <!-- row 1: normal -->
+        <div class="look">
+          <div class="top">
+            <div class="nm">Friday dinner</div>
+            <div class="ct">3 pieces</div>
+          </div>
+          <div class="strip">
+            <div class="th"><svg viewBox="0 0 120 150"><path d="M46 20 Q60 30 74 20 L82 44 L74 60 L80 138 L40 138 L46 60 L38 44Z" fill="var(--rose)"/></svg></div>
+            <div class="th"><svg viewBox="0 0 100 100"><path d="M34 10 L34 60 L20 60 L18 76 L82 76 L82 62 Q66 60 62 46 L58 10Z" fill="#3a3330"/></svg></div>
+            <div class="th"><svg viewBox="0 0 120 120"><rect x="30" y="40" width="60" height="42" rx="8" fill="#5c4a3a"/><path d="M40 40 Q60 18 80 40" fill="none" stroke="#5c4a3a" stroke-width="6"/></svg></div>
+          </div>
+          <div class="acts">
+            <div class="a">Rename</div>
+            <div class="a">Remove</div>
+          </div>
+        </div>
+
+        <!-- row 2: rename mode (inline TextInput) -->
+        <div class="look">
+          <div class="top">
+            <div class="nm">Sunday errands</div>
+            <div class="ct">2 pieces</div>
+          </div>
+          <div class="strip">
+            <div class="th"><svg viewBox="0 0 120 150"><path d="M40 24 L26 34 L18 58 L30 64 L36 54 L36 120 L84 120 L84 54 L90 64 L102 58 L94 34 L80 24 Q60 40 40 24Z" fill="var(--ivory)" stroke="#cfc7ba" stroke-width="1.5"/></svg></div>
+            <div class="th"><svg viewBox="0 0 120 150"><path d="M44 20 L44 60 L34 140 L52 140 L60 78 L68 140 L86 140 L76 60 L76 20Z" fill="var(--black)"/></svg></div>
+          </div>
+          <div class="rename">
+            <input value="Sunday errands" />
+            <div class="r2">
+              <div class="save">Save</div>
+              <div class="cancel">Cancel</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- row 3: ARMED-DELETE state -->
+        <div class="look">
+          <div class="top">
+            <div class="nm untitled">Untitled look</div>
+            <div class="ct">1 piece</div>
+          </div>
+          <div class="strip">
+            <div class="th"><svg viewBox="0 0 120 150"><path d="M42 22 L30 32 L22 58 L32 64 L38 54 L36 130 L84 130 L82 54 L88 64 L98 58 L90 32 L78 22 Q60 38 42 22Z" fill="var(--camel)"/></svg></div>
+          </div>
+          <div class="acts">
+            <div class="a armed">Delete this look</div>
+            <div class="a keep">Keep</div>
+          </div>
+        </div>
+
+        <!-- row 4: normal, empty preview well (paths awaiting signed URL) -->
+        <div class="look">
+          <div class="top">
+            <div class="nm">Wedding guest</div>
+            <div class="ct">4 pieces</div>
+          </div>
+          <div class="strip">
+            <div class="th"><svg viewBox="0 0 120 150"><path d="M46 20 Q60 30 74 20 L82 44 L74 60 L80 138 L40 138 L46 60 L38 44Z" fill="var(--rose)"/></svg></div>
+            <div class="th empty"></div>
+            <div class="th"><svg viewBox="0 0 100 100"><path d="M34 10 L34 60 L20 60 L18 76 L82 76 L82 62 Q66 60 62 46 L58 10Z" fill="#6b5140"/></svg></div>
+            <div class="th empty"></div>
+          </div>
+          <div class="acts">
+            <div class="a">Rename</div>
+            <div class="a">Remove</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- tab bar -->
+    <div class="tabs">
+      <div class="tb"><span class="i">&#10022;</span>Today</div>
+      <div class="tb"><span class="i">&#9634;</span>Closet</div>
+      <div class="tb"><span class="i">&#65291;</span>Add</div>
+      <div class="tb on"><span class="i">&#9636;</span>Outfits</div>
+      <div class="tb"><span class="i">&#9684;</span>You</div>
+    </div>
+  </div></div>
+  <p class="cap">A featured saved look fills the frame — the garments <b>are</b> the interface. Below, saved looks are hairline-divided rows (not cards): serif name left, uppercase piece-count right, an edge-to-edge cutout strip, quiet ghost actions. Shown here: normal row, <b>rename</b> (inline field), <b>armed-delete</b> (red "Delete this look" + "Keep"), and a row with cutouts still resolving (empty sunken wells, degrading tile-by-tile).</p>
+</div>
+
+<!-- ============ ALTERNATE STATES ============ -->
+<div class="col">
+  <div class="eyebrow">the other real states</div>
+  <div class="mini">
+
+    <!-- EMPTY -->
+    <div class="miniframe">
+      <div class="lbl">Empty</div>
+      <div class="sframe"><div class="sscreen">
+        <div class="estate">
+          <div class="eye">Your looks</div>
+          <div class="h">No outfits<br>yet.</div>
+          <div class="b">Build a look from your closet and save it here.</div>
+          <div class="cta">Build an outfit</div>
+          <svg class="ghost" width="150" height="150" viewBox="0 0 150 150"><path d="M60 40 L48 50 L38 78 L50 84 L58 70 L56 130 L104 130 L102 70 L110 84 L122 78 L112 50 L100 40" fill="none" stroke="var(--hair)" stroke-width="2"/></svg>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="miniframe">
+      <div class="lbl">Loading</div>
+      <div class="sframe"><div class="sscreen">
+        <div class="lstate">
+          <div class="eye">Your looks</div>
+          <div class="h">Outfits</div>
+          <div class="sk">
+            <div class="bar" style="width:60%"></div>
+            <div class="strip"><div class="th"></div><div class="th"></div><div class="th"></div></div>
+          </div>
+          <div class="msg">Loading your outfits…</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- ERROR -->
+    <div class="miniframe">
+      <div class="lbl">Error</div>
+      <div class="sframe"><div class="sscreen">
+        <div class="erstate">
+          <span class="dot"></span>
+          <div class="h">We couldn't<br>load your outfits.</div>
+          <div class="b">Check your connection and try again.</div>
+          <div class="retry">Retry</div>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+  <p class="cap">The three non-populated states, same type system. <b>Empty</b> keeps a quiet ghost-hanger motif instead of a void; <b>loading</b> skeletons the masthead + a cutout strip with the honest "Loading your outfits…" copy; <b>error</b> uses a single state dot, no alarm banner. The <b>builder canvas</b> (opened by "Build a look" / empty CTA) is a separate screen (OutfitBuilderScreen) — out of scope here.</p>
+</div>
+
+<!-- NOTES
+=====================================================================
+ANTI-SLOP LAWS APPLIED (per docs/research/design/ATELIER-BRIEF.md):
+
+1. The clothes are the interface — the featured saved look is a full-bleed
+   flat-lay of its actual member garments (coat + knit + denim + boot), and
+   every list row leads with a cutout strip. NEVER a category word: an
+   unresolved preview draws an empty sunken well (mirrors the real code's
+   path-keyed signed-URL degradation), never the text "top"/"dress".
+
+2. Not everything is a card — the shipped screen renders each outfit as a
+   <Card variant="surface">. This recomposes the list as hairline-divided
+   bare rows under a full-bleed hero. Zero rounded-shadow cards. Modes are
+   mixed: hero (full-bleed) → sectioned list (hairline rules).
+
+3. Quiet, confident actions — the shipped "Build a look" is a full-width
+   filled Button; here it's an underlined uppercase label in the masthead.
+   Row Rename/Remove are ghost uppercase text. The one loud moment (a filled
+   red button) becomes a red-tinted "Delete this look" label in the
+   armed-delete state — restrained, still clearly destructive.
+
+4. Asymmetry + left-alignment — masthead eyebrow/title/count/action are all
+   left-aligned; count and Build sit on a baseline row with the action pushed
+   right (intentional off-center tension). No centered stacks.
+
+5. Type hierarchy with contrast — Fraunces serif display for the screen title,
+   the hero headline, and each look's name; 11px letterspaced uppercase
+   overlines for "Your looks" / section label / piece counts; Inter body.
+   Untitled looks use serif italic (matches the code's 'Untitled look').
+
+6. Rhythm, not uniform padding — generous space around the hero, tighter
+   18px rhythm between list rows, tight 8px gaps inside the cutout strips.
+
+7. Nav: 5 tabs — Today · Closet · Add · Outfits · You. Outfits active with a
+   wine underline (matches the approved craftbar).
+
+REAL STATES COVERED (grounded in OutfitsScreen.tsx):
+- populated list (main frame): outfit name / piecesLabel ("3 pieces",
+  "1 piece") / preview_paths cutout strip / empty well for unresolved paths.
+- rename mode: inline TextInput seeded with current name + Save/Cancel
+  (row 2 of the main frame).
+- armed-delete two-tap: "Delete this look" (red) + "Keep" (row 3).
+- empty / loading / error: the three mini-frames, with the exact copy from
+  the code ("No outfits yet", "Loading your outfits…", "We couldn't load
+  your outfits.", "Build an outfit").
+- NOT rendered (noted): the builder canvas branch (building===true →
+  OutfitBuilderScreen) is a distinct screen, out of scope for the list surface.
+
+TOKEN / PRIMITIVE ADDITIONS ASSUMED BEYOND THE BRIEF:
+- --wine (#9F4560) as the 2px underline accent under quiet primary actions —
+  carried over from the owner-approved design-comparison.html reference, not a
+  new token in tokens.ts. If the running app prefers, this maps to accent.pink.
+- A "featured / most-worn look" hero treatment for the list surface — the
+  shipped screen has no hero; this is a composition addition. It needs one
+  derived datum (the most-worn saved outfit) which the wear-log repo can
+  already supply; no schema change implied.
+- A ghost-hanger outline motif on the empty state (hairline stroke only) —
+  decorative, no new token.
+=====================================================================
+-->
+</body>
+</html>

@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>closet — craft vs. slop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bone:#F5F1EA; --cream:#F6F2EC; --ink:#22201D; --wine:#9F4560; --pink:#B62E58;
+    --sunken:#EDE6DB; --hair:#E4DCD0; --sec:#655F58; --ter:#8A837A;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Inter',-apple-system,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#171512;color:#E8E3DA;font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;padding:56px 24px 96px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-family:var(--serif);font-weight:500;font-size:44px;letter-spacing:-.02em;line-height:1.05;color:#fff}
+  .lede{max-width:620px;margin-top:18px;color:#B8B1A6;font-size:17px}
+  .lede b{color:#F0C6D2;font-weight:500}
+  .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8A837A;font-weight:600}
+  .row{display:flex;gap:40px;flex-wrap:wrap;margin-top:56px;align-items:flex-start}
+  .col{flex:1;min-width:320px}
+  .col h2{font-family:var(--serif);font-weight:500;font-size:22px;color:#fff;margin:14px 0 4px}
+  .tag{display:inline-block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:4px 10px;border-radius:999px}
+  .tag.bad{background:#3a1d22;color:#e88}
+  .tag.good{background:#1e3226;color:#8fe0ad}
+  .cap{color:#8A837A;font-size:13px;margin-top:14px}
+
+  /* phone frame */
+  .phone{width:340px;margin:20px auto 0;background:#000;border-radius:46px;padding:11px;box-shadow:0 40px 80px -20px rgba(0,0,0,.7)}
+  .screen{border-radius:36px;overflow:hidden;height:720px;position:relative}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:104px;height:26px;background:#000;border-radius:16px;z-index:30}
+  .status{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:13px;font-weight:600;z-index:20}
+
+  /* ============ SLOP screen ============ */
+  .slop{background:var(--cream);height:100%;padding:52px 18px 0;color:var(--ink)}
+  .slop .title{font-family:var(--sans);font-weight:700;font-size:30px}
+  .slop .well{margin-top:14px;background:var(--sunken);border-radius:28px;height:330px;display:flex;align-items:center;justify-content:center;color:#9a938a;font-size:15px}
+  .slop .name{font-weight:700;font-size:22px;margin-top:16px}
+  .slop .sub{color:var(--sec);font-size:15px;margin-top:2px}
+  .slop .why{text-align:center;color:var(--ink);font-size:15px;margin-top:22px}
+  .slop .cta{margin-top:18px;background:var(--pink);color:#fff;text-align:center;padding:15px;border-radius:18px;font-weight:600;font-size:16px}
+  .slop.grid{padding-top:52px}
+  .slop .g{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px}
+  .slop .gt .w{background:var(--sunken);border-radius:28px;height:150px;display:flex;align-items:center;justify-content:center;color:#9a938a;font-size:13px}
+  .slop .gt .n{font-weight:700;font-size:15px;margin-top:8px}
+  .slop .gt .chip{display:inline-block;margin-top:6px;background:var(--sunken);border-radius:999px;padding:4px 12px;font-size:12px;color:var(--sec)}
+
+  /* ============ CRAFT screen ============ */
+  .craft{background:var(--bone);height:100%;color:var(--ink);position:relative;overflow-y:auto}
+  .craft::-webkit-scrollbar{display:none}
+  .hero{position:relative;height:430px;background:linear-gradient(160deg,#c8b8a4,#9c8straight 0);overflow:hidden}
+  .hero{background:linear-gradient(155deg,#cabaa6 0%,#b09a82 55%,#8d7660 100%)}
+  .hero .ovl{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 45%,rgba(20,16,12,.55) 100%)}
+  .hero svg{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);height:300px;filter:drop-shadow(0 24px 30px rgba(60,44,30,.35))}
+  .hero .eye{position:absolute;top:56px;left:22px;color:#fff;opacity:.85;font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:600}
+  .hero .htxt{position:absolute;left:22px;bottom:22px;right:22px;color:#fff}
+  .hero .htxt .t{font-family:var(--serif);font-weight:500;font-size:34px;line-height:1.02;letter-spacing:-.01em}
+  .hero .htxt .s{font-size:14px;opacity:.9;margin-top:4px}
+  .cbody{padding:20px 22px 30px}
+  .rule{height:1px;background:var(--hair);margin:2px 0 16px}
+  .why2{font-family:var(--serif);font-size:16px;font-style:italic;color:#3b352e;line-height:1.45}
+  .meta{display:flex;gap:22px;margin-top:18px}
+  .meta .m .k{font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ter);font-weight:600}
+  .meta .m .v{font-size:14px;margin-top:3px;color:#3b352e}
+  .act{margin-top:24px;display:flex;align-items:center;gap:14px}
+  .act .primary{font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink);border-bottom:2px solid var(--wine);padding-bottom:5px}
+  .act .icon{margin-left:auto;width:40px;height:40px;border:1px solid var(--hair);border-radius:999px;display:flex;align-items:center;justify-content:center;color:var(--sec)}
+
+  /* craft closet */
+  .cgrid{background:var(--bone);height:100%;color:var(--ink);padding:52px 20px 0;overflow-y:auto}
+  .cgrid::-webkit-scrollbar{display:none}
+  .cgrid .head{display:flex;align-items:baseline;justify-content:space-between}
+  .cgrid .head .t{font-family:var(--serif);font-weight:500;font-size:30px;letter-spacing:-.01em}
+  .cgrid .head .n{font-size:12px;color:var(--ter);letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+  .cgrid .filters{display:flex;gap:20px;margin-top:18px;padding-bottom:14px;border-bottom:1px solid var(--hair);overflow-x:auto}
+  .cgrid .filters span{font-size:13px;color:var(--ter);white-space:nowrap}
+  .cgrid .filters span.on{color:var(--ink);font-weight:600;position:relative}
+  .cgrid .filters span.on::after{content:'';position:absolute;left:0;right:0;bottom:-15px;height:2px;background:var(--ink)}
+  .cgrid .g{display:grid;grid-template-columns:1fr 1fr;gap:10px 12px;margin-top:20px}
+  .cgrid .t2{}
+  .cgrid .t2 .im{aspect-ratio:3/4;border-radius:4px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center}
+  .cgrid .t2 .im svg{height:76%;filter:drop-shadow(0 10px 14px rgba(60,44,30,.22))}
+  .cgrid .t2 .n{font-size:13px;margin-top:8px;font-weight:500;color:#3b352e}
+  .cgrid .t2 .k{font-size:11px;color:var(--ter);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
+  .dot{display:inline-block;width:5px;height:5px;border-radius:999px;vertical-align:middle;margin-right:5px}
+
+  /* tab bars */
+  .tabs{position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--hair);display:flex;padding:10px 0 24px;z-index:20}
+  .tabs .tb{flex:1;text-align:center;font-size:9.5px;color:var(--ter);font-weight:500}
+  .tabs .tb .i{font-size:17px;display:block;margin-bottom:3px}
+  .tabs .tb.on{color:var(--ink)}
+  .tabs.slopbar .tb.on{color:var(--pink)}
+  .tabs.craftbar{padding:12px 0 26px}
+  .tabs.craftbar .tb{font-size:10px;letter-spacing:.04em}
+  .tabs.craftbar .tb.on{color:var(--wine)}
+
+  /* annotations */
+  .notes{margin-top:80px;display:grid;grid-template-columns:1fr 1fr;gap:14px 40px}
+  .note{border-left:2px solid #3a2b30;padding:4px 0 4px 18px}
+  .note .n{font-size:10px;color:#8A837A;letter-spacing:.18em;text-transform:uppercase;font-weight:600}
+  .note .bad2{color:#e0a0a8;font-size:15px;margin-top:6px;font-weight:500}
+  .note .fix{color:#9ad7b4;font-size:14px;margin-top:6px}
+  .note .fix::before{content:'→ ';color:#5fa079}
+  @media(max-width:760px){.notes{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">closet · design review</div>
+  <h1>It isn't the palette.<br>It's the craft.</h1>
+  <p class="lede">Swapping pink for wine-rose gives you <b>slop in a different colour</b>. What reads as
+  "AI-generated" is structural: a giant empty placeholder well eating the screen, everything a
+  rounded card-with-shadow, one loud CTA, dead-centred layout, category <i>words</i> where the
+  garment photo should be. The fix is composition, hierarchy and letting the clothes <b>be the interface</b> —
+  the same palette, crafted.</p>
+
+  <!-- ============ TODAY ============ -->
+  <div class="row">
+    <div class="col">
+      <span class="tag bad">Now · reads as generic</span>
+      <h2>Today</h2>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="status" style="color:#22201D"><span>9:41</span><span>􀙇 􀛨</span></div>
+        <div class="slop">
+          <div class="title">Today</div>
+          <div class="well">outerwear</div>
+          <div class="name">camel</div>
+          <div class="sub">with black</div>
+          <div class="why">Why this?</div>
+          <div class="cta">I wore this</div>
+        </div>
+        <div class="tabs slopbar">
+          <div class="tb on"><span class="i">✦</span>Today</div>
+          <div class="tb"><span class="i">👕</span>Closet</div>
+          <div class="tb"><span class="i">＋</span>Add</div>
+          <div class="tb"><span class="i">▤</span>Outfits</div>
+          <div class="tb"><span class="i">💧</span>Laundry</div>
+          <div class="tb"><span class="i">★</span>Plan</div>
+          <div class="tb"><span class="i">◔</span>Acct</div>
+        </div>
+      </div></div>
+      <p class="cap">A 330px beige void with one word in it, a shouting pink pill, seven tabs. This is the "template demo" look.</p>
+    </div>
+
+    <div class="col">
+      <span class="tag good">Crafted · same tokens</span>
+      <h2>Today</h2>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="status" style="color:#fff"><span>9:41</span><span>􀙇 􀛨</span></div>
+        <div class="craft">
+          <div class="hero">
+            <div class="ovl"></div>
+            <div class="eye">Today · mild, layered</div>
+            <!-- coat silhouette -->
+            <svg viewBox="0 0 200 300" fill="none"><path d="M70 40 L60 60 L40 80 L52 120 L64 110 L60 260 L140 260 L136 110 L148 120 L160 80 L140 60 L130 40 L120 34 Q100 52 80 34 Z" fill="#6f5844"/><path d="M100 44 L100 250" stroke="#59473700" stroke-width="0"/><path d="M100 46 L100 250" stroke="#4c3c2e" stroke-width="2" opacity=".5"/><circle cx="100" cy="120" r="2.4" fill="#3a2e22"/><circle cx="100" cy="150" r="2.4" fill="#3a2e22"/><circle cx="100" cy="180" r="2.4" fill="#3a2e22"/></svg>
+            <div class="htxt">
+              <div class="t">The camel coat,<br>worn open.</div>
+              <div class="s">Camel wool · with black denim & boots</div>
+            </div>
+          </div>
+          <div class="cbody">
+            <div class="rule"></div>
+            <div class="why2">“Warmer layers as it cools — and you wore the grey knit yesterday, so we reached for something you haven't.”</div>
+            <div class="meta">
+              <div class="m"><div class="k">Warmth</div><div class="v">Layered · 3 pieces</div></div>
+              <div class="m"><div class="k">Palette</div><div class="v">In your camels</div></div>
+            </div>
+            <div class="act">
+              <div class="primary">Wear it today</div>
+              <div class="icon">↻</div>
+            </div>
+          </div>
+        </div>
+        <div class="tabs craftbar">
+          <div class="tb on"><span class="i" style="font-family:var(--serif)">✦</span>Today</div>
+          <div class="tb"><span class="i">▢</span>Closet</div>
+          <div class="tb"><span class="i">＋</span>Add</div>
+          <div class="tb"><span class="i">▤</span>Outfits</div>
+          <div class="tb"><span class="i">◔</span>You</div>
+        </div>
+      </div></div>
+      <p class="cap">The garment fills the frame; a serif headline names the look; the rationale is a quiet caption; the action is confident, not loud; five tabs.</p>
+    </div>
+  </div>
+
+  <!-- ============ CLOSET ============ -->
+  <div class="row">
+    <div class="col">
+      <span class="tag bad">Now · reads as generic</span>
+      <h2>Closet</h2>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="status" style="color:#22201D"><span>9:41</span><span>􀙇 􀛨</span></div>
+        <div class="slop grid">
+          <div class="title">Your closet</div>
+          <div class="g">
+            <div class="gt"><div class="w">top</div><div class="n">white</div><span class="chip">● Ready to wear</span></div>
+            <div class="gt"><div class="w">bottom</div><div class="n">black</div><span class="chip">● Ready to wear</span></div>
+            <div class="gt"><div class="w">dress</div><div class="n">rose</div><span class="chip">● In the wash</span></div>
+            <div class="gt"><div class="w">outerwear</div><div class="n">camel</div><span class="chip">● Ready to wear</span></div>
+          </div>
+        </div>
+        <div class="tabs slopbar">
+          <div class="tb"><span class="i">✦</span>Today</div>
+          <div class="tb on"><span class="i">👕</span>Closet</div>
+          <div class="tb"><span class="i">＋</span>Add</div>
+          <div class="tb"><span class="i">▤</span>Outfits</div>
+          <div class="tb"><span class="i">💧</span>Laundry</div>
+          <div class="tb"><span class="i">★</span>Plan</div>
+          <div class="tb"><span class="i">◔</span>Acct</div>
+        </div>
+      </div></div>
+      <p class="cap">Beige squares with category words, each in its own rounded tray with a pill chip. Uniform, timid, unfinished.</p>
+    </div>
+
+    <div class="col">
+      <span class="tag good">Crafted · same tokens</span>
+      <h2>Closet</h2>
+      <div class="phone"><div class="screen">
+        <div class="notch"></div>
+        <div class="status" style="color:#22201D"><span>9:41</span><span>􀙇 􀛨</span></div>
+        <div class="cgrid">
+          <div class="head"><div class="t">Your closet</div><div class="n">48 pieces</div></div>
+          <div class="filters"><span class="on">All</span><span>Tops</span><span>Bottoms</span><span>Dresses</span><span>Outerwear</span><span>Shoes</span></div>
+          <div class="g">
+            <div class="t2"><div class="im" style="background:linear-gradient(150deg,#efe9df,#e2d8c9)"><svg viewBox="0 0 120 150"><path d="M40 24 L26 34 L18 58 L30 64 L36 54 L36 120 L84 120 L84 54 L90 64 L102 58 L94 34 L80 24 Q60 40 40 24Z" fill="#e7e3dc" stroke="#cfc7ba" stroke-width="1.5"/></svg></div><div class="n">Ivory silk blouse</div><div class="k"><span class="dot" style="background:#4E8A6A"></span>Top</div></div>
+            <div class="t2"><div class="im" style="background:linear-gradient(150deg,#e6ddd0,#d8ccb8)"><svg viewBox="0 0 120 150"><path d="M44 20 L44 60 L34 140 L52 140 L60 78 L68 140 L86 140 L76 60 L76 20Z" fill="#2b2b2f"/></svg></div><div class="n">Black straight denim</div><div class="k"><span class="dot" style="background:#4E8A6A"></span>Bottom</div></div>
+            <div class="t2"><div class="im" style="background:linear-gradient(150deg,#f0e7e6,#e6d4d3)"><svg viewBox="0 0 120 150"><path d="M46 20 Q60 30 74 20 L82 44 L74 60 L80 138 L40 138 L46 60 L38 44Z" fill="#9c5661"/></svg></div><div class="n">Rose midi dress</div><div class="k"><span class="dot" style="background:#9A7A38"></span>In the wash</div></div>
+            <div class="t2"><div class="im" style="background:linear-gradient(150deg,#efe6d6,#e0d0b7)"><svg viewBox="0 0 120 150"><path d="M42 22 L30 32 L22 58 L32 64 L38 54 L36 130 L84 130 L82 54 L88 64 L98 58 L90 32 L78 22 Q60 38 42 22Z" fill="#8a6f52"/></svg></div><div class="n">Camel wool coat</div><div class="k"><span class="dot" style="background:#4E8A6A"></span>Outerwear</div></div>
+          </div>
+        </div>
+        <div class="tabs craftbar">
+          <div class="tb"><span class="i">✦</span>Today</div>
+          <div class="tb on"><span class="i">▢</span>Closet</div>
+          <div class="tb"><span class="i">＋</span>Add</div>
+          <div class="tb"><span class="i">▤</span>Outfits</div>
+          <div class="tb"><span class="i">◔</span>You</div>
+        </div>
+      </div></div>
+      <p class="cap">Edge-to-edge cutouts on a tight 3:4 grid — the clothes are the UI. Hairline filter rail, quiet status dot, real piece names. Reads like a lookbook.</p>
+    </div>
+  </div>
+
+  <!-- ============ TELLS ============ -->
+  <div style="margin-top:90px" class="eyebrow">The slop tells → the craft fix</div>
+  <div class="notes">
+    <div class="note"><div class="n">Composition</div><div class="bad2">A giant empty well dominates the screen with one word in it.</div><div class="fix">Lead with a full-bleed garment image; the product is the hero, not a placeholder.</div></div>
+    <div class="note"><div class="n">Everything's a card</div><div class="bad2">Uniform 28px rounded card + shadow on every element → component-demo look.</div><div class="fix">Mix modes: full-bleed hero, edge-to-edge grid, hairline dividers. Cards earn their place.</div></div>
+    <div class="note"><div class="n">The loud CTA</div><div class="bad2">A full-width shouting pink pill ("I wore this").</div><div class="fix">A quiet, confident action — underlined caps, or an icon. Premium is restrained.</div></div>
+    <div class="note"><div class="n">Dead-centre everything</div><div class="bad2">Centred title, centred word, centred button — no tension.</div><div class="fix">Left-align, asymmetry, a real baseline grid. Editorial, not PowerPoint.</div></div>
+    <div class="note"><div class="n">No type hierarchy</div><div class="bad2">One sans weight for everything; nothing feels authored.</div><div class="fix">Serif display headline + tiny uppercase overlines + restrained body. Contrast in size & style.</div></div>
+    <div class="note"><div class="n">Placeholder words</div><div class="bad2">"top", "outerwear" printed where a photo belongs → looks unfinished.</div><div class="fix">Always render the cutout; if none yet, a subtle branded state, never a category label.</div></div>
+    <div class="note"><div class="n">Nav clutter</div><div class="bad2">Seven tabs crammed edge to edge.</div><div class="fix">Five: Today · Closet · Add · Outfits · You. Plan folds into Today; Account into "You".</div></div>
+    <div class="note"><div class="n">Timid spacing</div><div class="bad2">Even padding everywhere; no rhythm.</div><div class="fix">Intentional rhythm — generous around the hero, tight in the grid. Space is a tool.</div></div>
+  </div>
+
+  <p class="cap" style="margin-top:70px;max-width:640px">Note: every colour here is the palette already shipping (cream #F6F2EC, camel wells, the state dots) plus a serif for display — the crafted side changes <b style="color:#F0C6D2">layout and hierarchy</b>, not the theme. This is a static mockup for direction, not the running app.</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>closet — Laundry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* palette — verbatim from ATELIER-BRIEF.md */
+    --canvas:#F6F2EC; --surface:#FFFFFF; --sunken:#EDE6DB;
+    --ink:#221F1B; --sec:#655F58; --ter:#6C655C; --onAccent:#FFFFFF;
+    --pink:#B62E58; --pinkDec:#E0708F;
+    --hair:#E4DCD0;
+    --clean:#4E8A6A; --dirty:#9A7A38; --unavail:#847E76;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;   /* in-app maps to Georgia */
+    --sans:'Inter',-apple-system,system-ui,sans-serif;
+    --shadow:0 8px 24px -8px rgba(58,46,35,.10);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#171512;font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:48px 24px;color:#E8E3DA}
+
+  /* phone frame */
+  .phone{width:340px;background:#000;border-radius:46px;padding:11px;box-shadow:0 40px 90px -20px rgba(0,0,0,.75)}
+  .screen{border-radius:36px;overflow:hidden;height:720px;position:relative;background:var(--canvas)}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:104px;height:26px;background:#000;border-radius:16px;z-index:40}
+  .status{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:flex-end;
+    justify-content:space-between;padding:0 26px 6px;font-size:13px;font-weight:600;color:var(--ink);z-index:30}
+
+  /* scrolling body */
+  .laundry{position:absolute;inset:0;overflow-y:auto;padding:56px 0 168px}
+  .laundry::-webkit-scrollbar{display:none}
+
+  /* header — asymmetric, left-aligned, serif display + overline */
+  .back{padding:0 22px;display:flex;align-items:center;gap:6px;color:var(--ter);
+    font-size:12px;letter-spacing:.02em;font-weight:500}
+  .back .ch{font-size:15px;line-height:1}
+  .head{padding:18px 22px 0}
+  .eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ter);font-weight:600}
+  .title{font-family:var(--serif);font-weight:500;font-size:40px;line-height:1.0;letter-spacing:-.01em;
+    color:var(--ink);margin-top:8px}
+  .kind{font-family:var(--serif);font-style:italic;font-weight:400;font-size:15px;line-height:1.4;
+    color:#3b352e;margin-top:12px;max-width:250px}
+
+  /* selection rail — hairline, quiet */
+  .rail{margin:24px 22px 4px;padding-bottom:12px;border-bottom:1px solid var(--hair);
+    display:flex;align-items:baseline;justify-content:space-between}
+  .selall{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--ink);
+    border-bottom:1.5px solid var(--pink);padding-bottom:3px}
+  .count{font-size:13px;color:var(--sec)}
+  .count b{color:var(--ink);font-weight:600}
+
+  /* list — NOT cards. Edge-to-edge rows on hairline dividers. */
+  .row{display:flex;align-items:center;gap:16px;padding:14px 22px;border-bottom:1px solid var(--hair);
+    position:relative}
+  .row:last-child{border-bottom:none}
+  /* the garment cutout is the hero of each row */
+  .thumb{width:54px;height:70px;border-radius:4px;flex:none;display:flex;align-items:center;justify-content:center;
+    overflow:hidden;position:relative;transition:box-shadow .15s}
+  .thumb svg{height:88%;filter:drop-shadow(0 8px 10px rgba(60,44,30,.20))}
+  .info{flex:1;min-width:0}
+  .nm{font-size:15px;font-weight:500;color:var(--ink);line-height:1.25}
+  .meta{display:flex;align-items:center;gap:6px;margin-top:4px;font-size:12px;color:var(--sec)}
+  .dot{width:6px;height:6px;border-radius:999px;background:var(--dirty);flex:none}
+  /* selection = a quiet circular check, not a loud tinted card */
+  .chk{width:26px;height:26px;border-radius:999px;border:1.5px solid var(--hair);flex:none;
+    display:flex;align-items:center;justify-content:center;color:transparent;font-size:13px}
+  .row.sel .chk{background:var(--pink);border-color:var(--pink);color:var(--onAccent)}
+  /* selected garment gets a soft pink ring on the cutout — echoes the 2px border in code
+     without tinting the surface labels were contrast-checked against */
+  .row.sel .thumb{box-shadow:0 0 0 2px var(--pink)}
+
+  /* batch action — the ONE earned filled button, docked above the tabs */
+  .dock{position:absolute;left:0;right:0;bottom:0;z-index:25}
+  .batch{background:var(--surface);border-top:1px solid var(--hair);box-shadow:var(--shadow);
+    padding:16px 22px;display:flex;align-items:center;gap:16px}
+  .mark{flex:1;background:var(--pink);color:var(--onAccent);border:none;border-radius:18px;
+    padding:15px 18px;font-family:var(--sans);font-size:15px;font-weight:600;letter-spacing:.01em}
+  .clear{font-size:12px;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--sec);
+    border-bottom:1.5px solid var(--hair);padding-bottom:3px;white-space:nowrap}
+
+  /* tab bar — 5 tabs; Laundry lives under Closet, so Closet is active */
+  .tabs{background:var(--surface);border-top:1px solid var(--hair);display:flex;padding:12px 0 26px}
+  .tabs .tb{flex:1;text-align:center;font-size:10px;letter-spacing:.04em;color:var(--ter);font-weight:500}
+  .tabs .tb .i{font-size:17px;display:block;margin-bottom:3px}
+  .tabs .tb.on{color:var(--pink)}
+</style>
+</head>
+<body>
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>􀙇 􀛨</span></div>
+
+    <div class="laundry">
+      <div class="back"><span class="ch">‹</span> Closet</div>
+
+      <div class="head">
+        <div class="eyebrow">The hamper · 4 pieces</div>
+        <div class="title">In the wash</div>
+        <div class="kind">Laundry’s normal. Pick what’s dry and put it away in one go.</div>
+      </div>
+
+      <div class="rail">
+        <div class="selall">Select all</div>
+        <div class="count"><b>2</b> selected</div>
+      </div>
+
+      <!-- SELECTED -->
+      <div class="row sel">
+        <div class="thumb" style="background:linear-gradient(150deg,#f0e7e6,#e6d4d3)">
+          <svg viewBox="0 0 120 150"><path d="M46 20 Q60 30 74 20 L82 44 L74 60 L80 138 L40 138 L46 60 L38 44Z" fill="#9c5661"/></svg>
+        </div>
+        <div class="info">
+          <div class="nm">Rose silk midi dress</div>
+          <div class="meta"><span class="dot"></span>In the wash · 2 days</div>
+        </div>
+        <div class="chk">✓</div>
+      </div>
+
+      <!-- SELECTED -->
+      <div class="row sel">
+        <div class="thumb" style="background:linear-gradient(150deg,#efe9df,#e2d8c9)">
+          <svg viewBox="0 0 120 150"><path d="M40 24 L26 34 L18 58 L30 64 L36 54 L36 120 L84 120 L84 54 L90 64 L102 58 L94 34 L80 24 Q60 40 40 24Z" fill="#e7e3dc" stroke="#cfc7ba" stroke-width="1.5"/></svg>
+        </div>
+        <div class="info">
+          <div class="nm">Ivory silk blouse</div>
+          <div class="meta"><span class="dot"></span>In the wash · 1 day</div>
+        </div>
+        <div class="chk">✓</div>
+      </div>
+
+      <!-- UNSELECTED -->
+      <div class="row">
+        <div class="thumb" style="background:linear-gradient(150deg,#e6ddd0,#d8ccb8)">
+          <svg viewBox="0 0 120 150"><path d="M44 20 L44 60 L34 140 L52 140 L60 78 L68 140 L86 140 L76 60 L76 20Z" fill="#2b2b2f"/></svg>
+        </div>
+        <div class="info">
+          <div class="nm">Black straight denim</div>
+          <div class="meta"><span class="dot"></span>In the wash · 3 days</div>
+        </div>
+        <div class="chk"></div>
+      </div>
+
+      <!-- UNSELECTED -->
+      <div class="row">
+        <div class="thumb" style="background:linear-gradient(150deg,#efe6d6,#e0d0b7)">
+          <svg viewBox="0 0 120 150"><path d="M42 22 L30 32 L22 58 L32 64 L38 54 L36 130 L84 130 L82 54 L88 64 L98 58 L90 32 L78 22 Q60 38 42 22Z" fill="#8a6f52"/></svg>
+        </div>
+        <div class="info">
+          <div class="nm">Camel wool knit</div>
+          <div class="meta"><span class="dot"></span>In the wash · 5 days</div>
+        </div>
+        <div class="chk"></div>
+      </div>
+    </div>
+
+    <!-- docked batch action (visible only when selection > 0) + tabs -->
+    <div class="dock">
+      <div class="batch">
+        <button class="mark">Mark 2 clean</button>
+        <span class="clear">Clear</span>
+      </div>
+      <div class="tabs">
+        <div class="tb"><span class="i">✦</span>Today</div>
+        <div class="tb on"><span class="i">▢</span>Closet</div>
+        <div class="tb"><span class="i">＋</span>Add</div>
+        <div class="tb"><span class="i">▤</span>Outfits</div>
+        <div class="tb"><span class="i">◔</span>You</div>
+      </div>
+    </div>
+
+  </div></div>
+
+<!-- NOTES
+=================================================================================================
+ANTI-SLOP LAWS APPLIED
+1. The clothes are the interface — every row leads with a garment SVG cutout in a realistic fabric
+   colour (rose #9c5661, ivory #e7e3dc, black #2b2b2f, camel #8a6f52). NO category word ("dress",
+   "top") stands in for a photo anywhere; the piece name is real copy, the category never appears
+   as a placeholder well.
+2. Not everything is a card — the hamper is edge-to-edge rows on hairline dividers, not the
+   one-rounded-card-with-shadow-per-item look the real screen used (<Card variant="surface"> per
+   row). The single earned surface+shadow is the docked batch bar, because a committed action
+   deserves to sit on its own plane.
+3. Quiet, confident actions — "Select all" and "Clear" are underlined uppercase micro-labels, not
+   pills. Exactly ONE filled pink button exists on the whole screen: the batch "Mark 2 clean". The
+   count is IN the label (honest about what the tap does), matching the code's reversible-action /
+   no-confirm-dialog intent.
+4. Asymmetry + left-alignment — left-aligned serif headline, overline eyebrow, and kind subhead
+   sit in a generous top block; the selection counter is the only right-aligned element, creating
+   intentional off-centre tension. Nothing is dead-centred.
+5. Type hierarchy with contrast — overline (11px/.18em caps, tertiary) + SERIF display "In the
+   wash" (Fraunces→Georgia, 40px, -.01em) + italic serif kind-copy + sans body row names + sans
+   caption metadata. Size AND style contrast, plus the amber state dot (--dirty #9A7A38) as
+   punctuation.
+6. Rhythm, not uniform padding — generous air around the header, tight 14px vertical rhythm in the
+   list, then a firm docked bar. Space is used as a tool, not applied evenly.
+7. Nav: 5 tabs (Today · Closet · Add · Outfits · You). Laundry is not a top-level tab (it was one
+   of the seven slop tabs); it lives under Closet, so Closet is active and a quiet "‹ Closet" back
+   affordance sits above the title.
+
+REAL STATES THIS SCREEN HAS (from LaundryScreen.tsx) — rendered vs. noted
+- RENDERED: populated + partial selection (2 of 4 selected) with the batch action docked. This is
+  the most representative interactive state.
+- Selection: unselected rows show a hairline circular check; selected rows fill the check pink and
+  add a 2px pink ring on the CUTOUT (not a background tint) — faithful to the code's comment that
+  tinting the card would break the contrast the labels/chips were checked against.
+- LOADING (query.isPending): "Checking the hamper…" — a centred quiet spinner state.
+- EMPTY (items.length === 0): title "Nothing in the wash", body "Everything's ready to wear." — a
+  bare, kind state with a single garment glyph, no placeholder well.
+- ERROR (query.isError): "We couldn't load your laundry." + a quiet "Retry" underlined action.
+- IN-FLIGHT: batch label swaps to "Putting them away…" and disables while mutating.
+- FAILURE NOTICE (failedCount > 0): a caption above the list — "{n} couldn't be updated. Pull down
+  to refresh and try again." — rendered as tertiary caption copy, never a red alert (the raw error
+  is deliberately never surfaced; PII).
+
+TOKEN / PRIMITIVE ASSUMPTIONS BEYOND THE BRIEF
+- Recomposition: the code keeps BOTH a per-row "Mark clean" <Button> AND row-tap selection. I
+  folded the redundant per-row button into the unified select→batch model (the one-off path is
+  "select one, Mark 1 clean"). This removes a per-row shouting action to honour law 3; it is a
+  composition change, not a new feature.
+- Overline (11px/.18em caps) used as the header eyebrow AND row metadata key — this is the NEW
+  "overline" type token the brief introduces; no other new token assumed.
+- A "days in the wash" metadatum ("· 2 days") is shown next to the state dot. The row schema
+  carries a timestamp; if not surfaced today this is a small, safe metadata add — flagged, not
+  assumed load-bearing.
+=================================================================================================
+-->
+</body>
+</html>

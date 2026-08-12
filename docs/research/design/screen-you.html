@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>closet — You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* palette — verbatim from ATELIER-BRIEF.md / tokens.ts */
+    --canvas:#F6F2EC; --surface:#FFFFFF; --sunken:#EDE6DB;
+    --ink:#221F1B; --sec:#655F58; --ter:#6C655C; --onAccent:#FFFFFF;
+    --pink:#B62E58; --red:#B33A2C; --blue:#396595;
+    --dec-pink:#E0708F; --dec-red:#D45647; --dec-blue:#5E8FC0;
+    --hair:#E4DCD0;
+    --clean:#4E8A6A; --dirty:#9A7A38; --unavail:#847E76;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif;
+    --sans:'Inter',-apple-system,system-ui,sans-serif;
+    /* fabric stand-ins */
+    --camel:#8a6f52; --black:#2b2b2f; --ivory:#e7e3dc; --rose:#9c5661;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#171512;color:#E8E3DA;font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;padding:56px 24px 96px}
+  .wrap{max-width:520px;margin:0 auto}
+  .kicker{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8A837A;font-weight:600}
+  .wrap h1{font-family:var(--serif);font-weight:500;font-size:30px;color:#fff;margin:10px 0 4px;letter-spacing:-.01em}
+  .wrap .cap{color:#8A837A;font-size:13px;margin-top:14px;max-width:340px}
+
+  /* phone frame — matches design-comparison.html */
+  .phone{width:340px;margin:26px auto 0;background:#000;border-radius:46px;padding:11px;box-shadow:0 40px 80px -20px rgba(0,0,0,.7)}
+  .screen{border-radius:36px;overflow:hidden;height:720px;position:relative;background:var(--canvas)}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:104px;height:26px;background:#000;border-radius:16px;z-index:30}
+  .status{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:13px;font-weight:600;z-index:20}
+
+  .you{height:100%;overflow-y:auto;color:var(--ink);background:var(--canvas)}
+  .you::-webkit-scrollbar{display:none}
+
+  /* ---- wardrobe portrait (the clothes ARE the identity here) ---- */
+  .portrait{position:relative;height:236px;background:linear-gradient(158deg,#d8c8b2 0%,#c2ac92 52%,#a68a6d 100%);overflow:hidden}
+  .portrait .ovl{position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,16,12,.28) 0%,rgba(0,0,0,0) 34%,rgba(20,16,12,.55) 100%)}
+  .portrait .eye{position:absolute;top:54px;left:22px;color:#fff;opacity:.9;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;z-index:3}
+  /* three overlapping cutouts — her closet in miniature, asymmetric */
+  .portrait .g{position:absolute;filter:drop-shadow(0 16px 22px rgba(50,36,24,.4))}
+  .portrait .coat{left:38%;top:34px;height:186px;z-index:2}
+  .portrait .blouse{left:8%;top:70px;height:132px;z-index:1;opacity:.96}
+  .portrait .dress{right:6%;top:66px;height:150px;z-index:1;opacity:.96}
+  .portrait .htxt{position:absolute;left:22px;right:22px;bottom:18px;color:#fff;z-index:3}
+  .portrait .htxt .t{font-family:var(--serif);font-weight:500;font-size:32px;line-height:1.02;letter-spacing:-.01em}
+  .portrait .htxt .s{font-size:12.5px;opacity:.92;margin-top:5px;letter-spacing:.01em}
+
+  .body{padding:22px 22px 26px}
+
+  /* overline (NEW token) */
+  .ov{font-size:11px;line-height:16px;letter-spacing:.18em;text-transform:uppercase;color:var(--ter);font-weight:600}
+  .beta{letter-spacing:.14em;color:var(--dec-pink)}
+  .rule{height:1px;background:var(--hair);margin:26px 0}
+  .rule.tight{margin:20px 0}
+
+  /* identity */
+  .id{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+  .id .email{font-family:var(--serif);font-weight:400;font-size:19px;color:var(--ink);margin-top:6px;letter-spacing:-.005em}
+  /* quiet action — underlined uppercase label */
+  .qa{font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink);border-bottom:2px solid var(--ink);padding-bottom:4px;white-space:nowrap}
+  .qa.pink{border-color:var(--pink)}
+  .qa.muted{color:var(--sec);border-color:var(--hair)}
+
+  /* colours */
+  .lead{font-size:14px;line-height:20px;color:var(--sec);margin-top:8px}
+  .swatches{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .sw{width:38px;height:38px;border-radius:12px;border:1px solid var(--hair)}
+  .sw.on{border:3px solid var(--pink);box-shadow:0 0 0 1px var(--surface) inset}
+  .save{margin-top:18px;display:flex;align-items:center;gap:12px}
+  .save .count{font-size:12px;color:var(--ter);letter-spacing:.02em}
+
+  /* data / export receipt (SUCCESS state rendered) */
+  .sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px}
+  .receipt{margin-top:16px}
+  .receipt .r-t{font-size:14px;color:var(--ink);font-weight:500}
+  .receipt ul{list-style:none;margin-top:10px;display:grid;gap:7px}
+  .receipt li{font-size:13px;color:var(--sec);display:flex;align-items:center;gap:9px}
+  .receipt li .tick{color:var(--clean);font-size:12px;width:12px}
+  .receipt li.off{color:var(--ter)}
+  .receipt li.off .tick{color:var(--unavail)}
+  .receipt .foot{font-size:12px;color:var(--ter);margin-top:12px;line-height:17px}
+  .doc{margin-top:14px;background:var(--sunken);border-radius:12px;padding:12px 13px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;line-height:1.5;color:var(--sec);white-space:pre;overflow:hidden;position:relative}
+  .doc::after{content:'';position:absolute;left:0;right:0;bottom:0;height:26px;background:linear-gradient(180deg,rgba(237,230,219,0),var(--sunken))}
+
+  /* delete — dangerous but not dominant. armed / type-to-confirm state rendered */
+  .danger{border-left:2px solid var(--red);padding-left:16px;margin-left:-2px}
+  .danger .ov{color:var(--red)}
+  .danger .warn{font-size:13.5px;line-height:20px;color:var(--sec);margin-top:9px}
+  .danger .store{font-size:12px;line-height:17px;color:var(--ter);margin-top:10px}
+  .danger .confirm-q{font-size:14px;color:var(--ink);font-weight:500;margin-top:18px}
+  .danger .confirm-q b{font-family:var(--serif);font-weight:600;letter-spacing:.04em}
+  .field{margin-top:10px;height:46px;border:1px solid var(--hair);border-radius:12px;background:var(--surface);display:flex;align-items:center;padding:0 14px;font-size:15px;letter-spacing:.14em;color:var(--ink);font-weight:600}
+  .field .caret{width:1.5px;height:19px;background:var(--red);margin-left:1px;animation:blink 1.1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  /* the ONE restrained filled button on the whole screen — the deliberate destructive act */
+  .destroy{margin-top:14px;width:100%;height:50px;border-radius:14px;background:var(--red);color:var(--onAccent);font-size:14px;font-weight:600;letter-spacing:.02em;display:flex;align-items:center;justify-content:center;border:none}
+  .keep{margin-top:12px;text-align:center;font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ter)}
+
+  /* tab bar */
+  .tabs{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--hair);display:flex;padding:12px 0 26px;z-index:20}
+  .tabs .tb{flex:1;text-align:center;font-size:10px;letter-spacing:.04em;color:var(--ter);font-weight:500}
+  .tabs .tb .i{font-size:17px;display:block;margin-bottom:3px}
+  .tabs .tb.on{color:var(--pink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">closet · screen mockup</div>
+  <h1>You</h1>
+  <p class="cap">Profile: identity · self-chosen colours · data export · delete. The clothes she owns
+  are the portrait; every action is quiet except the single deliberate destructive one.</p>
+
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="status" style="color:#fff"><span>9:41</span><span>􀙇 􀛨 􀛨</span></div>
+
+    <div class="you">
+      <!-- ===== wardrobe portrait — clothes as the interface, not a placeholder ===== -->
+      <div class="portrait">
+        <div class="ovl"></div>
+        <div class="eye">Your atelier · since 2026</div>
+        <!-- ivory blouse -->
+        <svg class="g blouse" viewBox="0 0 120 150" fill="none"><path d="M40 24 L26 34 L18 58 L30 64 L36 54 L36 120 L84 120 L84 54 L90 64 L102 58 L94 34 L80 24 Q60 40 40 24Z" fill="var(--ivory)" stroke="#cfc7ba" stroke-width="1.5"/></svg>
+        <!-- rose midi dress -->
+        <svg class="g dress" viewBox="0 0 120 150" fill="none"><path d="M46 20 Q60 30 74 20 L82 44 L74 60 L80 138 L40 138 L46 60 L38 44Z" fill="var(--rose)"/></svg>
+        <!-- camel coat (hero cutout) -->
+        <svg class="g coat" viewBox="0 0 120 150" fill="none"><path d="M42 22 L30 32 L22 58 L32 64 L38 54 L36 130 L84 130 L82 54 L88 64 L98 58 L90 32 L78 22 Q60 38 42 22Z" fill="var(--camel)"/><path d="M60 30 L60 128" stroke="#4c3c2e" stroke-width="2" opacity=".45"/><circle cx="60" cy="66" r="2.2" fill="#3a2e22"/><circle cx="60" cy="86" r="2.2" fill="#3a2e22"/><circle cx="60" cy="106" r="2.2" fill="#3a2e22"/></svg>
+        <div class="htxt">
+          <div class="t">Yours &mdash; 48 pieces,<br>mostly camel.</div>
+          <div class="s">12 outfits worn · your private wardrobe, only what you approved</div>
+        </div>
+      </div>
+
+      <div class="body">
+        <!-- ===== identity ===== -->
+        <div class="id">
+          <div>
+            <div class="ov">Signed in as</div>
+            <div class="email">amelia@hey.com</div>
+          </div>
+          <div class="qa muted">Sign out</div>
+        </div>
+
+        <div class="rule"></div>
+
+        <!-- ===== self-chosen colours (swatch quiz) — real family hexes ===== -->
+        <div class="ov">Your colours &nbsp;<span class="beta">Beta</span></div>
+        <p class="lead">Tap the colours you feel good in. We lean toward them only when two pieces
+        tie &mdash; self-chosen, never read from a photo, never a rule.</p>
+        <div class="swatches">
+          <span class="sw on" style="background:#d22d80"></span>
+          <span class="sw" style="background:#d22d2d"></span>
+          <span class="sw" style="background:#d2802d"></span>
+          <span class="sw on" style="background:#e8dcc4"></span>
+          <span class="sw" style="background:#2dd2d2"></span>
+          <span class="sw" style="background:#2d2dd2"></span>
+          <span class="sw on" style="background:#1f2d5a"></span>
+          <span class="sw" style="background:#1a1a1a"></span>
+        </div>
+        <div class="save">
+          <span class="qa pink">Save my colours</span>
+          <span class="count">3 chosen</span>
+        </div>
+
+        <div class="rule"></div>
+
+        <!-- ===== data export — SUCCESS state (most populated) ===== -->
+        <div class="sec-head">
+          <div class="ov">Your data</div>
+          <span class="qa">Export</span>
+        </div>
+        <div class="receipt">
+          <div class="r-t">Your export includes</div>
+          <ul>
+            <li><span class="tick">✓</span>48 wardrobe items</li>
+            <li><span class="tick">✓</span>12 outfits</li>
+            <li><span class="tick">✓</span>63 wear-log entries</li>
+            <li><span class="tick">✓</span>50 photo-parse records</li>
+            <li><span class="tick">✓</span>your colour profile</li>
+            <li class="off"><span class="tick">–</span>no membership record</li>
+          </ul>
+          <p class="foot">Photos themselves aren&rsquo;t in this file &mdash; it lists where each one is stored.</p>
+          <div class="doc">{
+  "wardrobe": [ { "id": "wd_7f…", "kind": "coat",
+    "color": "camel", "wear_count": 9 }, … ],
+  "outfits": [ … ], "wearLog": [ … ],
+  "palette": { "hues": ["rose","beige","navy"] }
+}</div>
+        </div>
+
+        <div class="rule"></div>
+
+        <!-- ===== delete — armed + type-to-confirm state (dangerous, quiet) ===== -->
+        <div class="danger">
+          <div class="ov">Delete my account</div>
+          <p class="warn">This permanently deletes your account and everything in it: every item,
+          outfit, wear-log entry, photo record, your colour profile and membership record. It cannot
+          be undone.</p>
+          <p class="store">If you pay through the App Store or Play Store, cancel the subscription
+          there too &mdash; deleting here does not cancel it.</p>
+          <p class="confirm-q">Type <b>DELETE</b> to confirm.</p>
+          <div class="field">DELETE<span class="caret"></span></div>
+          <button class="destroy">Permanently delete everything</button>
+          <div class="keep">Keep my account</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5-tab bar; You active -->
+    <div class="tabs">
+      <div class="tb"><span class="i" style="font-family:var(--serif)">✦</span>Today</div>
+      <div class="tb"><span class="i">▢</span>Closet</div>
+      <div class="tb"><span class="i">＋</span>Add</div>
+      <div class="tb"><span class="i">▤</span>Outfits</div>
+      <div class="tb on"><span class="i">◔</span>You</div>
+    </div>
+  </div></div>
+
+  <p class="cap">Rendered: export-<b>success</b> + delete-<b>armed</b> (type-to-confirm). Other real states noted below.</p>
+</div>
+
+<!-- NOTES ============================================================================
+
+SCREEN: You (profile) — recomposed from packages/mobile/features/auth/AccountScreen.tsx
++ its embedded extraSection (features/palette/SwatchQuizCard.tsx). No invented features:
+identity/sign-out, self-chosen swatch quiz, data export, type-to-confirm delete are all real.
+
+ANTI-SLOP LAWS APPLIED
+1. Clothes are the interface — even a profile leads with a wardrobe PORTRAIT: three real
+   garment cutouts (camel coat hero, ivory blouse, rose dress) overlapping in a gradient
+   band. No empty well, no category words anywhere on the screen.
+2. Not everything is a card — the whole screen is hairline-divided sections on the bare
+   canvas. The ONLY boxed element is the serialized-export code block (sunken), which earns
+   it because it is literally a data payload. The four AccountScreen Cards are dissolved.
+3. Quiet, confident actions — Sign out / Export / Save colours are underlined uppercase
+   labels. The SINGLE filled button on the screen is the red "Permanently delete everything"
+   — the one deliberate destructive act, which is exactly where a loud control belongs.
+4. Asymmetry + left-alignment — everything left-aligned to a 22px margin; the portrait
+   cutouts sit off-centre; identity row puts email left / Sign out right. No centred stack
+   (the original screen was a centred Card tower).
+5. Type hierarchy — Fraunces serif display in the portrait + serif for the email (identity
+   feels authored); 11px/.18em uppercase overlines as section eyebrows; restrained Inter
+   body; monospace only for the raw export. Size AND style contrast.
+6. Rhythm not uniform padding — generous portrait, then evenly-breathing hairline sections,
+   tightening inside the swatch grid and receipt list.
+7. Five tabs — Today · Closet · Add · Outfits · You; You active in accent.pink.
+
+DANGER WEIGHT (the human-only judgement flagged in the source file's header comment):
+the delete zone reads dangerous via a red left-rule + red overline + the lone red filled
+button, but it does NOT dominate — it is the last section, quiet until armed, and uses
+accent.red as punctuation rather than a full red panel.
+
+STATES — rendered vs. noted (this screen has many; brief says render the representative one):
+  • RENDERED: export = SUCCESS (receipt + serialized doc); delete = ARMED/type-to-confirm.
+  • NOT RENDERED (noted): whole-screen LOADING "Deleting your account…" (LoadingState);
+    export IDLE (just the "Export" action + intro copy), export PENDING ("Gathering your
+    data…"), export ERROR (generic EXPORT_FAILED line); delete UNARMED (single quiet
+    "Delete my account" text action, no field, no red button); delete ERROR (DELETE_FAILED
+    line under the button); swatch quiz PENDING/SAVED/ERROR; signed-out fallback email
+    "your private account" when user?.email is null.
+
+TOKEN / PRIMITIVE ASSUMPTIONS BEYOND THE BRIEF
+  • Swatch fills use the REAL familySwatchHex() values from @closet/shared
+    (rose #d22d80, red #d22d2d, orange #d2802d, teal #2dd2d2, blue #2d2dd2; neutrals
+    beige #e8dcc4, navy #1f2d5a, black #1a1a1a) — NOT palette tokens, because these are
+    swatch-quiz stimuli, not theme colours. They are computed values, reproduced verbatim.
+  • Assumes a quiet-action primitive: an underlined uppercase text button (used by Sign out /
+    Export / Save). The real code renders these as intent="secondary"/"ghost"/accent Buttons;
+    this proposes downgrading non-destructive Buttons to quiet text-actions in the redesign.
+  • Assumes the swatch "Save" becomes a quiet pink-underlined action rather than the real
+    filled accent-pink Button, to keep "one filled button" (law 3). Deviation from source.
+  • The wardrobe-portrait hero + identity stats ("48 pieces, 12 outfits") are a COMPOSITION
+    addition: the source screen has no hero. Data shown is illustrative wardrobe/outfit
+    counts (both already exist in the app); no new data source is required.
+  • display maps to Georgia in-app (Fraunces here only to show the serif idea), per brief.
+==================================================================================== -->
+</body>
+</html>

@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>closet — Add clothing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* palette — verbatim from ATELIER-BRIEF.md / tokens.ts */
+    --canvas:#F6F2EC; --surface:#FFFFFF; --sunken:#EDE6DB;
+    --ink:#221F1B; --sec:#655F58; --ter:#6C655C; --onaccent:#FFFFFF;
+    --pink:#B62E58; --wine:#9F4560; --red:#B33A2C; --blue:#396595;
+    --dec-pink:#E0708F;
+    --hair:#E4DCD0;
+    --clean:#4E8A6A; --dirty:#9A7A38; --unavail:#847E76;
+    --serif:'Fraunces',Georgia,'Times New Roman',serif; /* in-app maps to Georgia */
+    --sans:'Inter',-apple-system,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#171512;color:#E8E3DA;font-family:var(--sans);line-height:1.5;-webkit-font-smoothing:antialiased;padding:56px 24px 96px;display:flex;justify-content:center}
+  .stage{text-align:center}
+  .eyebrow{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#8A837A;font-weight:600;margin-bottom:20px}
+
+  /* phone frame — identical geometry to design-comparison.html */
+  .phone{width:340px;background:#000;border-radius:46px;padding:11px;box-shadow:0 40px 80px -20px rgba(0,0,0,.7)}
+  .screen{border-radius:36px;overflow:hidden;height:720px;position:relative;background:var(--canvas)}
+  .notch{position:absolute;top:9px;left:50%;transform:translateX(-50%);width:104px;height:26px;background:#000;border-radius:16px;z-index:30}
+  .status{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 6px;font-size:13px;font-weight:600;z-index:20;color:var(--ink)}
+
+  /* ---- the Add screen ---- */
+  .add{position:absolute;inset:0;display:flex;flex-direction:column;color:var(--ink)}
+
+  /* header — left-aligned, asymmetric, real hierarchy. Generous top rhythm. */
+  .hd{padding:56px 22px 14px}
+  .hd .over{font-size:11px;letter-spacing:.20em;text-transform:uppercase;color:var(--ter);font-weight:600}
+  .hd .t{font-family:var(--serif);font-weight:500;font-size:38px;line-height:1.0;letter-spacing:-.01em;margin-top:9px}
+  /* the privacy moment — stated as authored prose, not a boxed footnote */
+  .hd .rule{height:1px;background:var(--hair);margin:18px 0 14px}
+  .hd .promise{font-family:var(--serif);font-style:italic;font-size:16px;line-height:1.45;color:#3b352e;max-width:270px}
+  .hd .promise b{font-style:normal;font-weight:500;color:var(--ink)}
+  .hd .aside{font-size:12.5px;color:var(--sec);margin-top:12px;display:flex;align-items:center;gap:7px}
+  .hd .aside .lock{color:var(--unavail);font-size:12px}
+
+  /* candidate grid — edge-to-edge cutouts, the clothes ARE the interface. Tight rhythm. */
+  .tray{flex:1;overflow-y:auto;padding:6px 18px 14px}
+  .tray::-webkit-scrollbar{display:none}
+  .g{display:grid;grid-template-columns:1fr 1fr;gap:12px 12px}
+  .cell{position:relative}
+  .im{aspect-ratio:3/4;border-radius:5px;overflow:hidden;position:relative;display:flex;align-items:center;justify-content:center;transition:.2s}
+  .im svg{height:80%;filter:drop-shadow(0 12px 16px rgba(60,44,30,.22))}
+  /* not-yet-chosen: quieter, waiting */
+  .cell .lab{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ter);font-weight:600;margin-top:8px;display:flex;align-items:center;gap:6px}
+  .cell.off .im{opacity:.62;filter:saturate(.85)}
+  /* chosen: a wine hairline (border, never a fill — the tile surface stays contrast-stable) + a punctuation dot */
+  .cell.on .im{box-shadow:0 0 0 2px var(--wine)}
+  .cell.on .lab{color:var(--ink)}
+  .cell.on .lab .dot{width:7px;height:7px;border-radius:999px;background:var(--pink)}
+  .cell .mark{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:999px;background:rgba(255,255,255,.72);border:1px solid var(--hair);display:flex;align-items:center;justify-content:center;color:var(--ter);font-size:12px;backdrop-filter:blur(2px)}
+  .cell.on .mark{background:var(--wine);border-color:var(--wine);color:#fff}
+
+  /* action zone — quiet & confident, not a shouting full-width pill (used ONCE, as an underlined caps action) */
+  .foot{padding:14px 22px 16px;border-top:1px solid var(--hair);background:var(--canvas)}
+  .foot .act{display:flex;align-items:center;gap:16px}
+  .foot .primary{font-size:13px;letter-spacing:.13em;text-transform:uppercase;font-weight:600;color:var(--ink);border-bottom:2px solid var(--wine);padding-bottom:6px}
+  .foot .count{margin-left:auto;font-family:var(--serif);font-size:15px;color:var(--sec)}
+  .foot .ghost{font-size:12px;color:var(--ter);margin-top:14px;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--hair)}
+
+  /* 5-tab bar — Add active via wine underline */
+  .tabs{background:var(--surface);border-top:1px solid var(--hair);display:flex;padding:12px 0 26px}
+  .tabs .tb{flex:1;text-align:center;font-size:10px;letter-spacing:.04em;color:var(--ter);font-weight:500}
+  .tabs .tb .i{font-size:17px;display:block;margin-bottom:4px}
+  .tabs .tb.on{color:var(--wine)}
+  .tabs .tb.on .i{position:relative}
+  .tabs .tb.on .i::after{content:'';position:absolute;left:50%;transform:translateX(-50%);bottom:-4px;width:16px;height:2px;background:var(--wine);border-radius:2px}
+
+  .cap{color:#8A837A;font-size:13px;margin-top:22px;max-width:340px}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="eyebrow">closet · add clothing — selection state</div>
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="status"><span>9:41</span><span>􀙇 􀛨</span></div>
+
+    <div class="add">
+      <!-- HEADER: overline + serif display + the privacy moment as authored italic prose -->
+      <div class="hd">
+        <div class="over">Add · on your phone</div>
+        <div class="t">Which ones?</div>
+        <div class="rule"></div>
+        <div class="promise">Tap the pieces to add. <b>Only the ones you tap leave your phone</b> — the rest never do.</div>
+        <div class="aside"><span class="lock">􀎡</span> 2 photos were set aside and stayed on your phone.</div>
+      </div>
+
+      <!-- CANDIDATE GRID: real fabric-coloured cutouts, never category words. Chosen = wine hairline + filled mark. -->
+      <div class="tray">
+        <div class="g">
+          <!-- chosen: ivory silk blouse -->
+          <div class="cell on">
+            <div class="im" style="background:linear-gradient(150deg,#efe9df,#e2d8c9)">
+              <div class="mark">􀆅</div>
+              <svg viewBox="0 0 120 150"><path d="M40 24 L26 34 L18 58 L30 64 L36 54 L36 120 L84 120 L84 54 L90 64 L102 58 L94 34 L80 24 Q60 40 40 24Z" fill="#e7e3dc" stroke="#cfc7ba" stroke-width="1.5"/><path d="M60 30 L60 118" stroke="#d3cabc" stroke-width="1" opacity=".7"/></svg>
+            </div>
+            <div class="lab"><span class="dot"></span>Adding</div>
+          </div>
+
+          <!-- chosen: black straight denim -->
+          <div class="cell on">
+            <div class="im" style="background:linear-gradient(150deg,#e6ddd0,#d8ccb8)">
+              <div class="mark">􀆅</div>
+              <svg viewBox="0 0 120 150"><path d="M44 20 L44 60 L34 140 L52 140 L60 78 L68 140 L86 140 L76 60 L76 20Z" fill="#2b2b2f"/><path d="M60 24 L60 76" stroke="#454550" stroke-width="1" opacity=".8"/></svg>
+            </div>
+            <div class="lab"><span class="dot"></span>Adding</div>
+          </div>
+
+          <!-- not chosen: rose midi dress -->
+          <div class="cell off">
+            <div class="im" style="background:linear-gradient(150deg,#f0e7e6,#e6d4d3)">
+              <div class="mark">􀅼</div>
+              <svg viewBox="0 0 120 150"><path d="M46 20 Q60 30 74 20 L82 44 L74 60 L80 138 L40 138 L46 60 L38 44Z" fill="#9c5661"/></svg>
+            </div>
+            <div class="lab">Tap to add</div>
+          </div>
+
+          <!-- chosen: camel wool coat -->
+          <div class="cell on">
+            <div class="im" style="background:linear-gradient(150deg,#efe6d6,#e0d0b7)">
+              <div class="mark">􀆅</div>
+              <svg viewBox="0 0 120 150"><path d="M42 22 L30 32 L22 58 L32 64 L38 54 L36 130 L84 130 L82 54 L88 64 L98 58 L90 32 L78 22 Q60 38 42 22Z" fill="#8a6f52"/><circle cx="60" cy="66" r="1.8" fill="#3a2e22"/><circle cx="60" cy="86" r="1.8" fill="#3a2e22"/><circle cx="60" cy="106" r="1.8" fill="#3a2e22"/></svg>
+            </div>
+            <div class="lab"><span class="dot"></span>Adding</div>
+          </div>
+
+          <!-- not chosen: grey ribbed knit -->
+          <div class="cell off">
+            <div class="im" style="background:linear-gradient(150deg,#ece7de,#ddd6ca)">
+              <div class="mark">􀅼</div>
+              <svg viewBox="0 0 120 150"><path d="M42 26 L26 36 L20 60 L31 66 L38 56 L38 124 L82 124 L82 56 L89 66 L100 60 L94 36 L78 26 Q60 40 42 26Z" fill="#8f8b84"/><path d="M50 40 L50 122 M60 40 L60 124 M70 40 L70 122" stroke="#7c7871" stroke-width="1" opacity=".55"/></svg>
+            </div>
+            <div class="lab">Tap to add</div>
+          </div>
+
+          <!-- not chosen: tan leather boot -->
+          <div class="cell off">
+            <div class="im" style="background:linear-gradient(150deg,#ede4d3,#ded0b6)">
+              <div class="mark">􀅼</div>
+              <svg viewBox="0 0 120 150"><path d="M50 28 L70 28 L70 96 L92 108 L92 128 L44 128 L44 40 Q44 30 50 28Z" fill="#7a5638"/><path d="M44 118 L92 118" stroke="#5c3f28" stroke-width="2" opacity=".6"/></svg>
+            </div>
+            <div class="lab">Tap to add</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACTION: one quiet confident primary (underlined caps + wine rule), count as serif metadata, ghost secondary -->
+      <div class="foot">
+        <div class="act">
+          <div class="primary">Add to my closet</div>
+          <div class="count">3 chosen</div>
+        </div>
+        <div class="ghost">Choose different photos</div>
+      </div>
+
+      <div class="tabs">
+        <div class="tb"><span class="i">✦</span>Today</div>
+        <div class="tb"><span class="i">▢</span>Closet</div>
+        <div class="tb on"><span class="i">＋</span>Add</div>
+        <div class="tb"><span class="i">▤</span>Outfits</div>
+        <div class="tb"><span class="i">◔</span>You</div>
+      </div>
+    </div>
+
+  </div></div>
+  <p class="cap">The picked photos are the hero on a tight 3:4 grid; chosen pieces wear a wine hairline and a filled tick; the privacy promise is authored prose at the point it happens; the action is quiet, not a shouting pill.</p>
+</div>
+
+<!-- NOTES
+====================================================================
+Screen: Add clothing (F1 photo intake) — SELECTION state ("Which ones?") rendered.
+
+WHY this state: it is the only state where garments exist to be the interface, so it
+is where the anti-slop laws bite. The other real states this screen has (from
+AddGarmentScreen.tsx + stage.ts) are noted here rather than drawn:
+  • intro      — display "Add clothing", the privacy promise, body copy, optional
+                 set-aside count + outcome notice, one "Choose photos" action.
+                 (Same header system as above; grid replaced by the promise + a single
+                 quiet action. No garments yet, so NO placeholder well and NO category
+                 words — a bare authored section, per law 1 & 6.)
+  • choosing   — LoadingState "Opening your photos…"
+  • adding     — LoadingState "Adding to your closet…" (sequential upload loop)
+  • unavailable— ErrorState "Photo import isn't ready yet" (no native picker bound
+                 in this build; honest, not a fake enabled state).
+  • outcome notice — a caption line (try_again / paywall / rate-limit) sits under the
+                 promise when a parse/pick fails; shown here as the reserved slot.
+
+Faithful to the implementation:
+  • Approval is marked with a BORDER + tick, never a background tint — matches
+    approvedWell in the JSX (tinting would move the surface every label was
+    contrast-checked against).
+  • The set-aside line is a COUNT ONLY ("2 photos were set aside…") — naming or
+    showing set-aside photos would be the exact leak the on-device gate prevents.
+  • Copy claims only the approval tap ("only the ones you tap leave your phone"),
+    NOT any "screened on device" claim — app-store-listing.md:233 blocks that until
+    the classifier clears a recall floor. privacyPromise() gates the same way.
+  • The action label carries the count (3 chosen) so the button states what it will
+    do — which the JSX insists on because what it does is upload.
+
+Anti-slop laws applied:
+  1. Clothes ARE the interface — real fabric-coloured SVG cutouts fill the grid; zero
+     category words; no empty placeholder well.
+  2. Not everything is a card — bare header section, hairline divider, edge-to-edge
+     grid, a bordered footer rail. No rounded-card-with-shadow anywhere.
+  3. Quiet confident actions — primary is an underlined uppercase label over a wine
+     rule (borrowed from the approved Today/Closet craft side); the picker re-open is a
+     hairline text link. NO full-width pink pill.
+  4. Asymmetry + left-alignment — overline/title/promise all left-aligned; the count
+     pushes right against the primary for intentional off-center tension.
+  5. Type hierarchy with contrast — Fraunces serif display + italic-serif promise +
+     11px letterspaced overlines + Inter body/caption. Size AND style contrast.
+  6. Rhythm not uniform padding — generous 56px above the title, tight 12px grid gutters,
+     a pinned action rail. Space is used deliberately.
+  7. Five tabs — Today · Closet · Add · Outfits · You; Add active via wine underline.
+
+Token / primitive additions assumed beyond the brief:
+  • Selection "mark" chip (24px circle, top-right of a chosen tile: wine fill + white
+    tick / hairline + ter glyph unchosen). A new small primitive not in tokens.ts —
+    it reuses accent.wine, border.hairline, and text.tertiary only.
+  • Underlined-caps text action with a 2px wine bottom rule as the PRIMARY affordance
+    (the shipped app currently uses <Button accent="pink"> here). This is the same
+    quiet-action pattern the owner approved on the Today/Closet craft side; adopting it
+    for Add would mean a new "quiet action" text-button variant rather than the filled
+    Button primitive. Flagged as a deliberate divergence from the current JSX.
+  • Fraunces (Google Fonts) stands in for the serif display; in-app this maps to
+    Georgia (no dependency), per the brief.
+====================================================================
+-->
+</body>
+</html>

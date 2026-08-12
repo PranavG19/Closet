@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>closet-app — Codebase Overview</title>
+<style>
+  :root{
+    --bg:#0d0f14; --bg2:#12151c; --panel:#161a23; --panel2:#1b2029;
+    --line:#262c38; --line2:#333b4a;
+    --ink:#e7eaf0; --ink2:#aab3c2; --ink3:#7b8496;
+    --accent:#e8709a;      /* brand pink */
+    --accent2:#5aa9e6;     /* blue */
+    --accent3:#c6a15b;     /* warm gold */
+    --green:#57c98b; --amber:#e0b24a; --red:#e0685f; --gray:#5b6472;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:
+      radial-gradient(1100px 700px at 82% -10%, rgba(232,112,154,.10), transparent 60%),
+      radial-gradient(900px 600px at 0% 0%, rgba(90,169,230,.08), transparent 55%),
+      var(--bg);
+    color:var(--ink);font-family:var(--sans);font-size:15.5px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .layout{display:grid;grid-template-columns:280px minmax(0,1fr);gap:0;max-width:1500px;margin:0 auto}
+  /* ---- sidebar ---- */
+  nav.toc{
+    position:sticky;top:0;align-self:start;height:100vh;overflow-y:auto;
+    padding:30px 22px 60px;border-right:1px solid var(--line);
+    background:linear-gradient(180deg,rgba(22,26,35,.7),rgba(13,15,20,.4));
+  }
+  nav.toc .brand{font-weight:700;font-size:18px;letter-spacing:.3px;margin-bottom:2px}
+  nav.toc .brand .dot{color:var(--accent)}
+  nav.toc .sub{color:var(--ink3);font-size:12px;margin-bottom:22px}
+  nav.toc a{display:block;color:var(--ink2);text-decoration:none;font-size:13.5px;
+    padding:6px 12px;border-radius:8px;border-left:2px solid transparent;transition:.12s}
+  nav.toc a:hover{color:var(--ink);background:var(--panel);border-left-color:var(--accent)}
+  nav.toc a .n{color:var(--ink3);font-variant-numeric:tabular-nums;margin-right:9px;font-size:12px}
+  nav.toc .grp{margin-top:16px;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink3);padding:0 12px 4px}
+  /* ---- main ---- */
+  main{padding:46px 54px 120px;min-width:0}
+  header.hero{margin-bottom:38px}
+  header.hero h1{font-size:40px;line-height:1.08;margin:0 0 12px;letter-spacing:-.5px}
+  header.hero h1 .dot{color:var(--accent)}
+  header.hero .tag{color:var(--ink2);font-size:17px;max-width:70ch}
+  .pillrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .pill{font-size:12px;padding:4px 11px;border-radius:999px;border:1px solid var(--line2);
+    background:var(--panel);color:var(--ink2);font-family:var(--mono)}
+  section{margin:0 0 46px;scroll-margin-top:24px}
+  h2{font-size:25px;margin:0 0 6px;letter-spacing:-.3px;display:flex;align-items:center;gap:12px}
+  h2 .idx{font-family:var(--mono);font-size:14px;color:var(--accent);border:1px solid var(--line2);
+    border-radius:8px;padding:2px 9px;background:var(--panel)}
+  h3{font-size:17px;margin:26px 0 8px;color:var(--ink)}
+  h2 + .lede{color:var(--ink2);margin:0 0 18px;max-width:80ch}
+  p{max-width:82ch}
+  a.inl{color:var(--accent2);text-decoration:none;border-bottom:1px dotted var(--line2)}
+  code{font-family:var(--mono);font-size:.86em;background:var(--panel2);border:1px solid var(--line);
+    padding:.08em .38em;border-radius:5px;color:#e9d9c2}
+  .panel{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);
+    border-radius:var(--radius);padding:22px 24px;margin:16px 0}
+  .panel.tight{padding:16px 18px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:1050px){.grid2,.grid3{grid-template-columns:1fr}}
+  /* code block */
+  pre{background:#0a0c11;border:1px solid var(--line);border-radius:10px;padding:16px 18px;
+    overflow-x:auto;font-family:var(--mono);font-size:12.8px;line-height:1.6;color:#cfd6e2;margin:14px 0}
+  pre .c{color:#6b7385;font-style:italic}      /* comment */
+  pre .k{color:#e8709a}                          /* keyword/accent */
+  pre .s{color:#9ccf8f}                          /* string */
+  pre .t{color:#e0b24a}                          /* type/number */
+  pre .m{color:#7fb0e0}                          /* muted ident */
+  /* tables */
+  table{border-collapse:collapse;width:100%;margin:14px 0;font-size:13.6px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--ink3);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.05em;
+    border-bottom:1px solid var(--line2)}
+  tbody tr:hover{background:rgba(255,255,255,.015)}
+  td code{white-space:nowrap}
+  /* status pills */
+  .st{font-size:11.5px;font-family:var(--mono);padding:2px 9px;border-radius:999px;
+    white-space:nowrap;display:inline-block;font-weight:600}
+  .st.built{background:rgba(87,201,139,.14);color:var(--green);border:1px solid rgba(87,201,139,.35)}
+  .st.partial{background:rgba(224,178,74,.13);color:var(--amber);border:1px solid rgba(224,178,74,.34)}
+  .st.no{background:rgba(224,104,95,.12);color:var(--red);border:1px solid rgba(224,104,95,.32)}
+  .st.na{background:rgba(120,130,146,.12);color:var(--ink3);border:1px solid var(--line2)}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin:8px 0 4px;font-size:13px;color:var(--ink2)}
+  /* callouts */
+  .note{border-left:3px solid var(--accent2);background:rgba(90,169,230,.06);
+    padding:13px 18px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14px}
+  .warn{border-left:3px solid var(--amber);background:rgba(224,178,74,.06);
+    padding:13px 18px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14px}
+  .danger{border-left:3px solid var(--red);background:rgba(224,104,95,.07);
+    padding:13px 18px;border-radius:0 10px 10px 0;margin:16px 0;font-size:14px}
+  .note b,.warn b,.danger b{color:var(--ink)}
+  /* tree */
+  .tree{font-family:var(--mono);font-size:13px;line-height:1.75;background:#0a0c11;
+    border:1px solid var(--line);border-radius:10px;padding:18px 20px;overflow-x:auto;color:#c7cede}
+  .tree .d{color:var(--accent2)}      /* dir */
+  .tree .cm{color:#6b7385}            /* annotation */
+  .tree .hl{color:var(--accent)}
+  ul.clean{margin:8px 0;padding-left:22px}
+  ul.clean li{margin:5px 0;max-width:82ch}
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13.5px;margin:8px 0}
+  .kv .k{color:var(--ink3);font-family:var(--mono);font-size:12.5px}
+  .flow{display:flex;flex-direction:column;gap:2px;margin:6px 0}
+  .footer{color:var(--ink3);font-size:12.5px;border-top:1px solid var(--line);padding-top:20px;margin-top:40px}
+  .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:18px 0}
+  @media(max-width:1050px){.statgrid{grid-template-columns:repeat(2,1fr)}}
+  .stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .stat .big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums}
+  .stat .lbl{color:var(--ink3);font-size:12px;margin-top:2px}
+  .stat.g .big{color:var(--green)} .stat.a .big{color:var(--amber)} .stat.p .big{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav class="toc">
+  <div class="brand">closet<span class="dot">·</span>app</div>
+  <div class="sub">codebase overview · re-derived from the tree</div>
+  <div class="grp">Orientation</div>
+  <a href="#what"><span class="n">1</span>What this app is</a>
+  <a href="#features"><span class="n">2</span>Feature list (F1–F10)</a>
+  <a href="#arch"><span class="n">3</span>Architecture &amp; data flow</a>
+  <a href="#state"><span class="n">4</span>How state is stored</a>
+  <a href="#rules"><span class="n">5</span>The rules &amp; invariants</a>
+  <div class="grp">Reference</div>
+  <a href="#tree"><span class="n">6</span>Folder structure</a>
+  <a href="#status"><span class="n">7</span>Built vs not built</a>
+  <a href="#launch"><span class="n">8</span>Path to launch</a>
+  <a href="#testing"><span class="n">9</span>Testing story</a>
+  <a href="#notable"><span class="n">10</span>Notable code &amp; smells</a>
+</nav>
+
+<main>
+<header class="hero">
+  <h1>closet<span class="dot">·</span>app <span style="font-size:22px;color:var(--ink3);font-weight:500">— codebase overview</span></h1>
+  <div class="tag">A women's premium wardrobe app: point it at your camera roll, watch your real closet get digitized privately in seconds, then pay to unlock it. This document explains what exists, what is proven, and — honestly — what is still missing.</div>
+  <div class="pillrow">
+    <span class="pill">Expo / React Native</span>
+    <span class="pill">pnpm monorepo</span>
+    <span class="pill">TypeScript strict</span>
+    <span class="pill">Supabase (Postgres + RLS + Edge)</span>
+    <span class="pill">RevenueCat</span>
+    <span class="pill">vitest + testcontainers</span>
+    <span class="pill">mostly AI-coded</span>
+  </div>
+  <div class="note" style="margin-top:24px">
+    <b>How to read this.</b> Every claim here was re-derived by reading the actual code, migrations and tests — not from a checkbox in a doc. This repo's own culture is that a <code>[x]</code> is a claim to re-verify, not a fact. The current working state is branch <code>fix/outfits-concurrent-create</code> with a large body of <b>uncommitted in-flight mobile work</b> (the onboarding/photo-intake pieces). Where something is built-but-unproven-in-production, it says so.
+  </div>
+</header>
+
+<!-- ============ 1 ============ -->
+<section id="what">
+  <h2><span class="idx">01</span> What this app is</h2>
+  <p>closet-app turns a phone camera roll into a searchable, organized digital wardrobe. The conversion thesis is a <b>controlled reveal</b>: a woman grants photo access; an <b>on-device gate filters out intimate / non-her photos before anything is uploaded</b>; a handful of items are parsed in the cloud in real time (attributes + a clean cut-out); she sees <em>her actual clothes</em> digitized within ~30 seconds — the "aha" — and hits a <b>hard paywall, no free trial</b>. After payment the rest of the roll is parsed. The daily hook is answering "what do I wear today" (weather-aware suggestions from what's clean), and the moat is the <b>wear log</b> — a timestamped record of what she actually wore that no competitor can backfill.</p>
+  <p>Engineering is deliberately <b>backend-first</b> ("prove data + RLS + endpoints before UI") and the codebase is built to be worked on <b>by AI agents</b> — so its defining discipline is manufacturing verification signals the coding agent could not itself produce (real Postgres with RLS enforced, real webhook payloads, simulator screenshots, mutation probes). The product spec lives in <code>docs/00</code>–<code>05</code>; the operating model in <code>docs/04</code>; the honest launch audit in <code>docs/LAUNCH-READINESS.md</code>.</p>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="features">
+  <h2><span class="idx">02</span> Feature list</h2>
+  <p class="lede">The product spec (<code>docs/01</code>) numbers features F1–F9 plus a beta B1; a later pass added F10 for the account/data-rights surface. These numbers appear throughout the code. Here is what each maps to, plus its real build state (detailed in §7).</p>
+  <table>
+    <thead><tr><th style="width:52px">#</th><th>Human feature</th><th>What it is</th><th style="width:96px">State</th></tr></thead>
+    <tbody>
+      <tr><td><code>F1</code></td><td>Onboarding scan</td><td>Photo access → <b>on-device privacy gate</b> → teaser parse (~5–10 items) → the reveal. The conversion engine.</td><td><span class="st partial">🟡 in-flight</span></td></tr>
+      <tr><td><code>F2</code></td><td>Hard paywall</td><td>RevenueCat subscription, no free trial, presented right after the reveal; entitlement gates the full app.</td><td><span class="st partial">🟡 partial</span></td></tr>
+      <tr><td><code>F3</code></td><td>Post-payment full parse</td><td>Parse the rest of the approved photos once entitled; resumable + idempotent (no dup items on retry).</td><td><span class="st partial">🟡 backend</span></td></tr>
+      <tr><td><code>F4</code></td><td>Wardrobe + dedupe-by-pick</td><td>Browse/filter the closet; when two photos look like the same garment, keep one or keep both.</td><td><span class="st partial">🟡 partial</span></td></tr>
+      <tr><td><code>F5</code></td><td>Outfit suggestions</td><td>Heuristic v1 from currently-clean items, meant to be weather-aware; biased by color harmony + palette.</td><td><span class="st partial">🟡 partial</span></td></tr>
+      <tr><td><code>F6</code></td><td>Manual outfit builder</td><td>Compose + save outfits as first-class objects.</td><td><span class="st partial">🟡 backend</span></td></tr>
+      <tr><td><code>F7</code></td><td>Availability tracking</td><td>Per item: <code>clean</code> / <code>dirty</code> / <code>unavailable</code>; suggestions only draw from clean.</td><td><span class="st partial">🟡 partial</span></td></tr>
+      <tr><td><code>F8</code></td><td>Daily wear log</td><td>One-tap "I wore this," optionally flips items to dirty. The retention loop &amp; data moat — never cut.</td><td><span class="st partial">🟡 partial</span></td></tr>
+      <tr><td><code>F9</code></td><td>Color harmony</td><td>Rules-based garment-to-garment pairing (complementary / analogous / neutral-safe…), deterministic.</td><td><span class="st partial">🟡 logic</span></td></tr>
+      <tr><td><code>B1</code></td><td>Skin-tone palette (beta)</td><td>Self-identified swatch quiz → advisory palette. <b>Never camera-detected, never prescriptive.</b></td><td><span class="st partial">🟡 backend</span></td></tr>
+      <tr><td><code>F10</code></td><td>Account &amp; data rights</td><td>Sign in, in-app account deletion (Apple 5.1.1(v)), GDPR/CCPA data export.</td><td><span class="st built">✅ built</span></td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>Distinction that matters.</b> "Backend" means the endpoint + repo + tests exist and pass against real Postgres, but no UI drives it. "Partial" means a screen renders but a key piece is missing (e.g. F2's paywall renders but has no purchase SDK; F7 only does dirty→clean, not the other two transitions). "In-flight" means it exists only as uncommitted working-tree code. See §7 for the row-by-row honest verdict.</div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="arch">
+  <h2><span class="idx">03</span> High-level architecture</h2>
+  <p class="lede">A pnpm workspace with four packages in a strict one-way dependency chain. There is exactly <b>one</b> seam that touches the database, and mobile depends only on the shared type package.</p>
+
+  <table>
+    <thead><tr><th style="width:210px">Package</th><th>Role</th><th>Key constraint</th></tr></thead>
+    <tbody>
+      <tr><td><code>packages/shared</code></td><td>Zod schemas, pure functions (harmony, suggestions, palette, dedupe), and <b>ports</b> (vendor interfaces). The type single-source-of-truth.</td><td>Everything crosses a boundary through a Zod schema (<em>parse-don't-cast</em>). Ports live here.</td></tr>
+      <tr><td><code>packages/db</code></td><td>node-pg-migrate migrations + repos. The <b>only</b> code that talks to Postgres.</td><td>One transaction per <code>query()</code> call. No other package may call <code>supabase.from()</code>.</td></tr>
+      <tr><td><code>packages/functions</code></td><td>Edge handlers (parse, wardrobe, wear-log, outfits, palette, account, RevenueCat webhook) + vendor adapters.</td><td>Handlers write <b>zero SQL</b> — they compose repos. Deployed as thin Deno shims that wrap <code>serveAuthed(handler)</code>.</td></tr>
+      <tr><td><code>packages/mobile</code></td><td>The Expo app: token system, typed API client, react-query hooks, screens.</td><td>Imports <code>shared</code> only — never <code>db</code>/<code>functions</code>. Colors come from <code>useTokens()</code>, never literals.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Dependency graph</h3>
+  <pre><span class="m">shared</span>   <span class="c">// Zod schemas · pure fns · port interfaces (type SSOT)</span>
+  <span class="k">▲</span>
+  <span class="m">db</span>       <span class="c">// migrations + repos — the ONLY DB-access seam</span>
+  <span class="k">▲</span>
+<span class="m">functions</span>  <span class="c">// Edge handlers + business logic (tested by vitest + testcontainers)</span>
+
+<span class="m">mobile</span>    <span class="c">// Expo app — imports shared only, never db / functions</span></pre>
+
+  <h3>Request data-flow</h3>
+  <div class="panel">
+  <div class="flow" style="font-family:var(--mono);font-size:13px;line-height:1.9">
+    <div><span style="color:var(--accent)">Mobile app</span>&nbsp;&nbsp;<span class="c">— react-query hook, client-minted <code>client_id</code>, Zod-validated request</span></div>
+    <div style="color:var(--ink3)">│&nbsp;&nbsp;HTTPS + <code>Authorization: Bearer &lt;JWT&gt;</code></div>
+    <div style="color:var(--ink3)">▼</div>
+    <div><span style="color:var(--accent2)">Deno Edge shim</span>&nbsp;&nbsp;<span class="c">— ~3 lines: <code>serveAuthed(handler, pool)</code></span></div>
+    <div style="color:var(--ink3)">▼</div>
+    <div><span style="color:var(--accent2)">withAuth</span>&nbsp;&nbsp;<span class="c">— verify JWT vs asymmetric JWKS · <code>userId = verified sub</code> (never the body)</span></div>
+    <div style="color:var(--ink3)">▼</div>
+    <div><span style="color:var(--accent2)">handler</span>&nbsp;&nbsp;<span class="c">— pure orchestration, writes no SQL</span></div>
+    <div style="color:var(--ink3)">▼</div>
+    <div><span style="color:var(--accent3)">repo</span>&nbsp;&nbsp;<span class="c">— <code>QueryExecutor</code>: <code>BEGIN → SET LOCAL ROLE app_user → set jwt.claim.sub → COMMIT</code></span></div>
+    <div style="color:var(--ink3)">▼</div>
+    <div><span style="color:var(--green)">Postgres</span>&nbsp;&nbsp;<span class="c">— <b>RLS FORCE default-deny</b> confines every row to the caller. The DB refuses foreign rows.</span></div>
+  </div>
+  </div>
+  <p>Two paths bypass the Edge tier <em>by design</em>: the app talks <b>directly to Supabase Storage</b> for photo bytes (upload originals, download cut-outs) under Storage-RLS — never through Edge CPU — and the RevenueCat webhook is a <b>server-to-server</b> route with no user JWT (it authenticates the <em>sender</em> by a constant-time shared-secret and is the sole writer of the money table via <code>service_role</code>). The morning "what do I wear" loop runs <b>entirely on-device</b> (harmony, suggestions, palette, dedupe are pure functions in <code>shared</code>), so 100k users cost zero server compute for it.</p>
+
+  <div class="danger">
+    <b>The privacy invariant (the app's defining constraint).</b> The on-device gate filters intimate / non-her photos <b>before any upload</b>. There is deliberately <b>no server-side gate</b> — a server filter would already have received the photo. "You cannot leak what never left the device." This is structural (ABLATE-tier), not a "please delete" promise. The server literally cannot distinguish an approved photo from an unapproved one; the guarantee is enforced on-device as "no upload without an explicit approval tap" (see the <code>ApprovedPhoto</code> brand in §10). Adjacent invariants: body geometry (future try-on) is session-ephemeral (no server body-twin), and skin tone is self-identified via a swatch quiz, never camera-detected.
+  </div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="state">
+  <h2><span class="idx">04</span> How state is stored</h2>
+  <p class="lede">Postgres, via <b>16 numbered node-pg-migrate migrations</b> (real UP + DOWN). Every user-scoped table is tenant-owned by <code>user_id</code> and carries <b>RLS FORCE + default-deny</b> keyed on the verified JWT <code>sub</code>. Repos are the only way in.</p>
+
+  <div class="statgrid">
+    <div class="stat g"><div class="big">16</div><div class="lbl">migrations (0001–0016)</div></div>
+    <div class="stat g"><div class="big">9</div><div class="lbl">tenant tables, all RLS FORCE</div></div>
+    <div class="stat g"><div class="big">11</div><div class="lbl">repos (the only DB seam)</div></div>
+    <div class="stat g"><div class="big">12</div><div class="lbl">Edge routes (11 user + 1 webhook)</div></div>
+  </div>
+
+  <h3>The 9 tenant tables</h3>
+  <table>
+    <thead><tr><th style="width:180px">Table</th><th>Holds</th><th>Notable</th></tr></thead>
+    <tbody>
+      <tr><td><code>wardrobe_items</code></td><td>The digitized garment: category, color, pattern, <code>attributes</code> jsonb, availability (clean/dirty/unavailable), cut-out Storage path, <code>parse_job_id</code>, on-device <code>phash</code>.</td><td><code>UNIQUE(user_id,id)</code> anchors composite FKs so a cross-user reference is <em>unrepresentable</em>.</td></tr>
+      <tr><td><code>parse_jobs</code></td><td>One row per submitted photo = the work unit + resumability seam. <code>kind</code> (teaser/full), <code>status</code>, a stale-claim lease (<code>claimed_at</code>).</td><td><b><code>UNIQUE(user_id, source_photo_hash)</code></b> is the idempotency key — deliberately here, not on items (one photo → many garments).</td></tr>
+      <tr><td><code>outfits</code></td><td>Saved outfit: name, timestamps. First-class + self-contained.</td><td>Kept reshape-free so roadmap features (polls/events) consume it unchanged.</td></tr>
+      <tr><td><code>outfit_items</code></td><td>Join of outfit × item, with slot/position; <code>user_id</code> denormalized.</td><td>Composite FKs to both parents make cross-user membership impossible at the schema level.</td></tr>
+      <tr><td><code>wear_log</code></td><td><b>The moat.</b> One timestamped row per item-wear + <code>client_id</code>.</td><td><b>Structurally append-only</b> — INSERT+SELECT grants only, no UPDATE/DELETE; item FK is <code>ON DELETE RESTRICT</code>.</td></tr>
+      <tr><td><code>palette_profile</code></td><td>Self-identified swatch-quiz result (a hue set). Only the <em>result</em>, decoupled from how derived.</td><td>—</td></tr>
+      <tr><td><code>subscriptions</code></td><td>The money table: <code>entitlement_active</code>.</td><td>Sole writer is the webhook via <code>service_role</code>. <code>app_user</code> has <b>no write policy</b> — self-granting premium is unrepresentable.</td></tr>
+      <tr><td><code>webhook_events</code></td><td>System table for atomic replay/ordering dedup of RevenueCat events.</td><td>Not tenant data.</td></tr>
+      <tr><td><code>rate_limit_counters</code></td><td>Per-user provider-spend throttle (fixed-window token bucket). Added in <code>0015</code>.</td><td>SECURITY INVOKER fn; defaults are <em>enforced</em> values — there is deliberately no env value meaning "unlimited."</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The disciplines that keep it safe</h3>
+  <ul class="clean">
+    <li><b>Repos are the only DB path.</b> <code>packages/db/src/repos/</code> — <code>account · export · outfit-items · outfits · palette · parse-jobs · rate-limit · subscriptions · wardrobe · wear-log · webhook-events</code>. Handlers compose them; they write no SQL.</li>
+    <li><b>parse-don't-cast.</b> Every DB row, request and response passes through a Zod schema (<code>parseBoundary</code>). No <code>as</code> casts across trust boundaries. Repos cast <code>timestamptz→::text</code> and <code>numeric→::float</code> in SELECT so rows match schemas and survive <code>JSON.stringify</code>.</li>
+    <li><b>client_id idempotency.</b> The caller mints <code>client_id</code> <em>at tap time</em> and passes it in — never inside the mutation function, where a retry would create duplicate rows. A partial <code>UNIQUE</code> index dedups retries onto the caller's own row.</li>
+    <li><b>Migrations are append-only + reversible.</b> Never edit a landed migration; destructive DDL needs a human approval token under <code>migrations/approvals/</code> (a directory that does not exist yet — the mechanism is declared, never exercised). Round-trip DOWN on populated data is a human-gated step that has never run.</li>
+    <li><b>One sanctioned RLS bypass:</b> <code>makeServiceExecutor</code> (the webhook only) runs as <code>service_role</code> with no <code>SET LOCAL ROLE</code> — the single system-jobs seam. Every other executor is per-request <code>app_user</code>.</li>
+  </ul>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="rules">
+  <h2><span class="idx">05</span> The rules &amp; non-negotiables</h2>
+  <p class="lede">The codebase is organized around five "agent-arch" rules plus a set of security invariants. The five rules govern <em>how work is done</em>; the invariants govern <em>what must always hold</em>.</p>
+  <div class="grid2">
+    <div class="panel tight">
+      <h3 style="margin-top:2px">The five rules</h3>
+      <ol style="padding-left:20px;margin:0">
+        <li style="margin:8px 0"><b>One pass or decompose.</b> If change + tests + verification don't fit one context window, split first.</li>
+        <li style="margin:8px 0"><b>Make the unsafe thing unrepresentable.</b> Push enforcement below the app layer: DB RLS FORCE &gt; tsconfig/lint &gt; tests. Make bad states impossible, don't just test for them.</li>
+        <li style="margin:8px 0"><b>Verify from a vantage you cannot reach.</b> Real simulator screenshot for UI; red-first test with an oracle you didn't compute for logic; real webhook for money. A test the same agent wrote is a mirror oracle, not verification.</li>
+        <li style="margin:8px 0"><b>The safe path is the fast path.</b> Gates run affected-only in seconds; don't ship a gate adding &gt;10% latency.</li>
+        <li style="margin:8px 0"><b>Stop on the escalation trigger.</b> Irreversible ops, money/entitlement, or unobservable visual output → request human review. <em>(The money path has an explicit autonomy grant — see below.)</em></li>
+      </ol>
+    </div>
+    <div class="panel tight">
+      <h3 style="margin-top:2px">Security invariants</h3>
+      <ul class="clean" style="margin:0">
+        <li>Repos are the only DB path; <code>supabase.from()</code> banned elsewhere.</li>
+        <li>Identity from the verified JWT <code>sub</code> via <code>withAuth</code>/<code>serveAuthed</code> (asymmetric JWKS — no shared secret), never a request body.</li>
+        <li>RLS FORCE + default-deny on every tenant table; <code>service_role</code> only for system jobs.</li>
+        <li>Colors from <code>useTokens()</code>, never literal hex.</li>
+        <li>Structured logger only, never <code>console</code>; never log raw error messages (PII).</li>
+        <li>Read env via <code>envValue()</code>/<code>requireEnv()</code>, never bare <code>process.env</code> (Edge runs Deno).</li>
+        <li>Secrets live in gitignored <code>.env.*</code> — <b>source</b> them, never read them into context.</li>
+        <li>The on-device gate runs before any upload.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="warn">
+    <b>Honesty about enforcement — this repo is unusually candid about it.</b> Several of the invariants above are held by <b>discipline and review, not by a mechanical gate.</b> There is <b>no CI</b> (<code>.github/</code> contains only <code>CODEOWNERS</code>); the only automated enforcement is a local pre-commit hook + a handful of gates in <code>scripts/verify.mjs</code>. Specifically <b>absent</b> despite being described elsewhere as gates: the no-literal-colors gate, the <code>supabase.from()</code> lint-ban, <code>no-console</code>, the cross-feature-import ban, the bare-<code>process.env</code> ban, and a <code>pnpm mutation</code> battery. The behavior is currently clean by discipline. The "agent cannot edit its own cage" rule (human-owned <code>conventions.json</code>, hooks, gate scripts…) is generated into CODEOWNERS but marked <em>PARKED — not enforced until a GitHub remote exists</em>, and there is no remote; the real enforcement is the per-agent prompt.
+  </div>
+  <div class="note">
+    <b>Money path — autonomy granted (2026-08-06).</b> Overriding Rule 5's default, <code>CLAUDE.md</code> grants full build/verify/commit/merge autonomy on the RevenueCat/entitlement path (there is no remote; the owner reviews commits directly). The verification bar is <em>unchanged</em>: entitlement must be proven against a <b>real webhook event</b>, never a mocked success — and that real-event verification <b>still has not happened.</b>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="tree">
+  <h2><span class="idx">06</span> Folder structure</h2>
+  <p class="lede">Annotated tree of the parts that matter. Items marked <span class="hl" style="font-family:var(--mono);font-size:12px">◆ uncommitted</span> are in-flight working-tree work (mostly the photo-intake / onboarding stream).</p>
+  <div class="tree">
+<span class="d">packages/</span>
+├─ <span class="d">shared/</span>src/           <span class="cm"># Zod schemas · pure fns · ports (type SSOT)</span>
+│   ├─ <span class="d">schemas/</span>          <span class="cm"># wardrobe, outfits, billing, profile, errors, common</span>
+│   ├─ <span class="d">ports/</span>            <span class="cm"># AIVisionPort, CutoutPort, WeatherPort, BillingPort, <span class="hl">◆PhotoIntakePort</span></span>
+│   ├─ harmony.ts        <span class="cm"># F9 color-harmony wheel (see §10)</span>
+│   ├─ colorFamily.ts    <span class="cm"># hex/token → ColorFamily (D-003)</span>
+│   ├─ suggestion.ts · palette.ts · dedupe.ts · wardrobeSuggestion.ts
+│   └─ <span class="hl">◆approvedPhoto.ts</span>    <span class="cm"># the privacy "approval brand" (see §10)</span>
+├─ <span class="d">db/</span>
+│   ├─ <span class="d">migrations/</span>        <span class="cm"># 0001_substrate … 0016_apply_webhook_event_fn (16, real UP+DOWN)</span>
+│   ├─ src/<span class="d">repos/</span>       <span class="cm"># 11 repos — the ONLY DB-access seam</span>
+│   └─ <span class="d">test/</span>             <span class="cm"># *.integration.test.ts + *.rls.integration.test.ts + perf</span>
+├─ <span class="d">functions/</span>src/
+│   ├─ <span class="d">auth/</span>             <span class="cm"># withAuth, serveAuthed, executor, respond, logger, env</span>
+│   ├─ <span class="d">adapters/</span>         <span class="cm"># REAL GPT-4o + Photoroom adapters, Storage reader/writer</span>
+│   ├─ <span class="d">parse/</span>            <span class="cm"># parse-photo, teaser-cap, rate-limit</span>
+│   ├─ <span class="d">wardrobe/ outfits/ wear-log/ palette/ account/ billing/</span>
+│   └─ <span class="d">test/</span>             <span class="cm"># integration · security · chaos · metamorphic · preflight · perf</span>
+└─ <span class="d">mobile/</span>
+    ├─ src/<span class="d">tokens/</span>      <span class="cm"># useTokens() — the one color source; contrast.test.ts gates WCAG AA</span>
+    ├─ src/<span class="d">api/</span>         <span class="cm"># typed client, routes, react-query hooks, schemas</span>
+    ├─ src/<span class="d">session/</span>     <span class="cm"># AuthPort, Supabase auth, native credential adapters</span>
+    ├─ src/<span class="d">billing/</span>     <span class="cm"># BillingProvider + RevenueCat port (no native SDK yet)</span>
+    ├─ src/<span class="hl">◆photo/</span>       <span class="cm"># PhotoIntakeProvider, addGarment, upload chokepoint, sha256</span>
+    ├─ <span class="d">features/</span>       <span class="cm"># auth · laundry · monetization · navigation · outfits · suggestions · wardrobe · <span class="hl">◆onboarding</span></span>
+    ├─ <span class="hl">◆harness/</span>        <span class="cm"># fake backend + fake ports for screen-driving without a server</span>
+    └─ <span class="d">screenshots/</span>    <span class="cm"># 17 committed simulator PNGs (diagnostic captures — see §7)</span>
+
+<span class="d">docs/</span>
+├─ 00-north-star-vision · 01-product-requirements · 02-engineering-requirements
+├─ 03-design-system · 04-development-phases · 05-testing-gauntlet · 06-backend-design · 07-ui-state
+├─ <span class="hl">LAUNCH-READINESS.md</span>   <span class="cm"># the honest, re-derived pre-launch audit — read this</span>
+├─ RUN-LOG.md            <span class="cm"># the durable build record, wave by wave</span>
+├─ DEPLOY-RUNBOOK.md · PATTERNS.md · ORCHESTRATION.md · roadmap.md (FUTURE — not built)
+└─ <span class="d">decisions/</span>        <span class="cm"># D-001 (outfit idempotency) · D-002 (dedupe merge) · D-003 (color theory)</span>
+
+<span class="d">supabase/</span>functions/     <span class="cm"># 12 Deno Edge shims (~3 lines each) + _shared/pool.ts + config.toml + import_map.json</span>
+<span class="d">scripts/</span>               <span class="cm"># gen-conventions, verify, gates/ (check-rls, check-secrets, …), bench-scan corpus</span>
+<span class="d">content/</span>               <span class="cm"># SEO blog drafts + App Store / Play listings (product name still "[App Name]")</span>
+  </div>
+  <div class="note"><b>A subtlety worth knowing:</b> <code>conventions.json</code> declares 10 mobile "feature roots" but only some exist on disk; <code>onboarding</code> is now present only as uncommitted work. The <code>gen:check</code> gate verifies generated files match <code>conventions.json</code> — it does <b>not</b> verify <code>conventions.json</code> matches the disk, which is how phantom roots pass a green gate.</div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="status">
+  <h2><span class="idx">07</span> What's BUILT vs NOT built <span style="font-size:14px;color:var(--ink3);font-weight:500">— the honest picture</span></h2>
+  <div class="legend">
+    <span><span class="st built">✅ built</span> proven, tested</span>
+    <span><span class="st partial">🟡 partial</span> exists, key piece missing</span>
+    <span><span class="st no">⬜ absent</span> not started</span>
+    <span><span class="st na">n/a</span> logic only</span>
+  </div>
+  <p>One-line summary: <b>the backend is genuinely built and hard-verified against real Postgres; the frontend now demonstrably renders but the two revenue-critical paths (F1 scan→reveal and F2 purchase) are both incomplete; and nothing is deployed anywhere.</b></p>
+
+  <h3>Backend &amp; infrastructure</h3>
+  <table>
+    <thead><tr><th style="width:230px">Area</th><th style="width:96px">State</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>DB schema + RLS</td><td><span class="st built">✅ built</span></td><td>16 migrations, 9 tenant tables all RLS FORCE, verified by <code>check-rls</code> + a suite that <code>SET LOCAL ROLE app_user</code> (superuser would bypass RLS and prove nothing).</td></tr>
+      <tr><td>Repos (11)</td><td><span class="st built">✅ built</span></td><td>Each with integration tests against real Postgres.</td></tr>
+      <tr><td>Edge handlers (12 routes)</td><td><span class="st built">✅ built</span></td><td>wardrobe (list/availability/dedupe), outfits, wear-log, palette (upsert/entitlement), parse-photo, account (delete/export), revenuecat-webhook. All 12 shims run <code>verify_jwt=false</code> by design (handler owns asymmetric-JWKS auth).</td></tr>
+      <tr><td>Money/entitlement write path</td><td><span class="st built">✅ built</span></td><td>Webhook is the sole writer; structurally proven that <code>app_user</code> is refused (<code>42501</code>). <b>Never exercised against a real RevenueCat delivery.</b></td></tr>
+      <tr><td>Provider adapters (GPT-4o, Photoroom)</td><td><span class="st partial">🟡 wired</span></td><td>Real adapters with timeout/retry, bound in production. <b>No API keys exist</b> — never called against a live provider; parse quality is <b>unmeasured</b>.</td></tr>
+      <tr><td>Storage RLS (originals, cutouts)</td><td><span class="st partial">🟡 asserted</span></td><td>Migration <code>0013</code> + a mutation-probe test against a fabricated <code>storage</code> stand-in. Never applied to real Supabase Storage.</td></tr>
+      <tr><td>Deno deploy shims</td><td><span class="st built">✅ built</span></td><td>Present + a test that walks <code>dist/</code> and asserts the import map version-pins every <code>npm:</code> target (Deno resolves bare specifiers only through the map).</td></tr>
+      <tr><td>Actual deployment</td><td><span class="st no">⬜ absent</span></td><td><b>No Supabase project, no secrets, no provider keys, nothing deployed.</b> Every guarantee is against a testcontainer.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Mobile frontend (re-derived from <code>features/</code> + hooks)</h3>
+  <table>
+    <thead><tr><th style="width:52px">#</th><th style="width:96px">State</th><th>What renders / what's missing</th></tr></thead>
+    <tbody>
+      <tr><td><code>F1</code></td><td><span class="st partial">🟡 in-flight</span></td><td>The scan→teaser→reveal flow and the <b>on-device privacy gate</b> were entirely absent at the last committed audit; a <code>features/onboarding/</code> + <code>src/photo/</code> intake stream now exists as <b>uncommitted working-tree code</b> (picker, hashing, upload chokepoint, the <code>ApprovedPhoto</code> brand). Not yet integrated, screenshot-verified, or committed.</td></tr>
+      <tr><td><code>F2</code></td><td><span class="st partial">🟡 partial</span></td><td>Paywall renders and now shows the store-localized price + disclosure via a <code>BillingPort</code>; but <code>react-native-purchases</code> is not installed (needs RevenueCat keys + real product IDs), so it honestly renders "Membership isn't available right now" with no button. <b>Cannot take money yet.</b></td></tr>
+      <tr><td><code>F3</code></td><td><span class="st partial">🟡 backend</span></td><td>Backend <code>kind=full</code> entitlement gate exists + tested; no UI.</td></tr>
+      <tr><td><code>F4</code></td><td><span class="st partial">🟡 partial</span></td><td>Read-only wardrobe list. No filter UI, no dedupe pick-sheet; <code>useResolveDedupe()</code> is dead code.</td></tr>
+      <tr><td><code>F5</code></td><td><span class="st partial">🟡 partial</span></td><td>Suggestions screen wired to <code>suggestItems</code>/harmony/palette; <b>not weather-aware</b> (<code>WeatherPort</code> exists in shared but has no adapter/caller).</td></tr>
+      <tr><td><code>F6</code></td><td><span class="st partial">🟡 backend</span></td><td>List surface only; the builder canvas is absent, <code>useCreateOutfit()</code> is dead. <b>Cannot create an outfit from the UI.</b></td></tr>
+      <tr><td><code>F7</code></td><td><span class="st partial">🟡 partial</span></td><td>Laundry screen does dirty→clean only; the clean→dirty and →unavailable transitions are unreachable.</td></tr>
+      <tr><td><code>F8</code></td><td><span class="st partial">🟡 partial</span></td><td>Per-item wear from the suggestion hero (<code>client_id</code> correctly minted at tap). No per-outfit wear, no history view.</td></tr>
+      <tr><td><code>F9</code></td><td><span class="st na">logic</span></td><td><code>harmony.ts</code> + palette scoring are wired into suggestion ranking (D-003); pure, property-tested.</td></tr>
+      <tr><td><code>B1</code></td><td><span class="st no">⬜ absent</span></td><td>No swatch-quiz UI; backend route/repo/tests exist, <code>useUpsertPalette()</code> is dead.</td></tr>
+      <tr><td><code>F10</code></td><td><span class="st built">✅ built</span></td><td>Sign-in, type-to-confirm account delete, data export — the most complete surface. Sign-in needs a native credential provider installed to actually complete.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>The UI does render.</b> 17 simulator screenshots are committed as evidence — the app boots, the session gate resolves, six tabs render with real loading/empty/populated/error states. That capture also found <b>6 visual defects no test could see</b> (no safe-area insets → titles clipped by the Dynamic Island; a paywall with no price = an App Store rejection; a "Membersh/ip" tab wrap; 7 of 10 color tokens failing WCAG AA; no typeface set). Four are since fixed in code but <b>not re-captured</b>, so those fixes are code claims, not visual proof. The 17 PNGs carry a simulator overlay artifact and are <b>diagnostic, not store assets</b>.</div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="launch">
+  <h2><span class="idx">08</span> Path to launch / showing investors</h2>
+  <p class="lede">There is no path today from "a woman installs this" to "she pays," because F1 (the reveal) and F2 (the purchase) are both incomplete and nothing is deployed. Ordered minimum to reach an end-to-end demoable flow — <span style="color:var(--red)">[H]</span> human-required, <span style="color:var(--accent2)">[A]</span> agent-doable, <span style="color:var(--amber)">[A→H]</span> agent builds / human gates:</p>
+  <ol style="padding-left:22px">
+    <li style="margin:9px 0"><span class="st partial" style="margin-right:6px">[A]</span><b>Finish + re-capture the visual fixes.</b> Safe-area insets, tab label, AA palette, typeface are coded but unconfirmed; re-shoot on a booted sim (the oracle). Cheapest high-value work, needs nothing from anyone.</li>
+    <li style="margin:9px 0"><span class="st no" style="margin-right:6px">[H]</span><b>Pick a product name.</b> "[App Name]" is a live token in ~9 content files; blocks all listings/ASO.</li>
+    <li style="margin:9px 0"><span class="st partial" style="margin-right:6px">[H→A]</span><b>Decide pricing + create the RevenueCat / App Store product,</b> then wire the real purchase call and put price + renewal terms on the paywall. Without this the build is rejected and cannot charge.</li>
+    <li style="margin:9px 0"><span class="st no" style="margin-right:6px">[H]</span><b>Provision provider API keys</b> (OpenAI, Photoroom). Adapters are built and waiting; this is the only thing between them and a real parse.</li>
+    <li style="margin:9px 0"><span class="st partial" style="margin-right:6px">[A→H]</span><b>Stand up a real Supabase project.</b> Wire <code>DATABASE_URL</code> (app_user), <code>SUPABASE_DB_SERVICE_URL</code> (real <code>service_role</code>), <code>JWKS_URL</code>, the webhook secret; create <code>originals</code>+<code>cutouts</code> buckets; apply all 16 migrations; re-prove Storage RLS on real Storage. Run the preflight suite (14 tests self-skip until a real project ref is set). <em>Watch the two silent-failure traps: a mis-wired <code>service_role</code> makes the webhook 500 and paying users stay locked out; Storage RLS must actually bind to <code>sub</code>.</em></li>
+    <li style="margin:9px 0"><span class="st partial" style="margin-right:6px">[A→H]</span><b>Ship F1: the scan→reveal flow + the on-device privacy classifier.</b> The in-flight photo-intake work is the skeleton; the classifier is a hard launch blocker (agent builds the model/harness; human curates the labeled corpus and owns the safety go/no-go). <b>Strip EXIF/GPS on-device before upload</b> — not a present defect (no upload path yet) but becomes one instantly (a wardrobe photo's GPS = a home address forwarded to two vendors).</li>
+    <li style="margin:9px 0"><span class="st partial" style="margin-right:6px">[A]</span><b>Grade real parse quality</b> against the bench-scan corpus with live providers — the first honest measurement of the make-or-break lever.</li>
+    <li style="margin:9px 0"><span class="st partial" style="margin-right:6px">[A]</span><b>Fill the remaining UI gaps</b> (F4 filters + dedupe pick, F6 builder canvas, F7's two transitions, B1 quiz, F3 full-parse UI) — all backend-complete, all UI-absent; five dead mutation hooks get callers.</li>
+    <li style="margin:9px 0"><span class="st partial" style="margin-right:6px">[A→H]</span><b>Verify money against a real RevenueCat event</b> and round-trip every migration DOWN on populated data — the two external oracles that have never run.</li>
+    <li style="margin:9px 0"><span class="st no" style="margin-right:6px">[A→H]</span><b>Publish SEO, legal sign-off, App Store submission with fresh screenshots.</b></li>
+  </ol>
+  <div class="panel tight"><b>Critical path to a build that survives review:</b> 1→2→3. &nbsp;<b>To a usable product:</b> +4→5→6. &nbsp;<b>To an honest launch:</b> +7, 9, and the classifier recall floor in 6 — the external oracles that still have never run.</div>
+</section>
+
+<!-- ============ 9 ============ -->
+<section id="testing">
+  <h2><span class="idx">09</span> Testing story</h2>
+  <p class="lede">Because the code is mostly AI-written, its tests are too — the "mirror oracle" problem: the author grades the author, and a green suite can encode the exact wrong assumption the code does. The entire test framework (<code>docs/05</code>) is therefore organized not by feature but by <b>how independent each tier's grading signal is from the author.</b></p>
+
+  <div class="statgrid">
+    <div class="stat p"><div class="big">66</div><div class="lbl"><code>*.test.ts</code> files (tracked)</div></div>
+    <div class="stat g"><div class="big">521</div><div class="lbl">unit tests (latest branch @ HEAD)</div></div>
+    <div class="stat g"><div class="big">253</div><div class="lbl">integration passed (+14 skipped)</div></div>
+    <div class="stat a"><div class="big">14</div><div class="lbl">skipped = "NOT A PASS" (need real deploy)</div></div>
+  </div>
+
+  <h3>The vitest lanes</h3>
+  <ul class="clean">
+    <li><b>unit</b> (<code>packages/*/src/**/*.test.ts</code>) — pure logic + property-based tests via fast-check. Runs in ~seconds.</li>
+    <li><b>integration</b> (<code>test:integration</code>) — <b>real Postgres via testcontainers</b>, the full migration chain applied, RLS enforced. The mandatory discipline: every test <code>SET LOCAL ROLE app_user</code>, because the container superuser bypasses RLS — forgetting it proves nothing.</li>
+    <li><b>perf</b> (<code>test:perf</code>, not in the gate wall) — times the 10 repo ops against a populated wardrobe, 200 samples, asserts p95 vs SLOs. The measured finding was honest: every DB op is p50 4–8ms / p95 10–23ms noise — <b>nothing to optimize at the DB layer</b>; real latency is the undeployed provider calls + RN render.</li>
+  </ul>
+
+  <h3>"Verify from a vantage you cannot reach" — the tiers</h3>
+  <table>
+    <thead><tr><th style="width:150px">Tier</th><th>The non-author signal</th></tr></thead>
+    <tbody>
+      <tr><td>Tier-0 anti-mirror</td><td>Mutation testing grades the <em>tests</em>; spec-derived-by-a-second-agent; <b>red-first</b> (prove the test fails before the fix). <em>Note: <code>pnpm mutation</code> does not exist as a battery — mutants are hand-derived from <code>main</code> per critical-path change, with red→revert→green recorded in the RUN-LOG.</em></td></tr>
+      <tr><td>Tier-1 property</td><td>fast-check invariants (symmetry, determinism, totality, monotonicity) over generated inputs — the framework hunts the violation the author never enumerated.</td></tr>
+      <tr><td>Tier-1 metamorphic</td><td>For the parse path where ground truth is scarce: relations between outputs of related inputs (rotation-invariance, near-dup agreement) that hold regardless of the true label.</td></tr>
+      <tr><td>Tier-1 bench-scan</td><td>A held corpus labeled by a source that is <em>not</em> the pipeline; an adversary tier proves the gate <em>bites</em> (a deliberately-wrong model must score below the floor).</td></tr>
+      <tr><td>Tier-2 security</td><td>Cross-tenant penetration with a <b>valid attacker token</b>; the oracle is always a fresh SELECT as the victim (or a superuser cross-owner join), <b>never the handler's own response</b>.</td></tr>
+      <tr><td>Tier-3 integration</td><td>The real production chain against real Postgres + RLS FORCE.</td></tr>
+      <tr><td>Tier-4 chaos</td><td>Webhook replay/out-of-order, migrations on <em>populated</em> data, parse fan-out under timeouts, offline/jitter idempotency.</td></tr>
+      <tr><td>Tier-5 perf</td><td>Measured wall-clock p95 under injected jitter/load — a latency oracle is independent because it's a measurement, not a self-report.</td></tr>
+    </tbody>
+  </table>
+  <div class="note"><b>What this discipline actually caught</b> (each re-derived from <code>main</code>, not trusted from a build agent's green report): a teaser-cap race that let 12 requests past a cap of 3 (a snapshot-read an advisory lock can't rescue); a wear-log 500 under simultaneous taps; a <b>cross-tenant photo-read + SSRF</b> on the parse path (a body-supplied path handed to vendors); a permanently-bricked photo after a crashed parse; the money-gate and secret-auth mutants; and a <code>zod</code> specifier missing from the Deno import map that would have killed all 12 deployed functions at load. The strongest external oracles — a real webhook delivery, real Storage RLS, real provider output, a populated-migration round-trip — <b>have still never run.</b></div>
+</section>
+
+<!-- ============ 10 ============ -->
+<section id="notable">
+  <h2><span class="idx">10</span> Notable code &amp; honest smells</h2>
+
+  <h3>The color-harmony wheel — <code>packages/shared/src/harmony.ts</code></h3>
+  <p>Twelve chromatic hue families on an evenly-spaced <b>HSL</b> wheel plus five neutrals. The verdict for any pair is driven by circular hue distance, computed once per unordered pair to build a <b>frozen lookup table keyed by the sorted pair</b> — so <code>harmony(a,b)</code> and <code>harmony(b,a)</code> read the same cell and symmetry is <em>structural</em>, not tested-for. It also correctly distinguishes triadic (120°) and split-complementary (150°) from a genuine clash, and the comment warns the next reader not to "fix" it to the RYB painter's wheel.</p>
+  <pre><span class="c">// circular distance on the 12-hue wheel drives the verdict; a frozen table makes it total + symmetric</span>
+<span class="k">function</span> <span class="m">verdictFor</span>(a, b) {
+  <span class="k">if</span> (NEUTRAL_SET.has(a) || NEUTRAL_SET.has(b)) <span class="k">return</span> <span class="s">'neutral'</span>;
+  <span class="k">const</span> raw = Math.abs(HUE_INDEX.get(a) - HUE_INDEX.get(b));
+  <span class="k">const</span> distance = Math.min(raw, <span class="t">12</span> - raw);         <span class="c">// 0..6</span>
+  <span class="k">if</span> (distance === <span class="t">6</span>) <span class="k">return</span> <span class="s">'complementary'</span>;      <span class="c">// 180°</span>
+  <span class="k">if</span> (distance === <span class="t">4</span>) <span class="k">return</span> <span class="s">'triadic'</span>;            <span class="c">// 120°</span>
+  <span class="k">if</span> (distance === <span class="t">5</span>) <span class="k">return</span> <span class="s">'split-complementary'</span>; <span class="c">// 150°</span>
+  <span class="k">return</span> <span class="s">'clash'</span>;                             <span class="c">// 60° / 90° — genuinely weaker</span>
+}</pre>
+
+  <h3>The concurrent-idempotency wear-log — <code>packages/db/src/repos/wear-log.repo.ts</code></h3>
+  <p>The append is <b>one statement</b> (one tx per query): a writable CTE that inserts <code>ON CONFLICT DO NOTHING</code> on the partial <code>UNIQUE(user_id, client_id)</code>, and flips the item to dirty <em>only</em> when a new row landed. The subtle bit: it deliberately does <b>not</b> use an in-statement <code>UNION ALL</code> fallback, because under READ COMMITTED the loser's snapshot is taken before the winner commits — so on a truly-simultaneous duplicate tap the fallback would see zero rows and 500. Instead, on conflict it re-reads in a <b>fresh <code>query()</code></b> (a new transaction = a new snapshot that sees the committed winner). This exact trap was found by the chaos suite and later re-found in <code>outfits.repo</code>.</p>
+
+  <h3>The privacy approval-brand — <code>packages/shared/src/approvedPhoto.ts</code> <span class="hl" style="font-size:12px;font-family:var(--mono)">◆ uncommitted</span></h3>
+  <p>The most interesting single file in the in-flight work. Since the server cannot tell an approved photo from an unapproved one, "no upload without approval" is enforced <b>on-device as a type</b>: <code>ApprovedPhoto</code> is branded with a module-private <code>unique symbol</code> that is never exported, so it can only be produced by <code>approvePhoto()</code>, which requires the tapped+screened photo and refuses any verdict but <code>candidate</code>. Because a TS brand is erased at runtime, it adds runtime backstops the code comments trace to specific red-team launderings: <code>Object.freeze</code> kills the mutation route, and the upload chokepoint re-derives the SHA-256 digest and refuses bytes that don't hash to their key. The file is careful to say what it does <em>not</em> do — it does not classify; whether the model catches intimate photos is a recall metric graded against an independent corpus, which the human owns.</p>
+
+  <h3>The parse-photo privacy + money seam — <code>packages/functions/src/parse/parse-photo.ts</code></h3>
+  <p>A pure orchestrator (writes zero SQL) that layers the money-adjacent guarantees in order: entitlement gate first (<code>402</code> on <code>kind=full</code>), then the per-user spend throttle (a <code>429</code> costs zero provider dollars and zero rows), then an atomic job-claim (one winner, never a double-charge), then the provider calls, then an atomic commit. The load-bearing security fix lives here: the source-photo path is <b>derived server-side</b> from the verified <code>sub</code> as <code>{user_id}/{hash}/original</code> and stripped from the request schema (<code>.strict()</code>) — because the vendors fetch the photo <em>from a URL on their own servers</em>, so no Postgres RLS policy can reach that fetch. Making the path unrepresentable in the request closed a real cross-tenant read + SSRF.</p>
+
+  <h3>Honest smells &amp; fragile patterns found while reading</h3>
+  <div class="danger"><b>Live: JWT verification omits required claims.</b> <code>withAuth.ts:63</code> calls <code>jwtVerify(token, jwks)</code> with <b>no options</b> — the 2026-08-09 review empirically proved a token with a hostile <code>iss</code>, wrong <code>aud</code>, or <b>no <code>exp</code> at all</b> still verifies and returns its sub (a permanent credential). The fix (<code>{ issuer, audience, requiredClaims:['exp'] }</code>) was "assigned to the security branch" but is <b>not present on this working branch</b>; the file's own comment ("issuer/audience are optional additional checks") is part of the defect. Worth confirming this landed before any deploy.</div>
+  <ul class="clean">
+    <li><b>Tests under <code>features/**</code> silently never run.</b> The vitest <code>unit</code> project globs <code>packages/*/src/**</code>; a test placed under <code>features/</code> is not skipped — it never executes. This already bit a 20-test billing suite. Flagged, not fixed (widening the glob is adjacent shared config).</li>
+    <li><b>"Gate" vs reality gap.</b> Multiple docs describe lint gates (no-literal-colors, <code>supabase.from()</code> ban, <code>no-console</code>, cross-feature imports) that <b>do not exist</b>; there is no CI. The invariants hold by discipline. The repo is admirably honest about this in <code>LAUNCH-READINESS.md</code> §4 — but a reader trusting the older docs would over-estimate the safety net.</li>
+    <li><b>The cage is advisory.</b> The "agent cannot edit its own guardrails" rule is generated into CODEOWNERS but explicitly PARKED (no remote). Real enforcement is the per-agent prompt.</li>
+    <li><b>Doc-count drift.</b> Migration/route/test counts are hardcoded across ~8 docs and have drifted repeatedly; the durable fix (a generated <code>STATUS.md</code> or a <code>check-doc-counts</code> gate) is identified but unbuilt.</li>
+    <li><b>Environment friction.</b> <code>pnpm add</code> fails in this repo (the <code>prepare</code> script's <code>lefthook install</code> refuses under a global <code>core.hooksPath</code>), so deps must be hand-added to <code>package.json</code> and reconciled with <code>--lockfile-only</code> — a real footgun for the next contributor. Also both <code>.env.example</code> files are untracked while the runbook cites them as authoritative.</li>
+  </ul>
+  <div class="note"><b>What's genuinely good,</b> to balance the smells: the composite-FK design makes cross-user references unrepresentable at the schema level rather than validated; the append-only moat is enforced by grant matrix, not convention; the money table has no <code>app_user</code> write policy at all; and the codebase's willingness to write down its own gaps (RUN-LOG, LAUNCH-READINESS) is unusually disciplined — it treats a passing test as a claim to re-derive, which is exactly right for AI-authored code.</div>
+</section>
+
+<div class="footer">
+  Generated from a read of the codebase at branch <code>fix/outfits-concurrent-create</code>. Counts and states were re-derived from migrations, repos, handlers and tests — not from doc checkboxes. Where a fact needs a live vantage this repo cannot reach (real Supabase, real provider keys, a real RevenueCat delivery, a fresh simulator capture), it is marked as unproven rather than asserted. Primary sources worth reading next: <code>docs/LAUNCH-READINESS.md</code>, <code>docs/RUN-LOG.md</code>, <code>docs/06-backend-design.md</code>, <code>docs/05-testing-gauntlet.md</code>.
+</div>
+</main>
+</div>
+</body>
+</html>
