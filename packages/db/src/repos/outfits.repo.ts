@@ -1,6 +1,7 @@
 // outfits repo.
 import { OUTFIT_PREVIEW_LIMIT, type OutfitRow, type OutfitSummary, type OutfitItemInput } from '@closet/shared';
 import type { QueryExecutor } from './index.js';
+import { clampLimit } from './pagination.js';
 
 const PROJECTION = `id, user_id, name,
   to_char(created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at, to_char(updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS updated_at`;
@@ -184,8 +185,9 @@ export function makeOutfitsRepo(exec: QueryExecutor): OutfitsRepo {
                 ), '{}') AS preview_paths
          FROM public.outfits o
          WHERE o.user_id = $1
-         ORDER BY o.created_at DESC, o.id DESC`,
-        [userId, OUTFIT_PREVIEW_LIMIT],
+         ORDER BY o.created_at DESC, o.id DESC
+         LIMIT $3`,
+        [userId, OUTFIT_PREVIEW_LIMIT, clampLimit(undefined)],
       );
       return rows;
     },

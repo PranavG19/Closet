@@ -3,6 +3,7 @@
 // rowcount (the executor exposes only { rows }).
 import type { ParseJobRow, ParseJobKind, WardrobeItemRow } from '@closet/shared';
 import type { QueryExecutor } from './index.js';
+import { clampLimit } from './pagination.js';
 
 const PROJECTION = `id, user_id, source_photo_hash, source_photo_path, kind, status,
   to_char(claimed_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS claimed_at, error_reason,
@@ -129,10 +130,14 @@ export function makeParseJobsRepo(exec: QueryExecutor): ParseJobsRepo {
     },
 
     async listByUser(userId) {
+      // Server-clamped like wardrobe/wear-log (docs/06 §4: "server-clamped limit ≤ 100"): a
+      // user-scoped list must never return the whole table unbounded. No caller passes a limit
+      // today, so this applies the default page size as a hard ceiling; a keyset cursor can be
+      // threaded through later if a paged parse-history view lands.
       const { rows } = await exec.query<ParseJobRow>(
         `SELECT ${PROJECTION} FROM public.parse_jobs
-         WHERE user_id = $1 ORDER BY created_at DESC, id DESC`,
-        [userId],
+         WHERE user_id = $1 ORDER BY created_at DESC, id DESC LIMIT $2`,
+        [userId, clampLimit(undefined)],
       );
       return rows;
     },

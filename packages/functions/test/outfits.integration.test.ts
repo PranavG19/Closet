@@ -7,6 +7,8 @@ import type { Pool } from 'pg';
 import { OutfitRow } from '@closet/shared';
 import { createOutfit } from '../src/outfits/create.js';
 import { listOutfits } from '../src/outfits/list.js';
+import { deleteOutfit } from '../src/outfits/delete.js';
+import { renameOutfit } from '../src/outfits/rename.js';
 import {
   applyMigrations,
   expectRlsDenies,
@@ -144,5 +146,149 @@ describe('outfits endpoint — idempotent create + FK isolation', () => {
     const body = (await res.json()) as { outfits: { name: string | null }[] };
     expect(body.outfits.some((o) => o.name === 'B-secret')).toBe(false);
     await expectRlsDenies(superuser, execA, 'outfits', USER_B);
+  });
+
+  // ---- delete (F6) — idempotent, tenant-scoped. Oracle = superuser row count. ----
+
+  it('delete own outfit → { deleted: true }, and the row (with members) is gone', async () => {
+    const item = await seedItem(execA, USER_A);
+    const created = OutfitRow.parse(
+      await (await callerA.call(createOutfit, { body: { name: 'ToGo', items: [{ item_id: item }] } })).json(),
+    );
+    const res = await callerA.call(deleteOutfit, { body: { id: created.id } });
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { deleted: boolean }).toEqual({ deleted: true });
+    // Independent oracle: the outfit AND its cascaded members are gone (superuser SELECT).
+    const outfitCount = await superuser.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM public.outfits WHERE id = $1`,
+      [created.id],
+    );
+    expect(outfitCount.rows[0]?.n).toBe('0');
+    const memberCount = await superuser.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM public.outfit_items WHERE outfit_id = $1`,
+      [created.id],
+    );
+    expect(memberCount.rows[0]?.n).toBe('0');
+  });
+
+  it('delete a missing id → { deleted: false }, 200 (idempotent, never 404)', async () => {
+    const res = await callerA.call(deleteOutfit, {
+      body: { id: 'e1e1e1e1-e1e1-41e1-81e1-e1e1e1e1e1e1' },
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { deleted: boolean }).toEqual({ deleted: false });
+  });
+
+  it("delete another tenant's outfit → { deleted: false }, and B's row survives", async () => {
+    const execB = makeTenantExecutor(pool, USER_B);
+    const { rows } = await execB.query<{ id: string }>(
+      `INSERT INTO public.outfits (user_id, name) VALUES ($1,'B-keep') RETURNING id`,
+      [USER_B],
+    );
+    const bOutfitId = rows[0]!.id;
+    const res = await callerA.call(deleteOutfit, { body: { id: bOutfitId } });
+    expect(res.status).toBe(200);
+    // A cannot tell whether it exists — a benign no-op — and B's row is untouched.
+    expect((await res.json()) as { deleted: boolean }).toEqual({ deleted: false });
+    const survives = await superuser.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM public.outfits WHERE id = $1`,
+      [bOutfitId],
+    );
+    expect(survives.rows[0]?.n).toBe('1');
+  });
+
+  // The MOAT invariant: wear_log is append-only history. Deleting an outfit must NOT take
+  // its wear rows with it — the outfit FK is ON DELETE SET NULL (0006), so the row survives
+  // with outfit_id nulled. This is exactly the behaviour migration 0018's index backs; the
+  // oracle is a superuser SELECT of the wear row after the delete, not the handler response.
+  it('delete own outfit → its wear_log rows survive with outfit_id nulled (moat is append-only)', async () => {
+    const item = await seedItem(execA, USER_A);
+    const created = OutfitRow.parse(
+      await (await callerA.call(createOutfit, { body: { name: 'Worn', items: [{ item_id: item }] } })).json(),
+    );
+    const { rows: wearRows } = await execA.query<{ id: string }>(
+      `INSERT INTO public.wear_log (user_id, item_id, outfit_id, client_id)
+       VALUES ($1, $2, $3, 'wear-tap-1') RETURNING id`,
+      [USER_A, item, created.id],
+    );
+    const wearId = wearRows[0]!.id;
+
+    const res = await callerA.call(deleteOutfit, { body: { id: created.id } });
+    expect(res.status).toBe(200);
+    expect((await res.json()) as { deleted: boolean }).toEqual({ deleted: true });
+
+    // The wear row still exists (append-only), but its outfit_id was nulled, not deleted.
+    const wear = await superuser.query<{ n: string; outfit_id: string | null }>(
+      `SELECT count(*)::text AS n, max(outfit_id::text) AS outfit_id
+         FROM public.wear_log WHERE id = $1`,
+      [wearId],
+    );
+    expect(wear.rows[0]?.n).toBe('1');
+    expect(wear.rows[0]?.outfit_id).toBeNull();
+  });
+
+  it('delete retry after success → { deleted: false } (idempotent, never 500)', async () => {
+    const item = await seedItem(execA, USER_A);
+    const created = OutfitRow.parse(
+      await (await callerA.call(createOutfit, { body: { name: 'Twice', items: [{ item_id: item }] } })).json(),
+    );
+    const first = await callerA.call(deleteOutfit, { body: { id: created.id } });
+    const retry = await callerA.call(deleteOutfit, { body: { id: created.id } });
+    expect((await first.json()) as { deleted: boolean }).toEqual({ deleted: true });
+    expect(retry.status).toBe(200);
+    expect((await retry.json()) as { deleted: boolean }).toEqual({ deleted: false });
+  });
+
+  it('delete with a malformed body → 400 at the boundary', async () => {
+    const res = await callerA.call(deleteOutfit, { body: { id: 'not-a-uuid' } });
+    expect(res.status).toBe(400);
+  });
+
+  // ---- rename (F6) — returns the UPDATED row; a miss is 404 (asymmetric with delete). ----
+
+  it('rename own outfit → 200 with the updated name', async () => {
+    const item = await seedItem(execA, USER_A);
+    const created = OutfitRow.parse(
+      await (await callerA.call(createOutfit, { body: { name: 'Before', items: [{ item_id: item }] } })).json(),
+    );
+    const res = await callerA.call(renameOutfit, { body: { id: created.id, name: 'After' } });
+    expect(res.status).toBe(200);
+    const updated = OutfitRow.parse(await res.json());
+    expect(updated.name).toBe('After');
+    // Independent oracle: the persisted name changed (superuser SELECT, not the response).
+    const persisted = await superuser.query<{ name: string | null }>(
+      `SELECT name FROM public.outfits WHERE id = $1`,
+      [created.id],
+    );
+    expect(persisted.rows[0]?.name).toBe('After');
+  });
+
+  it('rename a missing id → 404 not_found (unlike delete, no benign row to return)', async () => {
+    const res = await callerA.call(renameOutfit, {
+      body: { id: 'd4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4', name: 'Ghost' },
+    });
+    expect(res.status).toBe(404);
+  });
+
+  it("rename another tenant's outfit → 404, and B's name is unchanged", async () => {
+    const execB = makeTenantExecutor(pool, USER_B);
+    const { rows } = await execB.query<{ id: string }>(
+      `INSERT INTO public.outfits (user_id, name) VALUES ($1,'B-original') RETURNING id`,
+      [USER_B],
+    );
+    const bOutfitId = rows[0]!.id;
+    const res = await callerA.call(renameOutfit, { body: { id: bOutfitId, name: 'A-hijack' } });
+    expect(res.status).toBe(404);
+    // B's row is scoped out by the repo's WHERE user_id before RLS — name untouched.
+    const persisted = await superuser.query<{ name: string | null }>(
+      `SELECT name FROM public.outfits WHERE id = $1`,
+      [bOutfitId],
+    );
+    expect(persisted.rows[0]?.name).toBe('B-original');
+  });
+
+  it('rename with a malformed body → 400 at the boundary', async () => {
+    const res = await callerA.call(renameOutfit, { body: { id: 'not-a-uuid', name: 'x' } });
+    expect(res.status).toBe(400);
   });
 });
