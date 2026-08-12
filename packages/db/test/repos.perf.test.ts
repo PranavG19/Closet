@@ -133,3 +133,102 @@ describe('Tier-5 — DB repo latency against real Postgres (ranked, SLO-gated)',
   );
   perfIt('wearLog.listByUser', () => makeWearLogRepo(exec).listByUser(USER, { limit: MAX_PAGE_SIZE }));
 });
+
+// Its OWN describe + harness so the large delete-pool seed (below) doesn't perturb the
+// listByUser baselines measured above. Outfit delete is the one write that fans out to
+// three tables: the outfit row, its cascaded outfit_items (ON DELETE CASCADE), and the
+// referencing wear_log rows (ON DELETE SET NULL (outfit_id), migration 0018). That SET
+// NULL sweep is exactly what wear_log_outfit_id_idx backs — without the index it seq-scans
+// the append-only moat, so this op is where a missing-index regression on the moat would
+// surface. Correctness of the delete is proven in wear-log-outfit-fk.integration.test.ts;
+// this proves it stays FAST on a populated wear_log.
+describe('Tier-5 — outfit delete latency on a populated moat (real Postgres, SLO-gated)', () => {
+  let harness: PgHarness;
+  let pool: Pool;
+  let exec: QueryExecutor;
+  // Each measured remove() consumes one pre-seeded worn outfit; measure() runs WARMUP + N
+  // times, so the pool must cover both. Seed a little slack and guard exhaustion loudly.
+  const WARMUP = 5;
+  const POOL = N + WARMUP + 5;
+  const wornOutfitIds: string[] = [];
+  // A background of unrelated wear_log rows so the SET NULL sweep runs against a moat with
+  // real volume, not just the rows it will null — the seq-scan-vs-index difference only
+  // shows up when there is a table to scan.
+  const MOAT_BACKGROUND = MAX_PAGE_SIZE * 5;
+
+  beforeAll(async () => {
+    harness = await startPg();
+    pool = harness.pool;
+    await applyMigrations(pool);
+    exec = makeTenantExecutor(pool, USER);
+
+    const wardrobe = makeWardrobeRepo(exec);
+    const outfits = makeOutfitsRepo(exec);
+    const wearLog = makeWearLogRepo(exec);
+
+    // A handful of real items to compose outfits from and wear.
+    const itemIds: string[] = [];
+    for (let i = 0; i < 8; i += 1) {
+      const item = await wardrobe.create(USER, { category: 'top' });
+      itemIds.push(item.id);
+    }
+
+    // Background moat volume: wears NOT tied to any pooled outfit, so the SET NULL sweep
+    // has a populated table to probe into.
+    let bgSeq = 0;
+    for (let i = 0; i < MOAT_BACKGROUND; i += 1) {
+      await wearLog.appendWear({
+        userId: USER,
+        itemId: itemIds[i % itemIds.length]!,
+        outfitId: null,
+        clientId: `bg-${(bgSeq += 1)}`,
+        flipToDirty: false,
+      });
+    }
+
+    // The delete pool: each outfit has a member (to cascade) AND a wear_log row pointing at
+    // it (to SET NULL) — the full fan-out the delete must handle.
+    let wearSeq = 0;
+    for (let i = 0; i < POOL; i += 1) {
+      const outfit = await outfits.createWithItems(USER, {
+        name: `del-${i}`,
+        items: [{ item_id: itemIds[i % itemIds.length]!, slot: 'top', position: 0 }],
+      });
+      await wearLog.appendWear({
+        userId: USER,
+        itemId: itemIds[i % itemIds.length]!,
+        outfitId: outfit.id,
+        clientId: `del-wear-${(wearSeq += 1)}`,
+        flipToDirty: false,
+      });
+      wornOutfitIds.push(outfit.id);
+    }
+  }, 300_000);
+
+  afterAll(async () => {
+    await harness?.stop();
+  });
+
+  it('outfits.remove (worn, cascade + SET NULL) p95 within SLO', async () => {
+    let cursor = 0;
+    const outfits = makeOutfitsRepo(exec);
+    const op = async (): Promise<void> => {
+      const id = wornOutfitIds[cursor];
+      cursor += 1;
+      // Loud failure if the pool is exhausted: a missing id makes remove() a fast no-op that
+      // would report a falsely-good p95 — the classic vacuous-perf trap.
+      if (id === undefined) throw new Error(`delete pool exhausted at ${cursor}/${wornOutfitIds.length} — increase POOL`);
+      const deleted = await outfits.remove(USER, id);
+      if (!deleted) throw new Error(`remove returned false for a seeded outfit ${id} — pool corrupted, measurement would be vacuous`);
+    };
+    const summary = summarize(await measure('outfits.remove(worn)', N, op, { warmup: WARMUP }));
+    console.log(rankedTable([summary]));
+    const slo = 100; // three-table fan-out; generous like the other write SLOs (docs/05 Tier-5)
+    expect(
+      summary.p95,
+      `outfits.remove(worn): p95 ${summary.p95.toFixed(2)}ms exceeds SLO ${slo}ms ` +
+        `(min ${summary.min.toFixed(2)} / p50 ${summary.p50.toFixed(2)} / max ${summary.max.toFixed(2)}). ` +
+        `A regression here is the missing wear_log_outfit_id_idx re-introducing a moat seq-scan, not noise.`,
+    ).toBeLessThanOrEqual(slo);
+  }, 180_000);
+});
