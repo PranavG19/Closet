@@ -13,6 +13,7 @@ import { Uuid, parseBoundary } from '@closet/shared';
 import type { QueryExecutor } from '@closet/db';
 import { requireEnv } from './env.js';
 import { makePgExecutor, type Sql } from './executor.js';
+import { logger } from './logger.js';
 
 export interface AuthContext {
   // The verified JWT sub, parsed as a uuid. The ONLY source of tenant identity.
@@ -74,6 +75,41 @@ function newRandomId(): string {
   return (globalThis as { crypto: { randomUUID(): string } }).crypto.randomUUID();
 }
 
+// Monotonic clock for durations. `performance.now()` (not Date.now) so a wall-clock
+// adjustment mid-request can never yield a negative durationMs — the same choice
+// parse-photo.ts made for its providerMs timing.
+function nowMs(): number {
+  return (globalThis as { performance: { now(): number } }).performance.now();
+}
+
+// The route label for a request log line, derived from the URL's LAST path segment.
+// Supabase deploys one directory = one function = one URL, so the final segment IS the
+// deployed function name (wardrobe-list, palette-read, …) — no per-shim route argument to
+// thread through ~20 entrypoints. A URL with no usable segment falls back to 'unknown'
+// rather than throwing (a log line must never break a request).
+function routeLabel(url: string): string {
+  try {
+    const path = new URL(url).pathname.replace(/\/+$/, '');
+    const segment = path.slice(path.lastIndexOf('/') + 1);
+    return segment.length > 0 ? segment : 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
+
+// One structured request line per invocation, emitted from the wrapper every user-JWT
+// handler passes through — so "a handler with no log" is unrepresentable rather than a
+// thing to remember per handler. Level tracks the status class (5xx→error, 4xx→warn,
+// else info). Fields are the fixed logger vocabulary (correlationId/event/route/status/
+// durationMs) — never the body, never an error object, so no PII path exists.
+function logRequest(correlationId: string, route: string, status: number, startedAt: number): void {
+  const durationMs = Math.round(nowMs() - startedAt);
+  const fields = { correlationId, event: 'request', route, status, durationMs };
+  if (status >= 500) logger.error(fields);
+  else if (status >= 400) logger.warn(fields);
+  else logger.info(fields);
+}
+
 // Production defaults, resolved lazily so a test that injects deps never touches
 // env or opens a pool. `sql` is the thin pg-Pool binding (executor.ts).
 export function defaultDeps(sql: Sql): WithAuthDeps {
@@ -92,26 +128,56 @@ export function defaultDeps(sql: Sql): WithAuthDeps {
 export function withAuth(handler: AuthedHandler, deps: WithAuthDeps): (req: Request) => Promise<Response> {
   return async (req: Request): Promise<Response> => {
     const correlationId = deps.newCorrelationId();
+    const route = routeLabel(req.url);
+    const startedAt = nowMs();
+    // One exit point so EVERY response — 401, handler success, handler-returned 4xx/5xx,
+    // and an unexpected throw — is timed, logged once, and carries the correlation id.
+    const finish = (response: Response): Response => {
+      logRequest(correlationId, route, response.status, startedAt);
+      // Echo the correlation id so a mobile error log can be tied to this server line.
+      response.headers.set('x-correlation-id', correlationId);
+      return response;
+    };
+
     const token = bearerToken(req);
     if (!token) {
-      return unauthorized();
+      return finish(unauthorized());
     }
     let userId: string;
     try {
       const { sub } = await deps.verifier.verify(token);
       userId = parseBoundary(Uuid, sub, 'jwt.sub');
     } catch {
-      return unauthorized();
+      return finish(unauthorized());
     }
     const exec = deps.makeExecutor(userId);
-    // `token` is the same string that just passed verification above.
-    return handler(req, { userId, exec, correlationId, accessToken: token });
+    try {
+      // `token` is the same string that just passed verification above.
+      const response = await handler(req, { userId, exec, correlationId, accessToken: token });
+      return finish(response);
+    } catch {
+      // A handler that throws instead of returning an error response would otherwise be an
+      // invisible 500. Log it as a request_error line (fixed fields — the thrown value is
+      // deliberately NOT bound or logged, so no PII path exists) and return the same safe
+      // 500 shape respond.ts uses.
+      logger.error({ correlationId, event: 'request_error', route, durationMs: Math.round(nowMs() - startedAt) });
+      const response = internalError();
+      response.headers.set('x-correlation-id', correlationId);
+      return response;
+    }
   };
 }
 
 function unauthorized(): Response {
   return new Response(JSON.stringify({ error: { code: 'unauthorized', message: 'Authentication required.' } }), {
     status: 401,
+    headers: { 'content-type': 'application/json; charset=utf-8' },
+  });
+}
+
+function internalError(): Response {
+  return new Response(JSON.stringify({ error: { code: 'internal_error', message: 'An unexpected error occurred.' } }), {
+    status: 500,
     headers: { 'content-type': 'application/json; charset=utf-8' },
   });
 }

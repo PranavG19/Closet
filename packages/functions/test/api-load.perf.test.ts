@@ -19,7 +19,7 @@
 // NOT in the gate wall (its own `perf` vitest project, nightly / `pnpm test:perf`):
 // sampling N full-stack calls blows the synchronous p95<90s budget (Rule 4). VM-gated
 // like every container test — no runtime, no run.
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { Pool } from 'pg';
 import { makeWardrobeRepo, MAX_PAGE_SIZE } from '@closet/db';
 import { listWardrobe } from '../src/wardrobe/list.js';
@@ -130,6 +130,58 @@ describe('Tier-5 — full-stack API latency + load (real Postgres, real withAuth
       `${label}: full-stack p95 ${summary.p95.toFixed(2)}ms exceeds SLO ${slo}ms ` +
         `(p50 ${summary.p50.toFixed(2)} / max ${summary.max.toFixed(2)}).`,
     ).toBeLessThanOrEqual(slo);
+  }, 120_000);
+
+  // ---- INSTRUMENT ACCURACY — the emitted request-log durationMs must track a clock the
+  // log line cannot see. The metrics-logging wave (withAuth request line) is only useful if
+  // its reported durationMs is TRUE; a self-emitted number graded against itself is a mirror.
+  // Here the harness's process.hrtime wall-clock (measure()) is the external oracle: we run
+  // the same serial GET, capture every `request` log line the wrapper emits through the
+  // console sink, and assert the logged-p50 sits within a tolerance of the harness-measured
+  // p50. This proves the INSTRUMENT is accurate, not just that the path is fast.
+  it('the withAuth request-log durationMs tracks the harness wall-clock (instrument accuracy)', async () => {
+    const logged: number[] = [];
+    const spy = vi
+      .spyOn((globalThis as { console: { log: (s: string) => void } }).console, 'log')
+      .mockImplementation((line: string) => {
+        try {
+          const parsed = JSON.parse(line) as { event?: string; durationMs?: number };
+          if (parsed.event === 'request' && typeof parsed.durationMs === 'number') logged.push(parsed.durationMs);
+        } catch {
+          /* non-JSON console line — ignore */
+        }
+      });
+    let harnessSamples: number[];
+    try {
+      harnessSamples = await measure('instrument-accuracy GET', 60, () =>
+        caller.call(listWardrobe, { query: `?limit=${MAX_PAGE_SIZE}` }),
+      );
+    } finally {
+      spy.mockRestore();
+    }
+
+    // At least one request line per measured call (measure() may add warmup iterations that
+    // also emit a line but aren't in the returned sample set — so >=, not exact equality).
+    expect(logged.length).toBeGreaterThanOrEqual(harnessSamples.length);
+    // `logged` is raw numbers (durationMs from the log lines); summarize() takes Sample[],
+    // so compute the logged median directly. The harness samples ARE Sample[].
+    const median = (xs: readonly number[]): number => {
+      const sorted = [...xs].sort((a, b) => a - b);
+      return sorted[Math.floor((sorted.length - 1) / 2)]!;
+    };
+    const loggedP50 = median(logged);
+    const harnessP50 = summarize(harnessSamples).p50;
+    // The logged duration measures ONLY inside withAuth (handler run), the harness clock
+    // wraps the whole caller.call incl. request build + JSON. So logged ≤ harness, and the
+    // two should be within a few ms of each other on the same fast read — a wildly different
+    // logged number (0, or 10× the wall-clock) would mean the instrument is lying.
+    expect(loggedP50).toBeGreaterThan(0);
+    // logged (handler-only) ≤ harness (whole call) + small scheduling tolerance.
+    expect(loggedP50).toBeLessThanOrEqual(harnessP50 + 2);
+    // And it must be a real fraction of the wall-clock, not a near-zero stub: the handler
+    // is the bulk of the serial cost, so the logged duration is at least half the harness's.
+    expect(loggedP50).toBeGreaterThanOrEqual(harnessP50 * 0.4);
+    console.log(`\n[instrument] request-log p50 ${loggedP50.toFixed(2)}ms vs harness p50 ${harnessP50.toFixed(2)}ms`);
   }, 120_000);
 
   // ---- CONCURRENT LOAD — burst exceeding the pool, latency AND persisted-write oracle.
