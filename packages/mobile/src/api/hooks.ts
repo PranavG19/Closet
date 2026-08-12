@@ -119,6 +119,19 @@ export function useDeleteOutfit(): UseMutationResult<DeleteOutfitResult, Error, 
   });
 }
 
+// Rename an outfit. The mutation variable is { id, name } (name null clears it). Invalidates
+// the outfits list so the card shows the new name on a confirmed rename.
+export function useRenameOutfit(): UseMutationResult<OutfitRow, Error, { id: string; name: string | null }> {
+  const client = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, name }: { id: string; name: string | null }) => client.renameOutfit(id, name),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.outfits() });
+    },
+  });
+}
+
 // The wear-log mutation. The CALLER passes a fully-formed LogWearRequest whose
 // client_id it minted at tap time (uuid) — this hook does NOT mint it, so a
 // react-query retry re-sends the SAME client_id and the partial UNIQUE index

@@ -315,4 +315,43 @@ describe('makeOutfitsRepo — idempotent create + isolation', () => {
     // Idempotent: deleting the already-deleted outfit is false, never an error.
     expect(await makeOutfitsRepo(execA).remove(USER_A, outfit.id)).toBe(false);
   });
+
+  // Independent oracle for rename (F6). Renames own outfit + bumps updated_at (trigger);
+  // cross-tenant rename is a no-op (null, original name untouched — graded by a superuser read);
+  // name may be cleared to null.
+  it('rename updates own outfit name + bumps updated_at; cross-tenant rename is a no-op', async () => {
+    const outfit = await makeOutfitsRepo(execA).createWithItems(USER_A, { name: 'Old', items: [] });
+
+    // B tries to rename A's outfit: RLS scopes the UPDATE to B's rows → matches nothing → null,
+    // and A's name is UNCHANGED (superuser read, a source the repo query can't see).
+    const bResult = await makeOutfitsRepo(execB).rename(USER_B, outfit.id, 'Hacked');
+    expect(bResult).toBeNull();
+    const afterCrossTenant = await superuser.query<{ name: string | null }>(
+      `SELECT name FROM public.outfits WHERE id = $1`,
+      [outfit.id],
+    );
+    expect(afterCrossTenant.rows[0]?.name).toBe('Old');
+
+    // A renames its own outfit → the updated row, new name, updated_at >= created_at.
+    const renamed = await makeOutfitsRepo(execA).rename(USER_A, outfit.id, 'New name');
+    expect(renamed).not.toBeNull();
+    expect(renamed!.name).toBe('New name');
+    expect(() => OutfitRow.parse(renamed)).not.toThrow();
+    expect(new Date(renamed!.updated_at).getTime()).toBeGreaterThanOrEqual(
+      new Date(renamed!.created_at).getTime(),
+    );
+    // Superuser confirms the persisted name (differential, not the repo's own echo).
+    const afterRename = await superuser.query<{ name: string | null }>(
+      `SELECT name FROM public.outfits WHERE id = $1`,
+      [outfit.id],
+    );
+    expect(afterRename.rows[0]?.name).toBe('New name');
+
+    // name may be cleared to null (→ "Untitled look" in the UI).
+    const cleared = await makeOutfitsRepo(execA).rename(USER_A, outfit.id, null);
+    expect(cleared!.name).toBeNull();
+
+    // Renaming a non-existent id is null, never an error.
+    expect(await makeOutfitsRepo(execA).rename(USER_A, USER_C, 'x')).toBeNull();
+  });
 });

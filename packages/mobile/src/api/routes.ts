@@ -11,6 +11,7 @@ export const ROUTES = {
   createOutfit: { path: 'outfits-create', method: 'POST' },
   listOutfits: { path: 'outfits-list', method: 'GET' },
   deleteOutfit: { path: 'outfits-delete', method: 'POST' },
+  renameOutfit: { path: 'outfits-rename', method: 'POST' },
   logWear: { path: 'wear-log', method: 'POST' },
   upsertPalette: { path: 'palette-upsert', method: 'POST' },
   readEntitlement: { path: 'palette-entitlement', method: 'GET' },

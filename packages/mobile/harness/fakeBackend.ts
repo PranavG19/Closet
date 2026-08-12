@@ -143,6 +143,10 @@ function responseFor(
       // canned list is a module constant, so the card reappears — the harness proves the
       // request/response wire, not persistence, exactly like toggleAvailability).
       return { deleted: true };
+    case 'renameOutfit':
+      // Echo an updated OutfitRow. Static shape (canned list is unchanged on refetch), same
+      // wire-not-persistence contract as the other mutations.
+      return { id: '88888888-8888-4888-8888-888888888881', user_id: USER, name: 'Renamed look', created_at: NOW, updated_at: NOW };
     case 'logWear':
       return { id: '99999999-9999-4999-8999-999999999991', user_id: USER, item_id: ITEM_IDS.whiteTop, outfit_id: null, worn_at: NOW, client_id: 'harness-client-id' };
     case 'upsertPalette':

@@ -26,6 +26,11 @@ export interface OutfitsRepo {
   // to another tenant (RLS makes those indistinguishable, which is the point: a cross-tenant
   // delete is simply a no-op, never an error that would confirm the row exists).
   remove(userId: string, id: string): Promise<boolean>;
+  // Rename the caller's own outfit (name may be null to clear it → "Untitled look"). Returns
+  // the updated row, or null when the id doesn't exist / belongs to another tenant (RLS scopes
+  // the UPDATE, so a cross-tenant rename matches nothing — a no-op, never an error). The
+  // updated_at trigger (migration 0004) bumps automatically.
+  rename(userId: string, id: string, name: string | null): Promise<OutfitRow | null>;
   listByUser(userId: string): Promise<OutfitRow[]>;
   // Like listByUser, but each row carries its garment count (LEFT JOIN so a 0-member outfit
   // is still listed with item_count 0). Same tenant predicate + ordering; RLS scopes both
@@ -108,6 +113,19 @@ export function makeOutfitsRepo(exec: QueryExecutor): OutfitsRepo {
       const { rows } = await exec.query<OutfitRow>(
         `SELECT ${PROJECTION} FROM public.outfits WHERE user_id = $1 AND id = $2`,
         [userId, id],
+      );
+      return rows[0] ?? null;
+    },
+
+    async rename(userId, id, name) {
+      // WHERE user_id = $1 is belt-and-suspenders with the RLS UPDATE policy. Only `name` is
+      // set — updated_at is bumped by the outfits_set_updated_at trigger, never here. RETURNING
+      // the full projection so the caller gets the canonical post-update row (incl. the new
+      // updated_at). No row matched → null (non-existent or other tenant).
+      const { rows } = await exec.query<OutfitRow>(
+        `UPDATE public.outfits SET name = $3 WHERE user_id = $1 AND id = $2
+         RETURNING ${PROJECTION}`,
+        [userId, id, name],
       );
       return rows[0] ?? null;
     },

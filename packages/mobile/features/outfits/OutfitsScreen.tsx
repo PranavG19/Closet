@@ -7,10 +7,10 @@
 // outfit row is a stable react-query ref) so parent re-renders during scroll don't
 // re-render every visible card.
 import React from 'react';
-import { View, Image, FlatList, type ImageStyle, type ListRenderItem, type ViewStyle } from 'react-native';
+import { View, Image, TextInput, FlatList, type ImageStyle, type ListRenderItem, type TextStyle, type ViewStyle } from 'react-native';
 import type { OutfitSummary } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
-import { useOutfits, useDeleteOutfit } from '../../src/api/index.js';
+import { useOutfits, useDeleteOutfit, useRenameOutfit } from '../../src/api/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
@@ -61,7 +61,9 @@ const OutfitCard = React.memo(function OutfitCard({
   outfit,
   uris,
   onDelete,
+  onRename,
   deleting,
+  renaming,
   style,
 }: {
   readonly outfit: OutfitSummary;
@@ -70,9 +72,13 @@ const OutfitCard = React.memo(function OutfitCard({
   readonly uris: Readonly<Record<string, string>>;
   // Called with this outfit's id once the two-tap confirm is satisfied. Stable (useCallback).
   readonly onDelete: (id: string) => void;
+  // Called with { id, name } to rename (name null clears it). Stable (useCallback).
+  readonly onRename: (id: string, name: string) => void;
   // True while THIS outfit's delete is in flight — disables the confirm so a double-tap can't
   // fire two deletes.
   readonly deleting: boolean;
+  // True while THIS outfit's rename is in flight.
+  readonly renaming: boolean;
   readonly style: ViewStyle;
 }): React.JSX.Element {
   const tokens = useTokens();
@@ -80,6 +86,31 @@ const OutfitCard = React.memo(function OutfitCard({
   // outfit is rebuildable (unlike an account), so this is a light guard against a mis-tap, not
   // the heavyweight type-to-confirm the account purge needs.
   const [armed, setArmed] = React.useState(false);
+  // Inline rename: "Rename" reveals a TextInput seeded with the current name; Save commits.
+  const [editing, setEditing] = React.useState(false);
+  const [draft, setDraft] = React.useState('');
+
+  const nameInput: TextStyle = {
+    minHeight: 44,
+    borderWidth: 1,
+    borderColor: tokens.color.border.hairline,
+    borderRadius: tokens.radius.sm,
+    backgroundColor: tokens.color.bg.surface,
+    paddingHorizontal: tokens.spacing.md,
+    color: tokens.color.text.primary,
+    fontSize: tokens.typography.body.fontSize,
+    marginTop: tokens.spacing.sm,
+  };
+
+  const beginRename = (): void => {
+    setDraft(outfit.name ?? '');
+    setEditing(true);
+  };
+  const commitRename = (): void => {
+    onRename(outfit.id, draft);
+    setEditing(false);
+  };
+
   return (
     <Card variant="surface" padding="md" style={style}>
       <Text variant="title" tone="primary">
@@ -91,13 +122,29 @@ const OutfitCard = React.memo(function OutfitCard({
       {outfit.preview_paths.length > 0 && (
         <OutfitPreviewStrip paths={outfit.preview_paths} uris={uris} />
       )}
-      {!armed ? (
-        <Button
-          label="Remove"
-          intent="ghost"
-          onPress={() => setArmed(true)}
-          style={{ marginTop: tokens.spacing.sm, alignSelf: 'flex-start' }}
-        />
+      {editing ? (
+        <>
+          <TextInput
+            value={draft}
+            onChangeText={setDraft}
+            autoFocus
+            maxLength={80}
+            placeholder="Name this look"
+            placeholderTextColor={tokens.color.text.tertiary}
+            accessibilityLabel="Outfit name"
+            editable={!renaming}
+            style={nameInput}
+          />
+          <View style={{ flexDirection: 'row', marginTop: tokens.spacing.sm, gap: tokens.spacing.sm }}>
+            <Button label={renaming ? 'Saving…' : 'Save'} disabled={renaming} onPress={commitRename} />
+            <Button label="Cancel" intent="ghost" disabled={renaming} onPress={() => setEditing(false)} />
+          </View>
+        </>
+      ) : !armed ? (
+        <View style={{ flexDirection: 'row', marginTop: tokens.spacing.sm, gap: tokens.spacing.sm }}>
+          <Button label="Rename" intent="ghost" onPress={beginRename} />
+          <Button label="Remove" intent="ghost" onPress={() => setArmed(true)} />
+        </View>
       ) : (
         <View style={{ flexDirection: 'row', marginTop: tokens.spacing.sm, gap: tokens.spacing.sm }}>
           <Button
@@ -144,6 +191,13 @@ export function OutfitsScreen(): React.JSX.Element {
   const deletingId = deleteOutfit.isPending ? deleteOutfit.variables : undefined;
   const onDelete = React.useCallback((id: string) => deleteOutfit.mutate(id), [deleteOutfit]);
 
+  const renameOutfit = useRenameOutfit();
+  const renamingId = renameOutfit.isPending ? renameOutfit.variables.id : undefined;
+  const onRename = React.useCallback(
+    (id: string, name: string) => renameOutfit.mutate({ id, name }),
+    [renameOutfit],
+  );
+
   if (building) {
     return <OutfitBuilderScreen onDone={() => setBuilding(false)} onCancel={() => setBuilding(false)} />;
   }
@@ -171,7 +225,9 @@ export function OutfitsScreen(): React.JSX.Element {
       outfit={item}
       uris={uris}
       onDelete={onDelete}
+      onRename={onRename}
       deleting={deletingId === item.id}
+      renaming={renamingId === item.id}
       style={cardSpacing}
     />
   );
@@ -191,7 +247,7 @@ export function OutfitsScreen(): React.JSX.Element {
         keyExtractor={(item) => item.id}
         // Re-render visible cards when signed URLs land OR a delete starts/ends (both change
         // identity/value); without this the memo'd cards would keep stale wells / button state.
-        extraData={`${Object.keys(uris).length}|${deletingId ?? ''}`}
+        extraData={`${Object.keys(uris).length}|${deletingId ?? ''}|${renamingId ?? ''}`}
         showsVerticalScrollIndicator={false}
       />
     </Screen>

@@ -25,6 +25,7 @@ import {
   OutfitItemRow,
   WearLogRow,
   CreateOutfitRequest,
+  RenameOutfitRequest,
   LogWearRequest,
   OutfitListResponse,
 } from './outfits.js';
@@ -363,6 +364,24 @@ describe('empty is valid, not an error', () => {
   });
   it('CreateOutfitRequest accepts items: []', () => {
     expect(parseBoundary(CreateOutfitRequest, { items: [] })).toEqual({ items: [] });
+  });
+});
+
+describe('RenameOutfitRequest — name normalization', () => {
+  const id = '88888888-8888-4888-8888-888888888881';
+  it('trims surrounding whitespace', () => {
+    expect(parseBoundary(RenameOutfitRequest, { id, name: '  Brunch  ' })).toEqual({ id, name: 'Brunch' });
+  });
+  it('coerces a blank / whitespace-only name to null (renders "Untitled look")', () => {
+    expect(parseBoundary(RenameOutfitRequest, { id, name: '   ' }).name).toBeNull();
+    expect(parseBoundary(RenameOutfitRequest, { id, name: '' }).name).toBeNull();
+  });
+  it('keeps an explicit null', () => {
+    expect(parseBoundary(RenameOutfitRequest, { id, name: null }).name).toBeNull();
+  });
+  it('rejects a name over 80 chars, and a stray key (.strict)', () => {
+    expect(() => parseBoundary(RenameOutfitRequest, { id, name: 'x'.repeat(81) })).toThrow();
+    expect(() => parseBoundary(RenameOutfitRequest, { id, name: 'ok', extra: 1 })).toThrow();
   });
 });
 

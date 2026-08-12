@@ -87,6 +87,23 @@ export const OutfitListResponse = z.object({
 });
 export type OutfitListResponse = z.infer<typeof OutfitListResponse>;
 
+// Rename a saved outfit. name is trimmed to a sane max and may be null; a blank/whitespace-only
+// name is coerced to null so it renders as "Untitled look" (the card does `name ?? 'Untitled
+// look'`, so a bare "" would show a blank title). identity is the caller's verified sub, never
+// the body. .strict() so a stray key is a 400. The response is the updated OutfitRow.
+export const RenameOutfitRequest = z
+  .object({
+    id: Uuid,
+    name: z
+      .string()
+      .trim()
+      .max(80)
+      .nullable()
+      .transform((value) => (value === null || value.length === 0 ? null : value)),
+  })
+  .strict();
+export type RenameOutfitRequest = z.infer<typeof RenameOutfitRequest>;
+
 // Delete a saved outfit. The id is the ONLY input; identity is the caller's verified sub
 // (never in the body), so "delete someone else's outfit" is not representable. .strict() so a
 // stray key is a 400, not silently ignored.

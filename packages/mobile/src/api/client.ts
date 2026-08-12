@@ -17,6 +17,7 @@ import {
   CreateOutfitRequest,
   DeleteOutfitRequest,
   DeleteOutfitResult,
+  RenameOutfitRequest,
   LogWearRequest,
   UpsertPaletteRequest,
   CreateParseJobRequest,
@@ -202,6 +203,13 @@ export class ApiClient {
   deleteOutfit(id: string): Promise<DeleteOutfitResult> {
     const body = parseBoundary(DeleteOutfitRequest, { id }, 'deleteOutfit.request');
     return this.request('deleteOutfit', (res) => parseBoundary(DeleteOutfitResult, res, 'deleteOutfit'), {
+      body,
+    });
+  }
+
+  renameOutfit(id: string, name: string | null): Promise<OutfitRow> {
+    const body = parseBoundary(RenameOutfitRequest, { id, name }, 'renameOutfit.request');
+    return this.request('renameOutfit', (res) => parseBoundary(OutfitRow, res, 'renameOutfit'), {
       body,
     });
   }
