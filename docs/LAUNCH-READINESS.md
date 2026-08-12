@@ -1,5 +1,27 @@
 # LAUNCH-READINESS — pre-launch audit
 
+> ⚠️ **STALE AS OF 2026-08-12 — this edition is pinned at HEAD `ab25513` (2026-08-08); the tree
+> has moved many commits since (F1 onboarding, F4/F5/F6/F7 UI, the design-system redesign, and
+> screen re-lays all landed after this audit). Per this file's own rule — "re-run the command; do
+> not trust the number" — the following headline claims are now KNOWN-STALE and must NOT be relied
+> on until this audit is re-derived from the current HEAD:**
+> - **§1/§4 "F1 ABSENT — no onboarding dir, no on-device privacy gate in any form."** FALSE now:
+>   `packages/mobile/features/onboarding/` exists (`AddGarmentScreen`, `intake.ts`, `stage.ts`),
+>   and the privacy chokepoint + `ApprovedPhoto` brand + upload seam are in `packages/mobile/src/photo/`
+>   (`chokepoint.ts`, `useAddGarment.ts`, `uploadApproved.ts`). The scan→approve→upload path is
+>   wired (the NATIVE photo picker is still unbound — the port reports `available:false` — so the
+>   flow is code-complete but not runnable on a device build; that narrower claim is what's true).
+> - The "5 dead mutation hooks" count and the per-feature "mutation wired: no" verdicts predate the
+>   F4/F5/F6/F7 UI work — re-derive `git grep` before quoting them.
+> - What has NOT changed and remains accurate: **nothing is deployed** (no Supabase project, no
+>   provider/RevenueCat keys), so every backend guarantee is still testcontainer-proven only, and
+>   real-webhook / real-provider / real-Storage-RLS external oracles have still never run. The
+>   launch-blocking verdict ("not launch-ready: nothing is deployed") still holds; it is the
+>   *feature-absence* findings that have gone stale, not the deployment blocker.
+>
+> *Full re-derivation is a larger task; this banner exists so the stale feature-absence claims stop
+> reading as current. The grading legend and the deployment/oracle findings below remain valid.*
+
 *Adversarial, re-derived-from-the-tree audit. **Not** a status report — a stop-check against a false "we're ready." Re-derived at **HEAD `ab25513` (2026-08-08)**; the previous edition (2026-08-07, at `ac46ac0`) had gone stale in 5 of its 6 §6 findings within a day, so **every count below carries the command that produces it.* Re-run the command; do not trust the number.
 
 **How to read a claim in this file.** Three grades, used literally:
