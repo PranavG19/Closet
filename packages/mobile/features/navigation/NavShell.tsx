@@ -6,10 +6,18 @@
 // (tabs.ts) is the contract that survives that swap.
 import React, { useState } from 'react';
 import { View, Pressable, type ViewStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTokens } from '../../src/tokens/index.js';
 import { Text } from '../../src/ui/index.js';
-import { TABS, type TabKey } from './tabs.js';
+import { TABS, type TabKey, type IoniconName } from './tabs.js';
+
+// The active tab shows the FILLED glyph, inactive shows the outline — so the selected state
+// is carried by the icon shape, not only by colour (a11y: meaning never by hue alone). Every
+// Ionicons outline has a solid sibling at the same stem, so dropping `-outline` is safe.
+function activeIcon(name: IoniconName): string {
+  return name.replace('-outline', '');
+}
 
 export type TabScreens = Readonly<Record<TabKey, React.ReactNode>>;
 
@@ -41,7 +49,19 @@ export function NavShell({ screens, initialTab = 'wardrobe' }: NavShellProps): R
     minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: tokens.spacing.xs,
   };
+  // The soft active pill sits behind the icon — the iOS-18 "selected segment" look, a
+  // warm sunken capsule. It carries the active state alongside the filled icon + accent
+  // colour, so selection is legible three ways.
+  const iconPill = (selected: boolean): ViewStyle => ({
+    width: 44,
+    height: 30,
+    borderRadius: tokens.radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: selected ? tokens.color.bg.sunken : 'transparent',
+  });
 
   return (
     <View style={container}>
@@ -49,23 +69,27 @@ export function NavShell({ screens, initialTab = 'wardrobe' }: NavShellProps): R
       <View style={bar} accessibilityRole="tablist">
         {TABS.map((tab) => {
           const selected = tab.key === active;
+          const color = selected ? tokens.color.accent.pink : tokens.color.text.tertiary;
           return (
             <Pressable
               key={tab.key}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
+              accessibilityLabel={tab.label}
               onPress={() => setActive(tab.key)}
               style={tabButton}
             >
-              {/* One line, never wrapped: iOS HIG prefers a truncated tab label to
-                  one that wraps mid-word ("Membersh / ip"). The labels in tabs.ts
-                  are short enough that nothing actually truncates — this is the
-                  guard that keeps a future long label from breaking the bar. */}
-              <Text
-                variant="caption"
-                tone={selected ? 'primary' : 'tertiary'}
-                numberOfLines={1}
-              >
+              <View style={iconPill(selected)}>
+                <Ionicons
+                  // Filled when active, outline when not — the shape carries selection too.
+                  name={(selected ? activeIcon(tab.icon) : tab.icon) as React.ComponentProps<typeof Ionicons>['name']}
+                  size={22}
+                  color={color}
+                />
+              </View>
+              {/* One line, never wrapped: iOS HIG prefers a truncated tab label to one that
+                  wraps mid-word. With icons the labels never truncate at 1/7 width. */}
+              <Text variant="caption" tone={selected ? 'primary' : 'tertiary'} numberOfLines={1}>
                 {tab.label}
               </Text>
             </Pressable>
