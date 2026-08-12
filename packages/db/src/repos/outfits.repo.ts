@@ -1,5 +1,5 @@
 // outfits repo.
-import type { OutfitRow, OutfitSummary, OutfitItemInput } from '@closet/shared';
+import { OUTFIT_PREVIEW_LIMIT, type OutfitRow, type OutfitSummary, type OutfitItemInput } from '@closet/shared';
 import type { QueryExecutor } from './index.js';
 
 const PROJECTION = `id, user_id, name,
@@ -117,23 +117,41 @@ export function makeOutfitsRepo(exec: QueryExecutor): OutfitsRepo {
     },
 
     async listWithCounts(userId) {
-      // LEFT JOIN + GROUP BY so an outfit with zero members still appears (count 0), and
-      // count(oi.item_id) counts only non-null joined rows — the standard "count children"
-      // idiom. ::int because count() is bigint; the OutfitSummary schema wants a JS number.
-      // Grouped by o.id (the PK), so every non-aggregated column is functionally dependent and
-      // needs no extra GROUP BY terms. Columns are aliased (o.) rather than reusing PROJECTION,
-      // which uses bare names that would be ambiguous once outfit_items is joined.
+      // Per-outfit aggregates via two correlated subqueries, so the outer query stays one row
+      // per outfit (no GROUP BY over the base table, no fan-out to dedupe):
+      //   - item_count: COUNT of this outfit's members (0 for an empty outfit).
+      //   - preview_paths: up to OUTFIT_PREVIEW_LIMIT member cutout_paths, EXCLUDING members
+      //     with no cutout yet (WHERE cutout_path IS NOT NULL), position-ordered to match the
+      //     builder, aggregated into a text[]. COALESCE to '{}' so an outfit with no cutouts
+      //     yields an empty array, never SQL NULL (which would fail the array schema).
+      // Both subqueries carry `user_id = $1` alongside the outfit_id join: redundant under RLS
+      // (which already scopes outfit_items to the caller) but it keeps the tenant predicate
+      // explicit and lets the composite index serve the lookup.
       const { rows } = await exec.query<OutfitSummary>(
         `SELECT o.id, o.user_id, o.name,
                 to_char(o.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
                 to_char(o.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS updated_at,
-                count(oi.item_id)::int AS item_count
+                (SELECT count(*)::int
+                   FROM public.outfit_items oi
+                  WHERE oi.user_id = $1 AND oi.outfit_id = o.id) AS item_count,
+                COALESCE((
+                  SELECT array_agg(p.cutout_path ORDER BY p.ord)
+                    FROM (
+                      SELECT wi.cutout_path,
+                             row_number() OVER (ORDER BY oi.position ASC NULLS LAST, oi.id ASC) AS ord
+                        FROM public.outfit_items oi
+                        JOIN public.wardrobe_items wi
+                          ON wi.user_id = oi.user_id AND wi.id = oi.item_id
+                       WHERE oi.user_id = $1 AND oi.outfit_id = o.id
+                         AND wi.cutout_path IS NOT NULL
+                       ORDER BY oi.position ASC NULLS LAST, oi.id ASC
+                       LIMIT $2
+                    ) p
+                ), '{}') AS preview_paths
          FROM public.outfits o
-         LEFT JOIN public.outfit_items oi ON oi.outfit_id = o.id
          WHERE o.user_id = $1
-         GROUP BY o.id
          ORDER BY o.created_at DESC, o.id DESC`,
-        [userId],
+        [userId, OUTFIT_PREVIEW_LIMIT],
       );
       return rows;
     },

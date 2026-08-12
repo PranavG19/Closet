@@ -21,6 +21,7 @@ import {
 import {
   OutfitRow,
   OutfitSummary,
+  OUTFIT_PREVIEW_LIMIT,
   OutfitItemRow,
   WearLogRow,
   CreateOutfitRequest,
@@ -95,6 +96,7 @@ const arbOutfitSummary = fc.record({
   created_at: arbTs,
   updated_at: arbTs,
   item_count: fc.nat({ max: 50 }),
+  preview_paths: fc.array(fc.string(), { maxLength: OUTFIT_PREVIEW_LIMIT }),
 });
 
 const arbOutfitItemRow = fc.record({

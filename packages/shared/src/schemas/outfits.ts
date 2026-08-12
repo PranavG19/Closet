@@ -64,11 +64,21 @@ export const LogWearRequest = z
   .strict();
 export type LogWearRequest = z.infer<typeof LogWearRequest>;
 
-// An outfit as it appears in the LIST: the row plus how many garments it holds, so the list
-// card can say "3 pieces" without a second round-trip per outfit. item_count is a non-negative
-// integer (a count, never fractional or negative); an outfit with no members is 0, not absent.
+// The max number of garment thumbnails a list card previews. A [SOFT] display cap — enough to
+// convey "what's in this look" at a glance without signing a URL for every member of a large
+// outfit. The server caps the array; the card renders what it gets.
+export const OUTFIT_PREVIEW_LIMIT = 4;
+
+// An outfit as it appears in the LIST: the row, how many garments it holds, and up to
+// OUTFIT_PREVIEW_LIMIT member cutout PATHS (position-ordered) so the card can show real
+// thumbnails without a round-trip per outfit. Contract:
+//   - item_count: non-negative int (a count, never fractional/negative); 0 for an empty outfit.
+//   - preview_paths: 0..OUTFIT_PREVIEW_LIMIT storage paths, members with no cutout yet excluded,
+//     so preview_paths.length <= item_count. A PATH, never a URL — the client signs it (the
+//     cutouts bucket is private), exactly as the wardrobe grid does. Never client-constructed.
 export const OutfitSummary = OutfitRow.extend({
   item_count: z.number().int().min(0),
+  preview_paths: z.array(z.string()).max(OUTFIT_PREVIEW_LIMIT),
 });
 export type OutfitSummary = z.infer<typeof OutfitSummary>;
 

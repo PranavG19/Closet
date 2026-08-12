@@ -83,8 +83,18 @@ const WARDROBE_ITEMS: readonly Record<string, unknown>[] = [
 // The export parses these through OutfitRow (non-strict), which strips the extra key — so one
 // constant serves both the list-with-counts response and the export unchanged.
 const OUTFITS: readonly Record<string, unknown>[] = [
-  { id: '88888888-8888-4888-8888-888888888881', user_id: USER, name: 'Weekend brunch', created_at: NOW, updated_at: NOW, item_count: 2 },
-  { id: '88888888-8888-4888-8888-888888888882', user_id: USER, name: 'Office Monday', created_at: NOW, updated_at: NOW, item_count: 0 },
+  {
+    id: '88888888-8888-4888-8888-888888888881',
+    user_id: USER,
+    name: 'Weekend brunch',
+    created_at: NOW,
+    updated_at: NOW,
+    item_count: 2,
+    // The two members' cutout paths (whiteTop + blackJeans both have cutouts), position-ordered
+    // — matches the outfit_items seed in the export document below.
+    preview_paths: [`${USER}/${ITEM_IDS.whiteTop}/cutout`, `${USER}/${ITEM_IDS.blackJeans}/cutout`],
+  },
+  { id: '88888888-8888-4888-8888-888888888882', user_id: USER, name: 'Office Monday', created_at: NOW, updated_at: NOW, item_count: 0, preview_paths: [] },
 ];
 
 export interface FakeBackendOptions {

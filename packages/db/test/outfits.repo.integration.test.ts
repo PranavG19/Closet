@@ -3,7 +3,7 @@
 // composite-FK unrepresentability, as app_user against real PG.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Pool } from 'pg';
-import { OutfitRow, OutfitSummary } from '@closet/shared';
+import { OutfitRow, OutfitSummary, OUTFIT_PREVIEW_LIMIT } from '@closet/shared';
 import { makeOutfitsRepo } from '../src/repos/outfits.repo.js';
 import { makeWardrobeRepo } from '../src/repos/wardrobe.repo.js';
 import { applyMigrations } from './helpers/applyMigrations.js';
@@ -221,5 +221,60 @@ describe('makeOutfitsRepo — idempotent create + isolation', () => {
     // Same ordering contract as listByUser (created_at DESC, id DESC).
     const listed = await repo.listByUser(user);
     expect(summaries.map((s) => s.id)).toEqual(listed.map((r) => r.id));
+  });
+
+  // Independent oracle for preview_paths: position-ordered member cutout paths, members with
+  // no cutout excluded, capped at OUTFIT_PREVIEW_LIMIT. Graded against the cutout_path values
+  // the WARDROBE repo returned (not the outfit query) and a superuser member-count.
+  it('listWithCounts.preview_paths = position-ordered member cutouts, null-cutout excluded, capped', async () => {
+    const user = 'e7e7e7e7-e7e7-47e7-87e7-e7e7e7e7e7e7';
+    const exec = makeTenantExecutor(pool, user);
+    const wardrobe = makeWardrobeRepo(exec);
+    const repo = makeOutfitsRepo(exec);
+
+    // Six garments, five WITH a cutout_path, one WITHOUT — so we can prove null exclusion and
+    // the cap (>OUTFIT_PREVIEW_LIMIT with-cutout members). Paths are distinct + recognizable.
+    const withCut = async (tag: string) =>
+      wardrobe.create(user, { category: 'top', cutout_path: `${user}/${tag}/cutout` });
+    const a = await withCut('a');
+    const b = await withCut('b');
+    const c = await withCut('c');
+    const d = await withCut('d');
+    const e = await withCut('e');
+    const noCut = await wardrobe.create(user, { category: 'shoes' }); // cutout_path null
+
+    // Insert in a deliberately NON-sequential position order to prove ordering is BY position,
+    // not by insert/id order: noCut(pos 0) first, then a,b,c,d,e at positions 1..5.
+    const outfit = await repo.createWithItems(user, {
+      name: 'Layered',
+      items: [
+        { item_id: noCut.id, position: 0 },
+        { item_id: a.id, position: 1 },
+        { item_id: b.id, position: 2 },
+        { item_id: c.id, position: 3 },
+        { item_id: d.id, position: 4 },
+        { item_id: e.id, position: 5 },
+      ],
+    });
+
+    const summary = (await repo.listWithCounts(user)).find((s) => s.id === outfit.id);
+    expect(summary).toBeDefined();
+    expect(() => OutfitSummary.parse(summary)).not.toThrow();
+    // item_count counts ALL members (6), including the one without a cutout.
+    expect(summary!.item_count).toBe(6);
+    // preview_paths: capped at the limit, null-cutout member (noCut, pos 0) EXCLUDED, and the
+    // survivors are the next-lowest positions in order: a(1), b(2), c(3), d(4). e(5) is over cap.
+    expect(summary!.preview_paths).toEqual([
+      `${user}/a/cutout`,
+      `${user}/b/cutout`,
+      `${user}/c/cutout`,
+      `${user}/d/cutout`,
+    ]);
+    expect(summary!.preview_paths.length).toBe(OUTFIT_PREVIEW_LIMIT);
+    // Every previewed path is a real member's cutout_path (differential vs the wardrobe repo).
+    const memberPaths = new Set(
+      [a, b, c, d, e].map((row) => row.cutout_path).filter((p): p is string => p !== null),
+    );
+    for (const path of summary!.preview_paths) expect(memberPaths.has(path)).toBe(true);
   });
 });
