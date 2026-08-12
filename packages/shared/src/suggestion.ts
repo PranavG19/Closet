@@ -5,6 +5,7 @@
 // Pure: no Date, no Math.random, no I/O, no mutation of arguments.
 import { z } from 'zod';
 import { parseBoundary } from './parse.js';
+import { paletteAffinity, isColorFamily, type ColorFamily } from './harmony.js';
 
 export const ItemStatus = z.enum(['clean', 'dirty', 'unavailable']);
 export type ItemStatus = z.infer<typeof ItemStatus>;
@@ -65,21 +66,28 @@ export function suggestItems(input: unknown): Suggestion {
 
   // Palette preference is a TIE-BREAKER WITHIN a warmth tier, never across tiers. Ordering
   // rules, in strict priority: (1) warmth desc — the weather guarantee, unchanged; (2) if a
-  // palette is given, in-palette before off-palette; (3) id — the deterministic final tie
-  // break. Because (2) only ever reorders items of EQUAL warmth, aggregateWarmth of any
-  // prefix is identical to the warmth-only ordering, so colder-never-warmer is preserved by
-  // construction. With no palette, (2) is inert and this is byte-identical to before.
-  const palette = parsed.paletteFamilies ? new Set(parsed.paletteFamilies) : null;
-  const inPalette = (item: SuggestionItem): boolean =>
-    palette !== null && item.colorFamily != null && palette.has(item.colorFamily);
+  // palette is given, HIGHER palette affinity first (A4: a graded hue-distance score, so an
+  // analogous colour outranks a distant one — not just exact-match-first); (3) id — the
+  // deterministic final tie break. Because (2) only ever reorders items of EQUAL warmth,
+  // aggregateWarmth of any prefix is identical to the warmth-only ordering, so
+  // colder-never-warmer is preserved by construction. With no palette, (2) is inert and this
+  // is byte-identical to the pre-color version.
+  const paletteFamilies: ColorFamily[] | null = parsed.paletteFamilies
+    ? parsed.paletteFamilies.filter((f): f is ColorFamily => isColorFamily(f))
+    : null;
+  // Affinity in [0,1]; 0 when no palette, no family, or an unmodelled family token.
+  const affinity = (item: SuggestionItem): number =>
+    paletteFamilies !== null && item.colorFamily != null && isColorFamily(item.colorFamily)
+      ? paletteAffinity(item.colorFamily, paletteFamilies)
+      : 0;
 
   // Copy before sort (never mutate the argument).
   const byWarmthDesc = [...clean].sort((a, b) => {
     if (b.warmth !== a.warmth) return b.warmth - a.warmth;
-    // Equal warmth: prefer in-palette (a tie-break, applied only when a palette exists).
-    const ap = inPalette(a);
-    const bp = inPalette(b);
-    if (ap !== bp) return ap ? -1 : 1;
+    // Equal warmth: higher palette affinity first (applied only when a palette exists; with
+    // none, every affinity is 0 and this falls straight through to the id tie-break).
+    const aff = affinity(b) - affinity(a);
+    if (aff !== 0) return aff;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 

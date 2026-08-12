@@ -126,3 +126,54 @@ export function harmonyWithChroma(
   const bMuted = chromaB !== null && chromaB < MUTED_CHROMA_CEILING;
   return aMuted || bMuted ? 'neutral' : 'clash';
 }
+
+// Circular hue distance between two chromatic families, 0..6 on the 12-hue wheel (one step
+// = 30°). Exported so the palette scorer grades affinity by the SAME wheel geometry harmony
+// verdicts use — a family can't be "near" the palette here yet "clash" there.
+export function hueDistance(a: ColorFamily, b: ColorFamily): number {
+  const ia = HUE_INDEX.get(a);
+  const ib = HUE_INDEX.get(b);
+  if (ia === undefined || ib === undefined) return NaN; // a neutral has no hue position
+  const raw = Math.abs(ia - ib);
+  return Math.min(raw, CHROMATIC.length - raw);
+}
+
+// A3 — GRADED palette affinity of one family against the self-identified flattering set,
+// in [0,1]. Replaces the binary "exact family membership" score with a hue-distance decay so
+// a garment ONE step (30°, analogous) off a chosen swatch scores high, not identically to its
+// complement (D-003 §5 A3, grounded in the analogous principle §3). Contract:
+//   - empty palette → 0 (no signal), never a guess.
+//   - a NEUTRAL item (family in NEUTRAL_SET) → NEUTRAL_AFFINITY: neutrals pair broadly, so they
+//     are softly compatible with any palette rather than scored by a hue distance they don't
+//     have (D-003 §4: a neutral is a chroma threshold, its hue coordinate is meaningless).
+//   - otherwise → the MAX over chosen families of the per-family decay (nearest wins). A chosen
+//     family that is itself neutral contributes NEUTRAL_AFFINITY (a chromatic item near no
+//     chosen chromatic hue still gets a soft floor if she chose neutrals).
+// This is ADVISORY: it is a soft preference weight, never a gate. Monotonic in nearness and
+// bounded in [0,1], so it can only ever REORDER equal-warmth items, never admit/exclude.
+const AFFINITY_BY_HUE_STEP: readonly number[] = [
+  1.0, // 0 steps — exact family
+  0.75, // 1 step (30°, analogous)
+  0.4, // 2 steps (60°)
+  0.2, // 3 steps (90°)
+  0.1, // 4 steps (120°, triadic)
+  0.05, // 5 steps (150°)
+  0.0, // 6 steps (180°, complementary — furthest)
+];
+// A neutral's soft, broad compatibility floor — below an exact/analogous chromatic match but
+// above a distant one, reflecting "neutrals go with everything" without over-claiming.
+const NEUTRAL_AFFINITY = 0.5;
+
+export function paletteAffinity(family: ColorFamily, paletteFamilies: readonly ColorFamily[]): number {
+  if (paletteFamilies.length === 0) return 0;
+  const itemIsNeutral = NEUTRAL_SET.has(family);
+  if (itemIsNeutral) return NEUTRAL_AFFINITY;
+  let best = 0;
+  for (const chosen of paletteFamilies) {
+    const contribution = NEUTRAL_SET.has(chosen)
+      ? NEUTRAL_AFFINITY // she chose a neutral: a soft floor for any chromatic item
+      : (AFFINITY_BY_HUE_STEP[hueDistance(family, chosen)] ?? 0);
+    if (contribution > best) best = contribution;
+  }
+  return best;
+}
