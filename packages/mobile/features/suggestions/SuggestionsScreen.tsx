@@ -124,19 +124,33 @@ export function SuggestionsScreen(): React.JSX.Element {
   // heuristic WITHOUT the palette and comparing the chosen ids, so the rationale never
   // claims the palette steered a pick it didn't.
   const verdict = outfitVerdict(selectedRows);
+  const chosenIds = suggestion.items.map((i) => i.id).join(',');
   const paletteInfluencedOrder = ((): boolean => {
     if (!hasPalette) return false;
     const withoutPalette = suggestItems({ items: toSuggestionItems(rows), tempC: ASSUMED_TEMP_C });
     if (withoutPalette.fallback) return false;
-    const a = withoutPalette.items.map((i) => i.id).join(',');
-    const b = suggestion.items.map((i) => i.id).join(',');
-    return a !== b;
+    return withoutPalette.items.map((i) => i.id).join(',') !== chosenIds;
+  })();
+  // freshnessInfluencedOrder: true only when dropping recentlyWornIds changes the pick — same
+  // honest re-run-and-compare as palette, so the rationale never claims freshness moved a pick
+  // it didn't. Compared against the palette-aware selection (freshness ranks below palette), so
+  // this isolates freshness's own contribution.
+  const freshnessInfluencedOrder = ((): boolean => {
+    if (recentlyWornIds.length === 0) return false;
+    const withoutFreshness = suggestItems({
+      items: toSuggestionItems(rows),
+      tempC: ASSUMED_TEMP_C,
+      ...(hasPalette ? { paletteFamilies } : {}),
+    });
+    if (withoutFreshness.fallback) return false;
+    return withoutFreshness.items.map((i) => i.id).join(',') !== chosenIds;
   })();
   const rationale = suggestionRationale({
     selectedCount: selectedRows.length,
     verdict,
     hasPalette,
     paletteInfluencedOrder,
+    freshnessInfluencedOrder,
   });
 
   // Gentle highlight strip — advisory, never a red error/nag (docs/03).

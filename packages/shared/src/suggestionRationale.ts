@@ -32,6 +32,10 @@ export interface RationaleInput {
   // preferred over an equally-warm off-palette one). Advisory transparency: if it made no
   // difference, we do not claim it did.
   readonly paletteInfluencedOrder: boolean;
+  // Whether the freshness tie-break actually changed the pick (a not-recently-worn garment was
+  // preferred over an equally-suitable one she wore recently). Same honesty rule as palette: we
+  // only say we favoured something fresh when it genuinely moved the selection.
+  readonly freshnessInfluencedOrder: boolean;
 }
 
 // The warmth/weather reason. The temperature is a fixed mild assumption today (there is no
@@ -78,12 +82,18 @@ export function suggestionRationale(input: RationaleInput): readonly string[] {
     );
   }
 
-  // 3. The color-harmony reason, when there is an honest one (≥2 known colors, not a clash).
+  // 3. Freshness: only when it genuinely moved the pick (she wore an equally-suitable piece
+  //    recently, so we reached for something she hasn't). Advisory + honest — silent otherwise.
+  if (input.freshnessInfluencedOrder) {
+    lines.push('You wore something similar recently, so we reached for a piece you haven’t worn lately.');
+  }
+
+  // 4. The color-harmony reason, when there is an honest one (≥2 known colors, not a clash).
   if (input.verdict !== null && input.verdict !== 'clash') {
     lines.push(COLOR_REASON[input.verdict]);
   }
 
-  // 4. Honesty caveats — shown whenever ANY color reasoning was surfaced (a palette exists
+  // 5. Honesty caveats — shown whenever ANY color reasoning was surfaced (a palette exists
   //    or a color verdict was stated), so the limits travel with the claim.
   const usedColorReasoning =
     input.hasPalette || (input.verdict !== null && input.verdict !== 'clash');

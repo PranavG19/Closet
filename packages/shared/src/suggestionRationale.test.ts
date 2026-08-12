@@ -16,8 +16,10 @@ const allInputs: RationaleInput[] = [];
 for (const verdict of [...HARMONY_VERDICTS, null] as (HarmonyVerdict | null)[]) {
   for (const hasPalette of [true, false]) {
     for (const paletteInfluencedOrder of [true, false]) {
-      for (const selectedCount of [1, 2, 4]) {
-        allInputs.push({ selectedCount, verdict, hasPalette, paletteInfluencedOrder });
+      for (const freshnessInfluencedOrder of [true, false]) {
+        for (const selectedCount of [1, 2, 4]) {
+          allInputs.push({ selectedCount, verdict, hasPalette, paletteInfluencedOrder, freshnessInfluencedOrder });
+        }
       }
     }
   }
@@ -81,7 +83,7 @@ describe('suggestionRationale — honesty invariants (D-003 Step 5)', () => {
 });
 
 describe('suggestionRationale — the color reason tracks the verdict', () => {
-  const base: RationaleInput = { selectedCount: 2, verdict: null, hasPalette: false, paletteInfluencedOrder: false };
+  const base: RationaleInput = { selectedCount: 2, verdict: null, hasPalette: false, paletteInfluencedOrder: false, freshnessInfluencedOrder: false };
 
   it('states a color reason for a harmonious verdict', () => {
     const lines = suggestionRationale({ ...base, verdict: 'complementary' });
@@ -101,5 +103,13 @@ describe('suggestionRationale — the color reason tracks the verdict', () => {
     const notInfluenced = suggestionRationale({ ...base, hasPalette: true, paletteInfluencedOrder: false });
     expect(influenced.some((l) => /leaned toward your palette/i.test(l))).toBe(true);
     expect(notInfluenced.some((l) => /didn’t change today’s pick/i.test(l))).toBe(true);
+  });
+
+  it('explains freshness ONLY when it moved the pick (silent otherwise)', () => {
+    const fresh = suggestionRationale({ ...base, freshnessInfluencedOrder: true });
+    const notFresh = suggestionRationale({ ...base, freshnessInfluencedOrder: false });
+    expect(fresh.some((l) => /haven’t worn lately|wore something similar recently/i.test(l))).toBe(true);
+    // When freshness didn't change anything, we don't mention it at all — no filler.
+    expect(notFresh.some((l) => /haven’t worn lately|wore something similar recently/i.test(l))).toBe(false);
   });
 });
