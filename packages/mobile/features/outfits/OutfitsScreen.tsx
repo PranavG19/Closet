@@ -10,7 +10,7 @@ import React from 'react';
 import { View, Image, FlatList, type ImageStyle, type ListRenderItem, type ViewStyle } from 'react-native';
 import type { OutfitSummary } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
-import { useOutfits } from '../../src/api/index.js';
+import { useOutfits, useDeleteOutfit } from '../../src/api/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
@@ -60,15 +60,26 @@ const OutfitPreviewStrip = React.memo(function OutfitPreviewStrip({
 const OutfitCard = React.memo(function OutfitCard({
   outfit,
   uris,
+  onDelete,
+  deleting,
   style,
 }: {
   readonly outfit: OutfitSummary;
   // Signed-URL map keyed by cutout PATH (the parent signs every outfit's preview paths in one
   // pass). A path missing from the map draws an empty well.
   readonly uris: Readonly<Record<string, string>>;
+  // Called with this outfit's id once the two-tap confirm is satisfied. Stable (useCallback).
+  readonly onDelete: (id: string) => void;
+  // True while THIS outfit's delete is in flight — disables the confirm so a double-tap can't
+  // fire two deletes.
+  readonly deleting: boolean;
   readonly style: ViewStyle;
 }): React.JSX.Element {
   const tokens = useTokens();
+  // Two-tap confirm, local to the card: "Remove" arms → "Delete this look?" confirms. A saved
+  // outfit is rebuildable (unlike an account), so this is a light guard against a mis-tap, not
+  // the heavyweight type-to-confirm the account purge needs.
+  const [armed, setArmed] = React.useState(false);
   return (
     <Card variant="surface" padding="md" style={style}>
       <Text variant="title" tone="primary">
@@ -79,6 +90,25 @@ const OutfitCard = React.memo(function OutfitCard({
       </Text>
       {outfit.preview_paths.length > 0 && (
         <OutfitPreviewStrip paths={outfit.preview_paths} uris={uris} />
+      )}
+      {!armed ? (
+        <Button
+          label="Remove"
+          intent="ghost"
+          onPress={() => setArmed(true)}
+          style={{ marginTop: tokens.spacing.sm, alignSelf: 'flex-start' }}
+        />
+      ) : (
+        <View style={{ flexDirection: 'row', marginTop: tokens.spacing.sm, gap: tokens.spacing.sm }}>
+          <Button
+            label={deleting ? 'Removing…' : 'Delete this look'}
+            intent="accent"
+            accent="red"
+            disabled={deleting}
+            onPress={() => onDelete(outfit.id)}
+          />
+          <Button label="Keep" intent="ghost" disabled={deleting} onPress={() => setArmed(false)} />
+        </View>
       )}
     </Card>
   );
@@ -107,6 +137,13 @@ export function OutfitsScreen(): React.JSX.Element {
   const previewUris = useCutoutUris(previewRows);
   const uris = previewUris.data ?? {};
 
+  // Delete mutation. deletingId tracks WHICH card is in flight so only that card's confirm
+  // disables (not every card). Stable callback so the memo'd cards aren't re-rendered by a
+  // fresh identity each render.
+  const deleteOutfit = useDeleteOutfit();
+  const deletingId = deleteOutfit.isPending ? deleteOutfit.variables : undefined;
+  const onDelete = React.useCallback((id: string) => deleteOutfit.mutate(id), [deleteOutfit]);
+
   if (building) {
     return <OutfitBuilderScreen onDone={() => setBuilding(false)} onCancel={() => setBuilding(false)} />;
   }
@@ -130,7 +167,13 @@ export function OutfitsScreen(): React.JSX.Element {
 
   const cardSpacing: ViewStyle = { marginBottom: tokens.spacing.md };
   const renderItem: ListRenderItem<OutfitSummary> = ({ item }) => (
-    <OutfitCard outfit={item} uris={uris} style={cardSpacing} />
+    <OutfitCard
+      outfit={item}
+      uris={uris}
+      onDelete={onDelete}
+      deleting={deletingId === item.id}
+      style={cardSpacing}
+    />
   );
   return (
     <Screen padding="lg">
@@ -146,9 +189,9 @@ export function OutfitsScreen(): React.JSX.Element {
         data={outfits}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
-        // Re-render visible cards when signed URLs land (the map identity changes); without this
-        // the memo'd cards would keep empty preview wells until an unrelated re-render.
-        extraData={uris}
+        // Re-render visible cards when signed URLs land OR a delete starts/ends (both change
+        // identity/value); without this the memo'd cards would keep stale wells / button state.
+        extraData={`${Object.keys(uris).length}|${deletingId ?? ''}`}
         showsVerticalScrollIndicator={false}
       />
     </Screen>

@@ -277,4 +277,42 @@ describe('makeOutfitsRepo — idempotent create + isolation', () => {
     );
     for (const path of summary!.preview_paths) expect(memberPaths.has(path)).toBe(true);
   });
+
+  // Independent oracle for remove (F6 delete). The security-critical claims: a cross-tenant
+  // delete is a no-op (B cannot remove A's outfit — RLS, graded by a superuser row-still-exists
+  // probe the repo query can't see), members cascade, and delete is idempotent.
+  it('remove deletes own outfit + cascades members; cross-tenant delete is a no-op; idempotent', async () => {
+    const item = await makeWardrobeRepo(execA).create(USER_A, { category: 'top' });
+    const outfit = await makeOutfitsRepo(execA).createWithItems(USER_A, {
+      name: 'ToDelete',
+      items: [{ item_id: item.id }],
+    });
+
+    // B tries to delete A's outfit: RLS scopes the DELETE to B's own rows, so it matches
+    // nothing → false, and A's outfit is UNTOUCHED (superuser confirms it still exists).
+    const bDeleted = await makeOutfitsRepo(execB).remove(USER_B, outfit.id);
+    expect(bDeleted).toBe(false);
+    const afterCrossTenant = await superuser.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM public.outfits WHERE id = $1`,
+      [outfit.id],
+    );
+    expect(afterCrossTenant.rows[0]?.n).toBe('1');
+
+    // A deletes its own outfit → true, and BOTH the outfit and its member (cascade) are gone.
+    const aDeleted = await makeOutfitsRepo(execA).remove(USER_A, outfit.id);
+    expect(aDeleted).toBe(true);
+    const outfitGone = await superuser.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM public.outfits WHERE id = $1`,
+      [outfit.id],
+    );
+    expect(outfitGone.rows[0]?.n).toBe('0');
+    const membersGone = await superuser.query<{ n: string }>(
+      `SELECT count(*)::text AS n FROM public.outfit_items WHERE outfit_id = $1`,
+      [outfit.id],
+    );
+    expect(membersGone.rows[0]?.n).toBe('0');
+
+    // Idempotent: deleting the already-deleted outfit is false, never an error.
+    expect(await makeOutfitsRepo(execA).remove(USER_A, outfit.id)).toBe(false);
+  });
 });

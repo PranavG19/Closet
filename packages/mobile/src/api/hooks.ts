@@ -11,6 +11,7 @@ import {
 import type {
   UpdateAvailabilityRequest,
   CreateOutfitRequest,
+  DeleteOutfitResult,
   LogWearRequest,
   UpsertPaletteRequest,
   CreateParseJobRequest,
@@ -99,6 +100,19 @@ export function useCreateOutfit(): UseMutationResult<OutfitRow, Error, CreateOut
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (request: CreateOutfitRequest) => client.createOutfit(request),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: queryKeys.outfits() });
+    },
+  });
+}
+
+// Delete an outfit by id. Invalidates the outfits list so the removed card disappears on a
+// confirmed delete. The mutation variable is the outfit id (string).
+export function useDeleteOutfit(): UseMutationResult<DeleteOutfitResult, Error, string> {
+  const client = useApiClient();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => client.deleteOutfit(id),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: queryKeys.outfits() });
     },

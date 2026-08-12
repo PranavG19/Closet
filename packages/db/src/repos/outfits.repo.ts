@@ -21,6 +21,11 @@ export interface OutfitsRepo {
   // silent cross-tenant link.
   createWithItems(userId: string, args: CreateOutfitArgs): Promise<OutfitRow>;
   getById(userId: string, id: string): Promise<OutfitRow | null>;
+  // Delete the caller's own outfit; its members cascade (outfit_items FK ON DELETE CASCADE).
+  // Returns true iff a row was actually removed — false when the id doesn't exist OR belongs
+  // to another tenant (RLS makes those indistinguishable, which is the point: a cross-tenant
+  // delete is simply a no-op, never an error that would confirm the row exists).
+  remove(userId: string, id: string): Promise<boolean>;
   listByUser(userId: string): Promise<OutfitRow[]>;
   // Like listByUser, but each row carries its garment count (LEFT JOIN so a 0-member outfit
   // is still listed with item_count 0). Same tenant predicate + ordering; RLS scopes both
@@ -105,6 +110,17 @@ export function makeOutfitsRepo(exec: QueryExecutor): OutfitsRepo {
         [userId, id],
       );
       return rows[0] ?? null;
+    },
+
+    async remove(userId, id) {
+      // WHERE user_id = $1 is belt-and-suspenders with the RLS DELETE policy (both scope to
+      // the caller). RETURNING id lets us report whether a row matched — rowCount is also
+      // reliable for DELETE, but RETURNING is explicit and consistent with the other methods.
+      const { rows } = await exec.query<{ id: string }>(
+        `DELETE FROM public.outfits WHERE user_id = $1 AND id = $2 RETURNING id`,
+        [userId, id],
+      );
+      return rows.length > 0;
     },
 
     async listByUser(userId) {

@@ -86,3 +86,16 @@ export const OutfitListResponse = z.object({
   outfits: z.array(OutfitSummary),
 });
 export type OutfitListResponse = z.infer<typeof OutfitListResponse>;
+
+// Delete a saved outfit. The id is the ONLY input; identity is the caller's verified sub
+// (never in the body), so "delete someone else's outfit" is not representable. .strict() so a
+// stray key is a 400, not silently ignored.
+export const DeleteOutfitRequest = z.object({ id: Uuid }).strict();
+export type DeleteOutfitRequest = z.infer<typeof DeleteOutfitRequest>;
+
+// { deleted: true } on a real removal. A non-existent or other-tenant id is deleted: false (a
+// no-op, not an error — RLS makes "yours-but-gone" and "not yours" indistinguishable, and
+// neither should confirm the row existed). Idempotent: deleting an already-deleted outfit is
+// deleted: false, never a 500.
+export const DeleteOutfitResult = z.object({ deleted: z.boolean() }).strict();
+export type DeleteOutfitResult = z.infer<typeof DeleteOutfitResult>;

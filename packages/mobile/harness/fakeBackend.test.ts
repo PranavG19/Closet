@@ -85,11 +85,12 @@ describe('harness fake backend — canned data is schema-valid (parses through t
     expect(doc.parse_jobs.length).toBe(1);
   });
 
-  it('mutation responses parse: toggleAvailability, createOutfit, logWear, upsertPalette, resolveDedupe, parsePhoto, deleteAccount', async () => {
+  it('mutation responses parse: toggleAvailability, createOutfit, deleteOutfit, logWear, upsertPalette, resolveDedupe, parsePhoto, deleteAccount', async () => {
     const client = makeClient(true);
     const item = '11111111-1111-4111-8111-111111111111';
     await expect(client.toggleAvailability({ item_id: item, availability: 'dirty' })).resolves.toBeDefined();
     await expect(client.createOutfit({ items: [{ item_id: item }] })).resolves.toBeDefined();
+    await expect(client.deleteOutfit('88888888-8888-4888-8888-888888888881')).resolves.toEqual({ deleted: true });
     await expect(client.logWear({ item_id: item, client_id: 'harness-tap' })).resolves.toBeDefined();
     await expect(client.upsertPalette({ hues: { season: 'autumn' } })).resolves.toBeDefined();
     await expect(client.resolveDedupe({ keep_id: item, discard_id: '22222222-2222-4222-8222-222222222222' })).resolves.toEqual({ merged: true });

@@ -15,6 +15,8 @@ import {
   parseBoundary,
   UpdateAvailabilityRequest,
   CreateOutfitRequest,
+  DeleteOutfitRequest,
+  DeleteOutfitResult,
   LogWearRequest,
   UpsertPaletteRequest,
   CreateParseJobRequest,
@@ -195,6 +197,13 @@ export class ApiClient {
 
   listOutfits(): Promise<OutfitListResponse> {
     return this.request('listOutfits', (res) => parseBoundary(OutfitListResponse, res, 'listOutfits'));
+  }
+
+  deleteOutfit(id: string): Promise<DeleteOutfitResult> {
+    const body = parseBoundary(DeleteOutfitRequest, { id }, 'deleteOutfit.request');
+    return this.request('deleteOutfit', (res) => parseBoundary(DeleteOutfitResult, res, 'deleteOutfit'), {
+      body,
+    });
   }
 
   // --- wear-log ------------------------------------------------------------

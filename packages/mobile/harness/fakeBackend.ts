@@ -138,6 +138,11 @@ function responseFor(
       return { merged: true };
     case 'createOutfit':
       return { id: '88888888-8888-4888-8888-888888888883', user_id: USER, name: 'New outfit', created_at: NOW, updated_at: NOW };
+    case 'deleteOutfit':
+      // Echo a successful delete (the screen invalidates + refetches the list anyway; the
+      // canned list is a module constant, so the card reappears — the harness proves the
+      // request/response wire, not persistence, exactly like toggleAvailability).
+      return { deleted: true };
     case 'logWear':
       return { id: '99999999-9999-4999-8999-999999999991', user_id: USER, item_id: ITEM_IDS.whiteTop, outfit_id: null, worn_at: NOW, client_id: 'harness-client-id' };
     case 'upsertPalette':
