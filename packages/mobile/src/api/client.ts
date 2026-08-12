@@ -39,6 +39,13 @@ import {
 } from './schemas.js';
 import { ROUTES, type RouteName } from './routes.js';
 import { loadConfig, type AppConfig } from './config.js';
+import { logger } from './logger.js';
+
+// Monotonic clock for request durations — performance.now (not Date.now) so a wall-clock
+// adjustment mid-request can't yield a negative duration, mirroring the server timer.
+function nowMs(): number {
+  return (globalThis as { performance: { now(): number } }).performance.now();
+}
 
 // The narrow query-string shape the wardrobe list accepts. Kept local (not a
 // request body) — the server clamps limit regardless.
@@ -102,6 +109,13 @@ export class ApiClient {
   // Core request: attach bearer, send, and hand the raw JSON body to a parser.
   // The parser (a Zod schema via parseBoundary) is what turns the untyped body
   // into a typed value — no `as`. A non-2xx becomes a typed ApiError.
+  //
+  // This is the ONE transport choke every screen's API call passes through, so it is where
+  // the client half is instrumented (not 12 call sites): each request emits one structured
+  // line with a durationMs + the server's correlationId (read from the x-correlation-id
+  // header withAuth sets), so a mobile failure joins to its exact server log line. The line
+  // carries the route/status/code only — never the response body, never the server's raw
+  // message (ApiError keeps that off-screen; it stays off the log too). No PII path.
   private async request<T>(
     route: RouteName,
     parse: (body: unknown) => T,
@@ -115,7 +129,10 @@ export class ApiClient {
     const requestInit: RequestInit = { method, headers };
     if (init?.body !== undefined) requestInit.body = JSON.stringify(init.body);
 
+    const startedAt = nowMs();
     const response = await this.fetchFn(this.url(route, init?.query), requestInit);
+    const durationMs = Math.round(nowMs() - startedAt);
+    const correlationId = response.headers.get('x-correlation-id') ?? undefined;
     const raw: unknown = await response.json().catch(() => undefined);
 
     if (!response.ok) {
@@ -123,8 +140,11 @@ export class ApiClient {
       const { code, message } = parsed.success
         ? parsed.data.error
         : { code: 'error', message: 'Request failed.' };
+      // code + status only (the server message is never surfaced or logged).
+      logger.warn({ event: 'api_error', route, status: response.status, code, durationMs, correlationId });
       throw new ApiError(response.status, code, message);
     }
+    logger.info({ event: 'api', route, status: response.status, durationMs, correlationId });
     return parse(raw);
   }
 
