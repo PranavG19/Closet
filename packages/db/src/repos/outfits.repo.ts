@@ -1,5 +1,5 @@
 // outfits repo.
-import type { OutfitRow, OutfitItemInput } from '@closet/shared';
+import type { OutfitRow, OutfitSummary, OutfitItemInput } from '@closet/shared';
 import type { QueryExecutor } from './index.js';
 
 const PROJECTION = `id, user_id, name,
@@ -22,6 +22,11 @@ export interface OutfitsRepo {
   createWithItems(userId: string, args: CreateOutfitArgs): Promise<OutfitRow>;
   getById(userId: string, id: string): Promise<OutfitRow | null>;
   listByUser(userId: string): Promise<OutfitRow[]>;
+  // Like listByUser, but each row carries its garment count (LEFT JOIN so a 0-member outfit
+  // is still listed with item_count 0). Same tenant predicate + ordering; RLS scopes both
+  // outfits and the joined outfit_items to ctx.userId, so the count can only ever include the
+  // caller's own members.
+  listWithCounts(userId: string): Promise<OutfitSummary[]>;
 }
 
 export function makeOutfitsRepo(exec: QueryExecutor): OutfitsRepo {
@@ -106,6 +111,28 @@ export function makeOutfitsRepo(exec: QueryExecutor): OutfitsRepo {
       const { rows } = await exec.query<OutfitRow>(
         `SELECT ${PROJECTION} FROM public.outfits
          WHERE user_id = $1 ORDER BY created_at DESC, id DESC`,
+        [userId],
+      );
+      return rows;
+    },
+
+    async listWithCounts(userId) {
+      // LEFT JOIN + GROUP BY so an outfit with zero members still appears (count 0), and
+      // count(oi.item_id) counts only non-null joined rows — the standard "count children"
+      // idiom. ::int because count() is bigint; the OutfitSummary schema wants a JS number.
+      // Grouped by o.id (the PK), so every non-aggregated column is functionally dependent and
+      // needs no extra GROUP BY terms. Columns are aliased (o.) rather than reusing PROJECTION,
+      // which uses bare names that would be ambiguous once outfit_items is joined.
+      const { rows } = await exec.query<OutfitSummary>(
+        `SELECT o.id, o.user_id, o.name,
+                to_char(o.created_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS created_at,
+                to_char(o.updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') AS updated_at,
+                count(oi.item_id)::int AS item_count
+         FROM public.outfits o
+         LEFT JOIN public.outfit_items oi ON oi.outfit_id = o.id
+         WHERE o.user_id = $1
+         GROUP BY o.id
+         ORDER BY o.created_at DESC, o.id DESC`,
         [userId],
       );
       return rows;

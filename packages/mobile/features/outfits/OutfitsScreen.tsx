@@ -8,24 +8,35 @@
 // re-render every visible card.
 import React from 'react';
 import { FlatList, type ListRenderItem, type ViewStyle } from 'react-native';
-import type { OutfitRow } from '@closet/shared';
+import type { OutfitSummary } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useOutfits } from '../../src/api/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 import { OutfitBuilderScreen } from './OutfitBuilderScreen.js';
 
+// "3 pieces" / "1 piece" / "No pieces yet" — singular/plural correct, and an honest empty
+// label rather than "0 pieces" (an outfit with nothing in it reads as unfinished, not a count).
+function piecesLabel(count: number): string {
+  if (count === 0) return 'No pieces yet';
+  return count === 1 ? '1 piece' : `${count} pieces`;
+}
+
 const OutfitCard = React.memo(function OutfitCard({
   outfit,
   style,
 }: {
-  readonly outfit: OutfitRow;
+  readonly outfit: OutfitSummary;
   readonly style: ViewStyle;
 }): React.JSX.Element {
+  const tokens = useTokens();
   return (
     <Card variant="surface" padding="md" style={style}>
       <Text variant="title" tone="primary">
         {outfit.name ?? 'Untitled look'}
+      </Text>
+      <Text variant="caption" tone="secondary" style={{ marginTop: tokens.spacing.xs }}>
+        {piecesLabel(outfit.item_count)}
       </Text>
     </Card>
   );
@@ -64,7 +75,7 @@ export function OutfitsScreen(): React.JSX.Element {
   }
 
   const cardSpacing: ViewStyle = { marginBottom: tokens.spacing.md };
-  const renderItem: ListRenderItem<OutfitRow> = ({ item }) => (
+  const renderItem: ListRenderItem<OutfitSummary> = ({ item }) => (
     <OutfitCard outfit={item} style={cardSpacing} />
   );
   return (

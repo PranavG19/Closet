@@ -78,9 +78,13 @@ const WARDROBE_ITEMS: readonly Record<string, unknown>[] = [
   wardrobeItem({ id: ITEM_IDS.goldNecklace, category: 'accessory', color: 'gold', pattern: null, availability: 'clean', withCutout: false, phash: null }),
 ];
 
+// item_count matches the outfit_items seed below (outfit[0] has 2 members, outfit[1] has 0),
+// so the list card's "N pieces" is honest against the same fixture the export document uses.
+// The export parses these through OutfitRow (non-strict), which strips the extra key — so one
+// constant serves both the list-with-counts response and the export unchanged.
 const OUTFITS: readonly Record<string, unknown>[] = [
-  { id: '88888888-8888-4888-8888-888888888881', user_id: USER, name: 'Weekend brunch', created_at: NOW, updated_at: NOW },
-  { id: '88888888-8888-4888-8888-888888888882', user_id: USER, name: 'Office Monday', created_at: NOW, updated_at: NOW },
+  { id: '88888888-8888-4888-8888-888888888881', user_id: USER, name: 'Weekend brunch', created_at: NOW, updated_at: NOW, item_count: 2 },
+  { id: '88888888-8888-4888-8888-888888888882', user_id: USER, name: 'Office Monday', created_at: NOW, updated_at: NOW, item_count: 0 },
 ];
 
 export interface FakeBackendOptions {

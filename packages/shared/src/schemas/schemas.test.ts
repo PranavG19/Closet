@@ -20,6 +20,7 @@ import {
 } from './wardrobe.js';
 import {
   OutfitRow,
+  OutfitSummary,
   OutfitItemRow,
   WearLogRow,
   CreateOutfitRequest,
@@ -87,6 +88,15 @@ const arbOutfitRow = fc.record({
   updated_at: arbTs,
 });
 
+const arbOutfitSummary = fc.record({
+  id: arbUuid,
+  user_id: arbUuid,
+  name: fc.option(fc.string(), { nil: null }),
+  created_at: arbTs,
+  updated_at: arbTs,
+  item_count: fc.nat({ max: 50 }),
+});
+
 const arbOutfitItemRow = fc.record({
   id: arbUuid,
   outfit_id: arbUuid,
@@ -123,6 +133,7 @@ const ROW_CASES: ReadonlyArray<[string, z.ZodType, fc.Arbitrary<unknown>]> = [
   ['WardrobeItemRow', WardrobeItemRow, arbWardrobeItemRow],
   ['ParseJobRow', ParseJobRow, arbParseJobRow],
   ['OutfitRow', OutfitRow, arbOutfitRow],
+  ['OutfitSummary', OutfitSummary, arbOutfitSummary],
   ['OutfitItemRow', OutfitItemRow, arbOutfitItemRow],
   ['WearLogRow', WearLogRow, arbWearLogRow],
   ['PaletteProfileRow', PaletteProfileRow, arbPaletteProfileRow],

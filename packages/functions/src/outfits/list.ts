@@ -6,7 +6,7 @@ import { jsonResponse, errorFromThrown } from '../auth/respond.js';
 
 export const listOutfits: AuthedHandler = async (_req, { userId, exec }) => {
   try {
-    const outfits = await makeOutfitsRepo(exec).listByUser(userId);
+    const outfits = await makeOutfitsRepo(exec).listWithCounts(userId);
     return jsonResponse(200, parseBoundary(OutfitListResponse, { outfits }, 'outfits.list.result'));
   } catch (thrown) {
     return errorFromThrown(thrown);

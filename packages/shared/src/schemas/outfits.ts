@@ -64,7 +64,15 @@ export const LogWearRequest = z
   .strict();
 export type LogWearRequest = z.infer<typeof LogWearRequest>;
 
+// An outfit as it appears in the LIST: the row plus how many garments it holds, so the list
+// card can say "3 pieces" without a second round-trip per outfit. item_count is a non-negative
+// integer (a count, never fractional or negative); an outfit with no members is 0, not absent.
+export const OutfitSummary = OutfitRow.extend({
+  item_count: z.number().int().min(0),
+});
+export type OutfitSummary = z.infer<typeof OutfitSummary>;
+
 export const OutfitListResponse = z.object({
-  outfits: z.array(OutfitRow),
+  outfits: z.array(OutfitSummary),
 });
 export type OutfitListResponse = z.infer<typeof OutfitListResponse>;

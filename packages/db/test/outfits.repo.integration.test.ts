@@ -3,7 +3,7 @@
 // composite-FK unrepresentability, as app_user against real PG.
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { Pool } from 'pg';
-import { OutfitRow } from '@closet/shared';
+import { OutfitRow, OutfitSummary } from '@closet/shared';
 import { makeOutfitsRepo } from '../src/repos/outfits.repo.js';
 import { makeWardrobeRepo } from '../src/repos/wardrobe.repo.js';
 import { applyMigrations } from './helpers/applyMigrations.js';
@@ -176,5 +176,50 @@ describe('makeOutfitsRepo — idempotent create + isolation', () => {
     expect(cList.length).toBe(0);
     await expectRlsDenies(superuser, execB, 'outfits', USER_A);
     await expectRlsDenies(superuser, execC, 'outfits', USER_A);
+  });
+
+  // Independent oracle for listWithCounts. The count is graded against a superuser COUNT(*)
+  // over outfit_items — a source the repo query did not produce — not a number I copied from
+  // the repo. A zero-member outfit must still appear (LEFT JOIN), with count 0.
+  it('listWithCounts reports each outfit\'s real member count (0-member outfit still listed)', async () => {
+    const user = 'd4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d4';
+    const exec = makeTenantExecutor(pool, user);
+    const wardrobe = makeWardrobeRepo(exec);
+    const repo = makeOutfitsRepo(exec);
+
+    const i1 = await wardrobe.create(user, { category: 'top' });
+    const i2 = await wardrobe.create(user, { category: 'bottom' });
+    const i3 = await wardrobe.create(user, { category: 'shoes' });
+
+    // A 3-member outfit, a 1-member outfit, and a 0-member outfit.
+    const three = await repo.createWithItems(user, {
+      name: 'Full',
+      items: [{ item_id: i1.id }, { item_id: i2.id }, { item_id: i3.id }],
+    });
+    const one = await repo.createWithItems(user, { name: 'Single', items: [{ item_id: i1.id }] });
+    const zero = await repo.createWithItems(user, { name: 'Empty', items: [] });
+
+    const summaries = await repo.listWithCounts(user);
+    // Every row parses as an OutfitSummary (item_count present, non-negative int).
+    for (const s of summaries) expect(() => OutfitSummary.parse(s)).not.toThrow();
+
+    const byId = new Map(summaries.map((s) => [s.id, s.item_count]));
+    expect(byId.get(three.id)).toBe(3);
+    expect(byId.get(one.id)).toBe(1);
+    // LEFT JOIN: the empty outfit is present, not dropped, with count 0.
+    expect(byId.get(zero.id)).toBe(0);
+
+    // Differential ground truth: the repo's count for each outfit equals a superuser COUNT(*).
+    for (const s of summaries) {
+      const truth = await superuser.query<{ n: string }>(
+        `SELECT count(*)::text AS n FROM public.outfit_items WHERE outfit_id = $1`,
+        [s.id],
+      );
+      expect(s.item_count).toBe(Number(truth.rows[0]?.n));
+    }
+
+    // Same ordering contract as listByUser (created_at DESC, id DESC).
+    const listed = await repo.listByUser(user);
+    expect(summaries.map((s) => s.id)).toEqual(listed.map((r) => r.id));
   });
 });
