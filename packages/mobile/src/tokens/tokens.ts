@@ -67,6 +67,13 @@ export interface ColorTokens {
     // Dividers, card edges — barely-there.
     readonly hairline: ColorValue;
   };
+  // The dim behind a modal sheet — a translucent wash over the canvas so the sheet reads as
+  // lifted above the screen. NOT a text/figure surface (nothing readable sits ON the scrim
+  // itself; the sheet is a normal surface drawn over it), so it is deliberately outside the
+  // AA-graded families — it carries no contrast contract.
+  readonly overlay: {
+    readonly scrim: ColorValue;
+  };
   // Availability states. NEVER encode meaning in hue alone (docs/03 accessibility):
   // these pair with an icon + label at the call site. Laundry is normal, not an
   // error — `dirty` is muted, non-alarming.
@@ -194,6 +201,11 @@ export const lightTokens: Tokens = {
     },
     border: {
       hairline: '#E4DCD0', // warm hairline; on the sunken tray + dividers (surface cards drop it)
+    },
+    // Warm brown-black at ~45% — dims the cream canvas behind a sheet without going cold-black.
+    // rgba (not hex) because a scrim IS its alpha: the translucency is the whole point.
+    overlay: {
+      scrim: 'rgba(58, 46, 35, 0.45)',
     },
     // Availability dots. 3.0:1 non-text floor (always paired with a label — meaning is never
     // by hue alone). Nudged to sit in the warm neutral family; all clear 3.0 on sunken.

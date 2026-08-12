@@ -17,10 +17,10 @@
 // closet grows. ItemTile is React.memo'd and the signed-URL map is passed as `extraData`,
 // so a tile re-renders only when ITS OWN cutout URL arrives, not when any sibling's does.
 import React from 'react';
-import { View, Image, FlatList, type ViewStyle, type ImageStyle, type ListRenderItem } from 'react-native';
-import type { WardrobeItemRow } from '@closet/shared';
+import { View, Image, Pressable, FlatList, type ViewStyle, type ImageStyle, type ListRenderItem } from 'react-native';
+import type { Availability, WardrobeItemRow } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
-import { useWardrobe } from '../../src/api/index.js';
+import { useWardrobe, useToggleAvailability } from '../../src/api/index.js';
 import {
   Screen,
   Text,
@@ -31,6 +31,7 @@ import {
 } from '../../src/ui/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
 import { FilterBar } from './FilterBar.js';
+import { StatusSheet } from './StatusSheet.js';
 import { deriveListParams, hasActiveFilter, type WardrobeFilter } from './wardrobeFilters.js';
 
 // Memoized: in a FlatList the parent re-renders on every windowing change, so without
@@ -40,12 +41,16 @@ import { deriveListParams, hasActiveFilter, type WardrobeFilter } from './wardro
 const ItemTile = React.memo(function ItemTile({
   item,
   cutoutUri,
+  onPressStatus,
 }: {
   readonly item: WardrobeItemRow;
   // Undefined when there is no cutout yet (garment added before its parse finished) or the
   // URL could not be signed. Either way the well below is drawn empty — the tile degrades,
   // the screen does not.
   readonly cutoutUri: string | undefined;
+  // Opens the status sheet for THIS garment (F7). Stable across renders (useCallback in the
+  // screen) so the memo'd tile isn't invalidated by a new function identity each render.
+  readonly onPressStatus: (item: WardrobeItemRow) => void;
 }): React.JSX.Element {
   const tokens = useTokens();
   // width:'48%' inside a 2-column FlatList row whose columnWrapperStyle is
@@ -92,7 +97,17 @@ const ItemTile = React.memo(function ItemTile({
       <Text variant="body" tone="primary">
         {item.color ?? item.category}
       </Text>
-      <AvailabilityChip availability={item.availability} style={{ marginTop: tokens.spacing.xs }} />
+      {/* The chip is now the tap target for changing status (F7): it already SHOWS the state, so
+          tapping it to CHANGE the state is the least-surprising affordance. Wrapped rather than
+          made pressable itself so the chip stays a pure presentational primitive. */}
+      <Pressable
+        onPress={() => onPressStatus(item)}
+        accessibilityRole="button"
+        accessibilityLabel={`Change availability for ${item.color ?? item.category}`}
+        style={{ marginTop: tokens.spacing.xs, alignSelf: 'flex-start' }}
+      >
+        <AvailabilityChip availability={item.availability} />
+      </Pressable>
     </View>
   );
 });
@@ -105,6 +120,21 @@ export function WardrobeScreen(): React.JSX.Element {
   // hiding rows client-side.
   const [filter, setFilter] = React.useState<WardrobeFilter>({});
   const query = useWardrobe(deriveListParams(filter));
+  // F7: the garment whose status sheet is open (null = closed), and the mutation that writes the
+  // change. The sheet lives at the screen root, not per-tile, so only one is ever mounted.
+  const [statusItem, setStatusItem] = React.useState<WardrobeItemRow | null>(null);
+  const toggleAvailability = useToggleAvailability();
+  // Stable so the memo'd ItemTile isn't re-rendered by a fresh callback identity every render.
+  const openStatusSheet = React.useCallback((item: WardrobeItemRow) => setStatusItem(item), []);
+  const onSelectStatus = (target: Availability): void => {
+    if (statusItem === null) return;
+    toggleAvailability.mutate(
+      { item_id: statusItem.id, availability: target },
+      // Close only on a confirmed write; on error the sheet stays open so she can retry or
+      // dismiss (the list invalidation on success refreshes the chip to its new state).
+      { onSuccess: () => setStatusItem(null) },
+    );
+  };
   // Signed image URLs, keyed by item id. A separate query from the rows because signed URLs
   // expire and rows do not (see useCutoutUris). Its loading and error states are deliberately
   // NOT gated on: the closet renders immediately with empty wells and the garments appear as
@@ -138,7 +168,7 @@ export function WardrobeScreen(): React.JSX.Element {
   // cream canvas — dropping the bordered panel-within-a-panel is what turns a cramped grid
   // into a breathable gallery (each tile's own well is the frame).
   const renderItem: ListRenderItem<WardrobeItemRow> = ({ item }) => (
-    <ItemTile item={item} cutoutUri={cutouts.data?.[item.id]} />
+    <ItemTile item={item} cutoutUri={cutouts.data?.[item.id]} onPressStatus={openStatusSheet} />
   );
   return (
     <Screen padding="lg">
@@ -168,6 +198,12 @@ export function WardrobeScreen(): React.JSX.Element {
           showsVerticalScrollIndicator={false}
         />
       )}
+      <StatusSheet
+        item={statusItem}
+        busy={toggleAvailability.isPending}
+        onClose={() => setStatusItem(null)}
+        onSelect={onSelectStatus}
+      />
     </Screen>
   );
 }
