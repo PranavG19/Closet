@@ -23,7 +23,9 @@ import { GarmentCategory } from './ports/AIVisionPort.js';
 import { parseBoundary } from './parse.js';
 
 // ---- shared arbitraries -------------------------------------------------------
-const toPhash = (n: bigint): Phash => parsePhash(n.toString(16).padStart(16, '0'));
+// parsePhash's wire form is a DECIMAL bigint::text string (what the repos emit), not hex — see
+// dedupe.ts. Mask to 64 bits so a value at/above 2^63 still maps to its canonical unsigned form.
+const toPhash = (n: bigint): Phash => parsePhash((n & ((1n << 64n) - 1n)).toString(10));
 
 const arbPhash: fc.Arbitrary<Phash> = fc
   .bigInt({ min: 0n, max: (1n << 64n) - 1n })

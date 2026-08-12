@@ -39,6 +39,29 @@ describe('toSuggestionItem — the mapping the heuristic needs', () => {
     expect(top).toBeGreaterThan(toSuggestionItem(row('i3', 'accessory')).warmth);
   });
 
+  it('the FULL warmth ordering matches the documented tiers — every cross-tier pair, not 3 samples', () => {
+    // docs/05 lists warmth-from-category as a Tier-1 law, but the ordering was pinned only by a
+    // few hand-picked pairs — a mid-tier inversion (e.g. bottom dropping below shoes) could slip
+    // through. This states the intended tier of EACH category and asserts strict order across
+    // every cross-tier pair over the whole enum, so any re-tuning that reorders tiers goes red.
+    // Oracle = the documented layering (outerwear > core garments > extremities), independent of
+    // the specific numbers WARMTH_BY_CATEGORY assigns.
+    const TIER: Readonly<Record<string, number>> = {
+      outerwear: 3, // the warmth layer
+      top: 2, dress: 2, bottom: 2, // core garments, one tier
+      shoes: 1, accessory: 1, // extremities, coolest
+    };
+    const warmthOf = (c: string): number => toSuggestionItem(row('x', c)).warmth;
+    for (const a of WardrobeCategory.options) {
+      for (const b of WardrobeCategory.options) {
+        const ta = TIER[a]!;
+        const tb = TIER[b]!;
+        if (ta > tb) expect(warmthOf(a)).toBeGreaterThan(warmthOf(b));
+        if (ta === tb) expect(warmthOf(a)).toBe(warmthOf(b)); // same tier ⇒ equal warmth
+      }
+    }
+  });
+
   it('passes availability through as status unchanged (it is a rename, not a conversion)', () => {
     expect(toSuggestionItem(row('i1', 'top', 'clean')).status).toBe('clean');
     expect(toSuggestionItem(row('i1', 'top', 'dirty')).status).toBe('dirty');
