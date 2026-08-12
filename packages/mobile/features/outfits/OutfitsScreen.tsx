@@ -11,6 +11,7 @@ import { FlatList, type ListRenderItem, type ViewStyle } from 'react-native';
 import type { OutfitRow } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useOutfits } from '../../src/api/index.js';
+import { useScreenLoad } from '../../src/metrics/index.js';
 import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 import { OutfitBuilderScreen } from './OutfitBuilderScreen.js';
 
@@ -37,6 +38,9 @@ export function OutfitsScreen(): React.JSX.Element {
   // is a flat tab bar with no stack), declared before any early return so the hook order is
   // stable across the loading/empty/error branches (Rules of Hooks).
   const [building, setBuilding] = React.useState(false);
+  // Mount → first-ready metric. Unconditional, before any early return, so the hook order is
+  // stable across the building/loading/empty/error branches (Rules of Hooks).
+  useScreenLoad('outfits', query.isSuccess);
 
   if (building) {
     return <OutfitBuilderScreen onDone={() => setBuilding(false)} onCancel={() => setBuilding(false)} />;

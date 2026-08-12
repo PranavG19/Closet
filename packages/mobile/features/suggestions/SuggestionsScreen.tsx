@@ -15,6 +15,7 @@ import * as Crypto from 'expo-crypto';
 import { suggestItems, toSuggestionItems, suggestionNote, outfitVerdict, suggestionRationale } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useLogWear, usePalette } from '../../src/api/index.js';
+import { useScreenLoad } from '../../src/metrics/index.js';
 import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 
 // Weather is a ROADMAP feature — there is no WeatherPort implementation and no server seam
@@ -50,6 +51,10 @@ export function SuggestionsScreen(): React.JSX.Element {
   // "Why this?" disclosure toggle. Declared with the other hooks, before any early return,
   // so the hook order is stable regardless of loading/fallback branches (Rules of Hooks).
   const [showWhy, setShowWhy] = React.useState(false);
+  // Mount → first-ready metric. Ready = wardrobe query resolved (the suggestion is computed
+  // on-device from it; the palette read is advisory and not gated on). Unconditional, before
+  // any early return, so the hook order is stable (Rules of Hooks).
+  useScreenLoad('today', query.isSuccess);
 
   if (query.isPending) return <LoadingState message="Putting together today's look…" />;
   if (query.isError) {

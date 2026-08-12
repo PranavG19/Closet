@@ -30,6 +30,7 @@ import {
   ErrorState,
 } from '../../src/ui/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
+import { useScreenLoad } from '../../src/metrics/index.js';
 import { FilterBar } from './FilterBar.js';
 import { StatusSheet } from './StatusSheet.js';
 import { deriveListParams, hasActiveFilter, type WardrobeFilter } from './wardrobeFilters.js';
@@ -126,6 +127,10 @@ export function WardrobeScreen(): React.JSX.Element {
   const toggleAvailability = useToggleAvailability();
   // Stable so the memo'd ItemTile isn't re-rendered by a fresh callback identity every render.
   const openStatusSheet = React.useCallback((item: WardrobeItemRow) => setStatusItem(item), []);
+  // Mount → first-ready-paint metric. Ready = the list query resolved (success), which is the
+  // moment the grid is useful; called unconditionally BEFORE any early return so the hook order
+  // is stable (Rules of Hooks).
+  useScreenLoad('wardrobe', query.isSuccess);
   const onSelectStatus = (target: Availability): void => {
     if (statusItem === null) return;
     toggleAvailability.mutate(
