@@ -163,43 +163,44 @@ export interface Tokens {
 export const lightTokens: Tokens = {
   color: {
     bg: {
-      canvas: '#FBFAF9', // near-white, faint warm
-      surface: '#FFFFFF',
-      sunken: '#F3F1EF', // soft neutral well for cutouts
+      // Warm cream paper, NOT near-white. The old #FBFAF9/#FFFFFF pair had ~1.06:1
+      // figure/ground, so a card needed a hairline border to be seen at all — the flat
+      // bordered-card look. A cream canvas gives white surfaces real lift, so the soft
+      // shadow separates them and the border can drop (see Card). This is the defining
+      // move of the warm-soft-depth direction (docs/research/design-soft.md).
+      canvas: '#F6F2EC', // warm cream
+      surface: '#FFFFFF', // white cards lift off the cream
+      sunken: '#EDE6DB', // warm recessed tray so cutouts read as lifted
     },
     text: {
-      primary: '#1A1A1A', // 15.45:1 worst-bg
-      secondary: '#5C5A57', // 6.10:1
-      // Was #9A9793 = 2.58:1, failing even the 3.0 floor. Same hue family, dark enough
-      // to read: 4.62:1.
-      tertiary: '#706C68',
-      onAccent: '#FFFFFF', // ≥5.19:1 on every accent.* fill (was 2.91:1 on the old pink)
+      primary: '#221F1B', // warm near-black (softer than pure black) — 13.24:1 on sunken
+      secondary: '#655F58', // warm taupe-gray — 5.09:1 on sunken
+      tertiary: '#6C655C', // warm gray hints/metadata — 4.64:1 on sunken
+      onAccent: '#FFFFFF', // ≥5.9:1 on every accent.* fill
     },
-    // Text/fill-legal accents. Hue identical to the brand tones below; lightness reduced
-    // until both AA tests pass (≥4.61:1 on every bg, ≥5.19:1 for a white label on the fill).
+    // Text/fill-legal accents. Re-hued slightly warmer + deepened so they clear AA on the
+    // warmer, darker cream/sunken backgrounds (≥4.5 as text on every bg, ≥5.9 white-on-fill).
     accent: {
-      pink: '#CF215E', // 4.62:1 · white-on-it 5.21:1 · hue 339° (unchanged)
-      red: '#CB3329', // 4.61:1 · white-on-it 5.19:1 · hue 4° (unchanged)
-      blue: '#396FA9', // 4.64:1 · white-on-it 5.22:1 · hue 211° (unchanged)
+      pink: '#B62E58', // signature — 4.81:1 · white-on-it 5.96:1 · hue ~342°
+      red: '#B33A2C', // rare emphasis — 4.76:1 · white-on-it 5.90:1 · hue ~7°
+      blue: '#396595', // cool secondary — 4.88:1 · white-on-it 6.05:1 · hue ~209°
     },
-    // The original brand values, preserved for decoration where nothing must be read
-    // against them. These are the hexes docs/03 specified; they are still the product's
-    // colour, just no longer asked to do a job they cannot do.
+    // Decoration ONLY (dots, rules, strip edges); deliberately below the text floor —
+    // nothing readable ever touches them. Re-hued warmer to sit in the cream palette.
     accentDecorative: {
-      pink: '#E8709A', // signature warm highlight — dots, rules, strip edges
-      red: '#D8483F',
-      blue: '#5A8FC7',
+      pink: '#E0708F', // soft blush — the Today highlight-strip edge + spinner backdrop
+      red: '#D45647',
+      blue: '#5E8FC0',
     },
     border: {
-      hairline: '#E7E4E1', // decorative hairline; carries no text
+      hairline: '#E4DCD0', // warm hairline; on the sunken tray + dividers (surface cards drop it)
     },
-    // Availability dots. The AA bar here is 3.0:1 (non-text UI indicator), not 4.5 — these
-    // are always paired with a text label, so the colour is redundant reinforcement rather
-    // than the sole carrier of meaning. Every one of them was under 2.5:1 before.
+    // Availability dots. 3.0:1 non-text floor (always paired with a label — meaning is never
+    // by hue alone). Nudged to sit in the warm neutral family; all clear 3.0 on sunken.
     state: {
-      clean: '#589474', // 3.16:1 · calm positive · hue 148° (unchanged)
-      dirty: '#A6823C', // 3.17:1 · muted, non-alarming ("in the wash") · hue 40°
-      unavailable: '#8C8781', // 3.16:1 · neutral/dimmed
+      clean: '#4E8A6A', // 3.28:1 · calm positive · hue ~148°
+      dirty: '#9A7A38', // 3.25:1 · muted, non-alarming ("in the wash") · hue ~42°
+      unavailable: '#847E76', // 3.24:1 · neutral/dimmed
     },
   },
   spacing: {
@@ -212,17 +213,23 @@ export const lightTokens: Tokens = {
     xxxl: 48,
   },
   radius: {
-    sm: 8,
-    md: 12,
-    lg: 20,
+    // Larger radii are where "soft" lives — 18 on a standard card, 28 on the hero card
+    // read pillowy and modern without tipping into toy-like.
+    sm: 12, // chips, small controls
+    md: 18, // default card / button radius
+    lg: 28, // hero cards, sheets, the Today card
     pill: 999,
   },
   shadow: {
-    shadowColor: '#1A1A1A',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    // One soft, warm, diffuse triple — RN gives us a single shadow, so it does all the work.
+    // Warm brown-black (not neutral) on a cream canvas reads as soft daylight, not a hard
+    // drop; wide blur (24) + low opacity (0.10) + a gentle downward offset reads as a surface
+    // floating a few mm off the page. The old 0.06/12/y4 was the "barely-there" shadow.
+    shadowColor: '#3A2E23',
+    shadowOpacity: 0.1,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
   typography: {
     // 'System' is React Native's cross-platform alias for the OS UI face — SF Pro on iOS,
@@ -234,9 +241,12 @@ export const lightTokens: Tokens = {
       medium: '500',
       semibold: '600',
     },
-    display: { fontSize: 32, lineHeight: 40, fontWeight: '600' },
-    title: { fontSize: 22, lineHeight: 28, fontWeight: '600' },
-    body: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
-    caption: { fontSize: 13, lineHeight: 18, fontWeight: '400' },
+    // A bigger, more confident hero + more air in the scale. 600 (semibold) is the top of
+    // the allowed weight union; at 34pt it's confident without reading loud (off-brand for
+    // "calm"). caption goes 400→500 so warm-gray metadata feels intentional, not faint.
+    display: { fontSize: 34, lineHeight: 42, fontWeight: '600' },
+    title: { fontSize: 22, lineHeight: 30, fontWeight: '600' },
+    body: { fontSize: 16, lineHeight: 25, fontWeight: '400' },
+    caption: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
   },
 };

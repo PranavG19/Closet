@@ -49,14 +49,17 @@ const ItemTile = React.memo(function ItemTile({
 }): React.JSX.Element {
   const tokens = useTokens();
   // width:'48%' inside a 2-column FlatList row whose columnWrapperStyle is
-  // space-between reproduces the prior grid gutter exactly.
-  const tile: ViewStyle = { width: '48%', marginBottom: tokens.spacing.lg };
+  // space-between reproduces the prior grid gutter exactly. `xl` row spacing gives the
+  // grid gallery breathing room (was `lg`).
+  const tile: ViewStyle = { width: '48%', marginBottom: tokens.spacing.xl };
   // The sunken well the cutout sits on. It stays behind the image rather than being replaced
   // by it: a PNG cutout is alpha-composited (CutoutPort guarantees `hasAlpha`), so the well
   // IS the backdrop the garment is lifted off, not a placeholder to swap out.
   const well: ViewStyle = {
     aspectRatio: 1,
-    borderRadius: tokens.radius.md,
+    // Deeply-rounded warm tray (lg=28) so each cutout reads as genuinely lifted off the
+    // page — the boutique-shelf feeling that is the product's whole promise.
+    borderRadius: tokens.radius.lg,
     backgroundColor: tokens.color.bg.sunken,
     alignItems: 'center',
     justifyContent: 'center',
@@ -131,15 +134,9 @@ export function WardrobeScreen(): React.JSX.Element {
   }
 
   // The FlatList IS the scroller (so `Screen` is non-scroll: nesting a FlatList in a
-  // ScrollView would defeat windowing and warn). The sunken-well Card look moves onto the
-  // list itself — `style` carries the surface (bg/border/radius) that must NOT scroll away,
-  // `contentContainerStyle` carries the inner padding + the space-between column gutter.
-  const wellSurface: ViewStyle = {
-    backgroundColor: tokens.color.bg.sunken,
-    borderRadius: tokens.radius.md,
-    borderWidth: 1,
-    borderColor: tokens.color.border.hairline,
-  };
+  // ScrollView would defeat windowing and warn). The tiles now float directly on the warm
+  // cream canvas — dropping the bordered panel-within-a-panel is what turns a cramped grid
+  // into a breathable gallery (each tile's own well is the frame).
   const renderItem: ListRenderItem<WardrobeItemRow> = ({ item }) => (
     <ItemTile item={item} cutoutUri={cutouts.data?.[item.id]} />
   );
@@ -168,8 +165,6 @@ export function WardrobeScreen(): React.JSX.Element {
           // Re-render visible tiles when a signed URL lands (the map identity changes); without
           // this, memo'd tiles would keep their empty wells until an unrelated re-render.
           extraData={cutouts.data}
-          style={wellSurface}
-          contentContainerStyle={{ padding: tokens.spacing.md }}
           showsVerticalScrollIndicator={false}
         />
       )}

@@ -36,7 +36,8 @@ export function AvailabilityChip({ availability, style }: AvailabilityChipProps)
     alignItems: 'center',
     alignSelf: 'flex-start',
     paddingVertical: tokens.spacing.xs,
-    paddingHorizontal: tokens.spacing.sm,
+    // More horizontal breathing room around the dot+label so the pill reads pillowy.
+    paddingHorizontal: tokens.spacing.md,
     borderRadius: tokens.radius.pill,
     backgroundColor: tokens.color.bg.sunken,
   };

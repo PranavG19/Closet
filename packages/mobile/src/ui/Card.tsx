@@ -23,9 +23,14 @@ export function Card({ children, variant = 'surface', padding = 'md', style }: C
   const base: ViewStyle = {
     backgroundColor: variant === 'sunken' ? tokens.color.bg.sunken : tokens.color.bg.surface,
     borderRadius: tokens.radius.md,
-    borderWidth: 1,
-    borderColor: tokens.color.border.hairline,
     padding: pad,
+    // The border lives ONLY on the sunken tray: a recessed well reads better with a faint
+    // inset edge. On a raised `surface` card the soft warm shadow carries the figure/ground
+    // by itself — a border on top of a shadow is the belt-and-suspenders look that reads as
+    // "prototype", so the surface variant drops it entirely.
+    ...(variant === 'sunken'
+      ? { borderWidth: 1, borderColor: tokens.color.border.hairline }
+      : {}),
   };
 
   // Soft elevation only on the raised surface, never the sunken well.

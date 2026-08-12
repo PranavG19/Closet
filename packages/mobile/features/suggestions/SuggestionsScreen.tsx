@@ -134,8 +134,10 @@ export function SuggestionsScreen(): React.JSX.Element {
     marginTop: tokens.spacing.md,
   };
   const heroWell: ViewStyle = {
-    aspectRatio: 1,
-    borderRadius: tokens.radius.md,
+    // Portrait 4:5 gallery frame (was 1:1) with the hero radius (lg=28) to match the card's
+    // softness — the suggested garment gets a magazine-format frame, not a thumbnail.
+    aspectRatio: 4 / 5,
+    borderRadius: tokens.radius.lg,
     backgroundColor: tokens.color.bg.sunken,
     alignItems: 'center',
     justifyContent: 'center',
@@ -147,7 +149,7 @@ export function SuggestionsScreen(): React.JSX.Element {
       <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
         Today
       </Text>
-      <Card variant="surface" padding="lg">
+      <Card variant="surface" padding="lg" style={{ borderRadius: tokens.radius.lg }}>
         <View style={heroWell} accessibilityLabel={`Suggested ${hero.category}`}>
           <Text variant="caption" tone="tertiary">
             {hero.category}

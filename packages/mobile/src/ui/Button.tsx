@@ -45,7 +45,9 @@ export function Button({
     intent === 'accent'
       ? { backgroundColor: accentColor }
       : intent === 'secondary'
-        ? { borderWidth: 1, borderColor: tokens.color.border.hairline, backgroundColor: tokens.color.bg.surface }
+        ? // A filled TONAL button (warm sunken fill, no border) — softer and more tactile than
+          // an outline, matching the iOS-18 filled-gray secondary. The label is text.primary.
+          { backgroundColor: tokens.color.bg.sunken }
         : { backgroundColor: 'transparent' };
 
   const tone = intent === 'accent' ? 'onAccent' : 'primary';
@@ -56,7 +58,8 @@ export function Button({
       accessibilityState={{ disabled }}
       disabled={disabled}
       onPress={onPress}
-      style={[base, variant, style]}
+      // A subtle press-down dim — soft tactile feedback, no token change.
+      style={({ pressed }) => [base, variant, pressed ? { opacity: 0.85 } : null, style]}
     >
       <Text variant="body" tone={tone}>
         {label}

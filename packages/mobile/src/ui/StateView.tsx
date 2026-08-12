@@ -6,6 +6,7 @@ import { View, ActivityIndicator, type ViewStyle } from 'react-native';
 import { useTokens } from '../tokens/index.js';
 import { Text } from './Text.js';
 import { Button } from './Button.js';
+import { Card } from './Card.js';
 
 const centered = (gap: number): ViewStyle => ({
   flex: 1,
@@ -18,7 +19,9 @@ export function LoadingState({ message }: { readonly message?: string }): React.
   const tokens = useTokens();
   return (
     <View style={centered(tokens.spacing.md)}>
-      <ActivityIndicator color={tokens.color.accentDecorative.pink} />
+      {/* The primary accent (now AA-legal), not the faint decorative tone — a calm, present
+          brand moment on the warm canvas rather than a washed-out spinner. */}
+      <ActivityIndicator color={tokens.color.accent.pink} />
       {message !== undefined ? (
         <Text variant="body" tone="secondary">
           {message}
@@ -37,19 +40,23 @@ export interface EmptyStateProps {
 
 export function EmptyState({ title, body, actionLabel, onAction }: EmptyStateProps): React.JSX.Element {
   const tokens = useTokens();
+  // The content sits inside a soft floating card so an empty state reads as a designed, held
+  // moment rather than text stranded on the canvas (addresses the "sparse layout" feel).
   return (
     <View style={centered(tokens.spacing.md)}>
-      <Text variant="title" tone="primary">
-        {title}
-      </Text>
-      {body !== undefined ? (
-        <Text variant="body" tone="secondary" style={{ textAlign: 'center' }}>
-          {body}
+      <Card variant="surface" padding="lg" style={{ alignItems: 'center', gap: tokens.spacing.md, marginHorizontal: tokens.spacing.xl }}>
+        <Text variant="title" tone="primary" style={{ textAlign: 'center' }}>
+          {title}
         </Text>
-      ) : null}
-      {actionLabel !== undefined && onAction !== undefined ? (
-        <Button label={actionLabel} onPress={onAction} intent="secondary" />
-      ) : null}
+        {body !== undefined ? (
+          <Text variant="body" tone="secondary" style={{ textAlign: 'center' }}>
+            {body}
+          </Text>
+        ) : null}
+        {actionLabel !== undefined && onAction !== undefined ? (
+          <Button label={actionLabel} onPress={onAction} intent="secondary" />
+        ) : null}
+      </Card>
     </View>
   );
 }
@@ -64,15 +71,17 @@ export function ErrorState({ title, body, onRetry }: ErrorStateProps): React.JSX
   const tokens = useTokens();
   return (
     <View style={centered(tokens.spacing.md)}>
-      <Text variant="title" tone="primary">
-        {title ?? 'Something went sideways'}
-      </Text>
-      {body !== undefined ? (
-        <Text variant="body" tone="secondary" style={{ textAlign: 'center' }}>
-          {body}
+      <Card variant="surface" padding="lg" style={{ alignItems: 'center', gap: tokens.spacing.md, marginHorizontal: tokens.spacing.xl }}>
+        <Text variant="title" tone="primary" style={{ textAlign: 'center' }}>
+          {title ?? 'Something went sideways'}
         </Text>
-      ) : null}
-      {onRetry !== undefined ? <Button label="Try again" onPress={onRetry} intent="secondary" /> : null}
+        {body !== undefined ? (
+          <Text variant="body" tone="secondary" style={{ textAlign: 'center' }}>
+            {body}
+          </Text>
+        ) : null}
+        {onRetry !== undefined ? <Button label="Try again" onPress={onRetry} intent="secondary" /> : null}
+      </Card>
     </View>
   );
 }
