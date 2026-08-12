@@ -15,9 +15,13 @@ export const listWear: AuthedHandler = async (req, { userId, exec }) => {
   try {
     const url = new URL(req.url);
     const rawLimit = url.searchParams.get('limit');
-    // Server clamp (load-bearing): a non-numeric/absent limit becomes the repo default via
-    // clampLimit(undefined); never trust the client's number.
-    const limit = clampLimit(rawLimit === null ? undefined : Number(rawLimit));
+    // Server clamp (load-bearing): an absent OR non-numeric limit becomes the repo default.
+    // clampLimit maps a non-finite input to 1 (its floor), so a garbage `?limit=abc` must be
+    // normalised to `undefined` FIRST — otherwise Number('abc')=NaN would clamp to 1, silently
+    // returning a single row. This mirrors wardrobe/list.ts, which coerces via Zod to the same
+    // effect. Never trust the client's number.
+    const parsedLimit = rawLimit === null ? undefined : Number(rawLimit);
+    const limit = clampLimit(Number.isFinite(parsedLimit) ? parsedLimit : undefined);
     const entries = await makeWearLogRepo(exec).listByUser(userId, { limit });
     return jsonResponse(200, parseBoundary(WearLogListResponse, { entries }, 'wear-log.list.result'));
   } catch (thrown) {
