@@ -77,6 +77,12 @@ describe('harness fake backend — canned data is schema-valid (parses through t
     expect(result.hues).toEqual(['camel', 'rose']);
   });
 
+  it('listWear parses recent entries (the F5 freshness read)', async () => {
+    const result = await makeClient(true).listWear();
+    expect(result.entries.length).toBeGreaterThanOrEqual(1);
+    expect(result.entries.every((e) => typeof e.item_id === 'string')).toBe(true);
+  });
+
   it('exportMyData parses the full subject-access document', async () => {
     const doc = await makeClient(true).exportMyData();
     expect(doc.wardrobe_items.length).toBeGreaterThan(0);

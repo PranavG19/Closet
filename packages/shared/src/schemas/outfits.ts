@@ -33,6 +33,13 @@ export const WearLogRow = z.object({
 });
 export type WearLogRow = z.infer<typeof WearLogRow>;
 
+// The read side of the moat: recent wear-log entries, newest first. Feeds the F5 suggestion's
+// freshness tie-break (recentlyWornIds) — so today's look isn't yesterday's exact pieces.
+export const WearLogListResponse = z.object({
+  entries: z.array(WearLogRow),
+});
+export type WearLogListResponse = z.infer<typeof WearLogListResponse>;
+
 // An outfit_item as supplied on create — no id/user_id (user_id is ctx.userId).
 export const OutfitItemInput = z
   .object({

@@ -13,6 +13,7 @@ export const ROUTES = {
   deleteOutfit: { path: 'outfits-delete', method: 'POST' },
   renameOutfit: { path: 'outfits-rename', method: 'POST' },
   logWear: { path: 'wear-log', method: 'POST' },
+  listWear: { path: 'wear-log-list', method: 'GET' },
   upsertPalette: { path: 'palette-upsert', method: 'POST' },
   readEntitlement: { path: 'palette-entitlement', method: 'GET' },
   readPalette: { path: 'palette-read', method: 'GET' },

@@ -25,6 +25,7 @@ import {
   OutfitRow,
   OutfitListResponse,
   WearLogRow,
+  WearLogListResponse,
   PaletteProfileRow,
   PaletteReadResponse,
   EntitlementResponse,
@@ -221,6 +222,13 @@ export class ApiClient {
   logWear(request: LogWearRequest): Promise<WearLogRow> {
     const body = parseBoundary(LogWearRequest, request, 'logWear.request');
     return this.request('logWear', (res) => parseBoundary(WearLogRow, res, 'logWear'), { body });
+  }
+
+  listWear(limit?: number): Promise<WearLogListResponse> {
+    const query = limit !== undefined ? `?limit=${encodeURIComponent(String(limit))}` : undefined;
+    return this.request('listWear', (res) => parseBoundary(WearLogListResponse, res, 'listWear'), {
+      ...(query !== undefined ? { query } : {}),
+    });
   }
 
   // --- palette -------------------------------------------------------------

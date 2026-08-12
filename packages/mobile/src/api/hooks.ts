@@ -19,6 +19,7 @@ import type {
   OutfitRow,
   OutfitListResponse,
   WearLogRow,
+  WearLogListResponse,
   PaletteProfileRow,
   PaletteReadResponse,
   EntitlementResponse,
@@ -40,6 +41,7 @@ export const queryKeys = {
   outfits: () => ['outfits'] as const,
   entitlement: () => ['entitlement'] as const,
   palette: () => ['palette'] as const,
+  recentWears: (limit: number) => ['recent-wears', limit] as const,
 } as const;
 
 export function useWardrobe(params: ListWardrobeParams = {}): UseQueryResult<WardrobeListResult> {
@@ -62,6 +64,18 @@ export function useOutfits(): UseQueryResult<OutfitListResponse> {
 export function usePalette(): UseQueryResult<PaletteReadResponse> {
   const client = useApiClient();
   return useQuery({ queryKey: queryKeys.palette(), queryFn: () => client.readPalette() });
+}
+
+// Recent wear-log entries (F5 freshness signal). Default window of 7 — roughly a week of
+// daily wears — enough for the suggestion to avoid re-picking yesterday's pieces without
+// treating a garment worn once a fortnight ago as "recent".
+const RECENT_WEARS_LIMIT = 7;
+export function useRecentWears(limit: number = RECENT_WEARS_LIMIT): UseQueryResult<WearLogListResponse> {
+  const client = useApiClient();
+  return useQuery({
+    queryKey: queryKeys.recentWears(limit),
+    queryFn: () => client.listWear(limit),
+  });
 }
 
 export function useEntitlement(): UseQueryResult<EntitlementResponse> {
@@ -143,6 +157,9 @@ export function useLogWear(): UseMutationResult<WearLogRow, Error, LogWearReques
     mutationFn: (request: LogWearRequest) => client.logWear(request),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['wardrobe'] });
+      // A new wear changes the freshness signal, so refresh the recent-wears read the
+      // suggestion depends on.
+      void qc.invalidateQueries({ queryKey: ['recent-wears'] });
     },
   });
 }

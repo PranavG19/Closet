@@ -149,6 +149,14 @@ function responseFor(
       return { id: '88888888-8888-4888-8888-888888888881', user_id: USER, name: 'Renamed look', created_at: NOW, updated_at: NOW };
     case 'logWear':
       return { id: '99999999-9999-4999-8999-999999999991', user_id: USER, item_id: ITEM_IDS.whiteTop, outfit_id: null, worn_at: NOW, client_id: 'harness-client-id' };
+    case 'listWear':
+      // One recent wear (the white top) so the F5 freshness tie-break is OBSERVABLE in the
+      // harness suggestion — that item is nudged down among equal-warmth peers.
+      return {
+        entries: [
+          { id: '99999999-9999-4999-8999-999999999991', user_id: USER, item_id: ITEM_IDS.whiteTop, outfit_id: null, worn_at: NOW, client_id: 'harness-client-id' },
+        ],
+      };
     case 'upsertPalette':
       return { user_id: USER, hues: { season: 'autumn', flattering: ['camel', 'rose', 'olive'] } };
     case 'readPalette':

@@ -33,6 +33,13 @@ export const SuggestionInputSchema = z.object({
   // is untouched, and never as a filter, so nothing clean is ever excluded. Absent → the
   // heuristic is byte-identical to the pre-color version.
   paletteFamilies: z.array(z.string()).optional(),
+  // Item ids worn RECENTLY (caller decides the window — e.g. the last 7 wear-log entries).
+  // OPTIONAL and advisory: a FRESHNESS tie-break — among EQUAL-warmth items that are ALSO
+  // equal on palette affinity, one NOT recently worn is preferred, so today's look isn't
+  // yesterday's exact pieces. Never across warmth tiers (weather guarantee intact), never a
+  // filter (a recently-worn item is still suggested if it's the only clean option). Absent →
+  // byte-identical to the pre-freshness version.
+  recentlyWornIds: z.array(z.string()).optional(),
 });
 export type SuggestionInput = z.infer<typeof SuggestionInputSchema>;
 
@@ -81,13 +88,23 @@ export function suggestItems(input: unknown): Suggestion {
       ? paletteAffinity(item.colorFamily, paletteFamilies)
       : 0;
 
-  // Copy before sort (never mutate the argument).
+  // Freshness penalty in {0,1}: 1 when the item was worn recently (ranked LAST within its
+  // warmth+palette tier), 0 otherwise. Empty/absent set → every penalty is 0 and this is inert.
+  const recentlyWorn = new Set(parsed.recentlyWornIds ?? []);
+  const freshnessPenalty = (item: SuggestionItem): number => (recentlyWorn.has(item.id) ? 1 : 0);
+
+  // Copy before sort (never mutate the argument). Strict tie-break priority, each applied ONLY
+  // within a tie of all higher keys, so aggregateWarmth of any prefix is identical to the
+  // warmth-only ordering (weather guarantee preserved by construction):
+  //   (1) warmth desc; (2) higher palette affinity; (3) freshness — not-recently-worn first;
+  //   (4) id (deterministic final).
   const byWarmthDesc = [...clean].sort((a, b) => {
     if (b.warmth !== a.warmth) return b.warmth - a.warmth;
-    // Equal warmth: higher palette affinity first (applied only when a palette exists; with
-    // none, every affinity is 0 and this falls straight through to the id tie-break).
     const aff = affinity(b) - affinity(a);
     if (aff !== 0) return aff;
+    // Equal warmth AND equal palette affinity: prefer the one NOT worn recently (lower penalty).
+    const fresh = freshnessPenalty(a) - freshnessPenalty(b);
+    if (fresh !== 0) return fresh;
     return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
   });
 

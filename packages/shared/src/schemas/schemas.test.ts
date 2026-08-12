@@ -24,6 +24,7 @@ import {
   OUTFIT_PREVIEW_LIMIT,
   OutfitItemRow,
   WearLogRow,
+  WearLogListResponse,
   CreateOutfitRequest,
   RenameOutfitRequest,
   LogWearRequest,
@@ -361,6 +362,9 @@ describe('empty is valid, not an error', () => {
   });
   it('OutfitListResponse accepts outfits: []', () => {
     expect(parseBoundary(OutfitListResponse, { outfits: [] })).toEqual({ outfits: [] });
+  });
+  it('WearLogListResponse accepts entries: []', () => {
+    expect(parseBoundary(WearLogListResponse, { entries: [] })).toEqual({ entries: [] });
   });
   it('CreateOutfitRequest accepts items: []', () => {
     expect(parseBoundary(CreateOutfitRequest, { items: [] })).toEqual({ items: [] });

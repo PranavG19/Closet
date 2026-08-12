@@ -14,7 +14,7 @@ import { View, type ViewStyle } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { suggestItems, toSuggestionItems, suggestionNote, outfitVerdict, suggestionRationale } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
-import { useWardrobe, useLogWear, usePalette } from '../../src/api/index.js';
+import { useWardrobe, useLogWear, usePalette, useRecentWears } from '../../src/api/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 
@@ -48,6 +48,10 @@ export function SuggestionsScreen(): React.JSX.Element {
   // loading/error is NOT gated on: the suggestion runs immediately without a palette and
   // gains the tie-break once the read arrives, rather than blocking today's look on it.
   const palette = usePalette();
+  // Recent wears (F5 freshness). Advisory, like the palette: NOT gated on — the suggestion runs
+  // immediately without it and gains the "don't re-pick yesterday's pieces" tie-break once the
+  // read lands, rather than blocking today's look on a wear-log fetch.
+  const recentWears = useRecentWears();
   // "Why this?" disclosure toggle. Declared with the other hooks, before any early return,
   // so the hook order is stable regardless of loading/fallback branches (Rules of Hooks).
   const [showWhy, setShowWhy] = React.useState(false);
@@ -70,10 +74,14 @@ export function SuggestionsScreen(): React.JSX.Element {
   // one is preferred — never across warmth tiers, so the weather guarantee is untouched.
   const paletteFamilies = palette.data?.hues ?? [];
   const hasPalette = paletteFamilies.length > 0;
+  // Item ids worn recently (advisory freshness signal; empty until the read lands). Deduped —
+  // an item worn several times in the window need appear only once.
+  const recentlyWornIds = [...new Set((recentWears.data?.entries ?? []).map((entry) => entry.item_id))];
   const suggestion = suggestItems({
     items: toSuggestionItems(rows),
     tempC: ASSUMED_TEMP_C,
     ...(hasPalette ? { paletteFamilies } : {}),
+    ...(recentlyWornIds.length > 0 ? { recentlyWornIds } : {}),
   });
 
   if (suggestion.fallback) {
