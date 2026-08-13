@@ -20,7 +20,7 @@ import {
   type ColorFamily,
 } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
-import { Card, Text, Button } from '../../src/ui/index.js';
+import { Text, Button, Divider } from '../../src/ui/index.js';
 import { useUpsertPalette } from '../../src/api/index.js';
 
 // A single tappable swatch. Its fill is the family's own representative colour (derived from
@@ -86,7 +86,13 @@ export function SwatchQuizCard(): React.JSX.Element {
   };
 
   return (
-    <Card padding="lg" style={{ gap: tokens.spacing.sm, marginBottom: tokens.spacing.xl }}>
+    // A flat on-canvas section, NOT an elevated white Card — the account screen is a stack of
+    // hairline-divided sections (Membership, Your data, Delete), and a raised white surface here
+    // was the one elevated tile in that stack, reading as a bolt-on. Match the siblings: a leading
+    // divider + section spacing, so "Your colours" sits in the same editorial rhythm.
+    <>
+      <Divider />
+      <View style={{ gap: tokens.spacing.sm, marginTop: tokens.spacing.xl, marginBottom: tokens.spacing.xl }}>
       <Text variant="title" tone="primary">
         Your colours{'  '}
         <Text variant="caption" tone="tertiary">
@@ -133,6 +139,7 @@ export function SwatchQuizCard(): React.JSX.Element {
           We couldn’t save your colours just now. Please try again.
         </Text>
       )}
-    </Card>
+      </View>
+    </>
   );
 }
