@@ -225,7 +225,12 @@ export function OutfitBuilderScreen({ onDone, onCancel }: OutfitBuilderScreenPro
         </Text>
       )}
       {create.isError && (
-        <Text variant="caption" tone="tertiary" style={{ marginTop: tokens.spacing.sm, textAlign: 'center' }}>
+        <Text
+          variant="caption"
+          tone="tertiary"
+          accessibilityLiveRegion="polite"
+          style={{ marginTop: tokens.spacing.sm, textAlign: 'center' }}
+        >
           We couldn’t save that look. Try again.
         </Text>
       )}

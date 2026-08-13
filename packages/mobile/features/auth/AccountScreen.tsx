@@ -238,7 +238,7 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
           onPress={() => void onRestore()}
         />
         {restoreNotice !== null && (
-          <Text variant="caption" tone="secondary">
+          <Text variant="caption" tone="secondary" accessibilityLiveRegion="polite">
             {restoreNotice}
           </Text>
         )}
@@ -262,12 +262,12 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
           disabled={exportMutation.isPending}
         />
         {exportMutation.isPending ? (
-          <Text variant="caption" tone="tertiary">
+          <Text variant="caption" tone="tertiary" accessibilityLiveRegion="polite">
             Gathering your data…
           </Text>
         ) : null}
         {exportMutation.isError ? (
-          <Text variant="caption" tone="secondary">
+          <Text variant="caption" tone="secondary" accessibilityLiveRegion="polite">
             {EXPORT_FAILED}
           </Text>
         ) : null}

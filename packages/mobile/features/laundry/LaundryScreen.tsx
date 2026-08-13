@@ -177,7 +177,12 @@ export function LaundryScreen(): React.JSX.Element {
       )}
 
       {failedCount > 0 && (
-        <Text variant="caption" tone="secondary" style={{ marginTop: tokens.spacing.md }}>
+        <Text
+          variant="caption"
+          tone="secondary"
+          accessibilityLiveRegion="polite"
+          style={{ marginTop: tokens.spacing.md }}
+        >
           {`${failedCount} couldn't be updated. Pull down to refresh and try again.`}
         </Text>
       )}

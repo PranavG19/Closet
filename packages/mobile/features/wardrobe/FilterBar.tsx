@@ -53,6 +53,10 @@ function Chip({
       accessibilityState={{ selected }}
       accessibilityLabel={label}
       onPress={onPress}
+      // The visual rail stays thin (minHeight 36 keeps the editorial chip proportions), but
+      // hitSlop lifts the tap area to ≥44pt (WCAG 2.5.5 / iOS HIG) — these are the primary
+      // browse controls, so the small text must not be a small target.
+      hitSlop={{ top: 8, bottom: 8 }}
       style={base}
     >
       <Text variant="overline" tone={selected ? 'primary' : 'tertiary'}>

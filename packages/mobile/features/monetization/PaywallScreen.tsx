@@ -145,6 +145,10 @@ export function PaywallScreen(): React.JSX.Element {
             <Text
               variant="caption"
               tone="secondary"
+              // Live region so VoiceOver announces the purchase/restore outcome — this is the
+              // entitlement path, and a silent "confirming your membership…" / "not charged" is
+              // the worst place for a status a screen-reader user can't hear (WCAG 4.1.3).
+              accessibilityLiveRegion="polite"
               style={{ marginTop: tokens.spacing.sm, textAlign: 'center' }}
             >
               {notice}
@@ -255,6 +259,10 @@ export function PaywallScreen(): React.JSX.Element {
           <Text
             variant="caption"
             tone="secondary"
+            // Live region so VoiceOver announces the purchase/restore outcome — this is the
+            // entitlement path, and a silent "confirming your membership…" / "not charged" is
+            // the worst place for a status a screen-reader user can't hear (WCAG 4.1.3).
+            accessibilityLiveRegion="polite"
             style={{ marginTop: tokens.spacing.sm, textAlign: 'center' }}
           >
             {notice}

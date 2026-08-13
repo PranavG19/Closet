@@ -30,7 +30,10 @@ export function SectionHeader({
       {title !== undefined || action !== undefined ? (
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           {title !== undefined ? (
-            <Text variant={titleVariant} tone="primary">
+            // accessibilityRole="header" so a VoiceOver user can jump between section titles
+            // via the heading rotor (WCAG 1.3.1/2.4.10). Every screen's masthead is a
+            // SectionHeader, so this one line gives the whole app a heading structure.
+            <Text variant={titleVariant} tone="primary" accessibilityRole="header">
               {title}
             </Text>
           ) : (

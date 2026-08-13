@@ -113,6 +113,10 @@ const ItemTile = React.memo(function ItemTile({
         onPress={() => onPressStatus(item)}
         accessibilityRole="button"
         accessibilityLabel={`Change availability for ${item.color ?? item.category}`}
+        // The visible dot+overline is ~16pt tall, but this is the primary F7 affordance. hitSlop
+        // (not minHeight) expands the tap area to ≥44pt WITHOUT adding vertical space between
+        // every grid tile's label and the row below — the layout is unchanged, the target isn't.
+        hitSlop={{ top: 14, bottom: 14, left: 8, right: 8 }}
         style={{ marginTop: tokens.spacing.xs, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }}
       >
         <View

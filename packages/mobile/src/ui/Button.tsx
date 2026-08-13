@@ -60,6 +60,35 @@ export function Button({
     );
   }
 
+  // `ghost` is the quiet SECONDARY/dismiss action (Cancel, Keep, "Why this?"). It used to render
+  // as `Text variant="body" tone="primary"` on transparent — visually IDENTICAL to body copy, so
+  // a sighted user had no affordance (a screen reader still got role=button). It now wears the
+  // same uppercase tracked OVERLINE the rest of the app's controls use (SIGN OUT, RENAME…), which
+  // is the app's universal "this is tappable" signal, but at SECONDARY tone and with NO accent
+  // rule — so it reads as a control yet stays subordinate to the `link` primary (primary tone +
+  // 2px accent underline) and the `accent` fill. Its own branch, like `link`.
+  if (intent === 'ghost') {
+    const ghostBase: ViewStyle = {
+      minHeight: 44, // hit target ≥ 44pt (docs/03) even though the label is short
+      alignSelf: 'flex-start',
+      justifyContent: 'center',
+      opacity: disabled ? 0.5 : 1,
+    };
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled }}
+        disabled={disabled}
+        onPress={onPress}
+        style={({ pressed }) => [ghostBase, pressed ? { opacity: 0.85 } : null, style]}
+      >
+        <Text variant="overline" tone="secondary">
+          {label}
+        </Text>
+      </Pressable>
+    );
+  }
+
   const base: ViewStyle = {
     minHeight: 44, // hit target ≥ 44pt (docs/03 accessibility)
     paddingVertical: tokens.spacing.md,
@@ -73,11 +102,9 @@ export function Button({
   const variant: ViewStyle =
     intent === 'accent'
       ? { backgroundColor: accentColor }
-      : intent === 'secondary'
-        ? // A filled TONAL button (warm sunken fill, no border) — softer and more tactile than
-          // an outline, matching the iOS-18 filled-gray secondary. The label is text.primary.
-          { backgroundColor: tokens.color.bg.sunken }
-        : { backgroundColor: 'transparent' };
+      : // secondary: a filled TONAL button (warm sunken fill, no border) — softer and more
+        // tactile than an outline, matching the iOS-18 filled-gray secondary. Label is primary.
+        { backgroundColor: tokens.color.bg.sunken };
 
   const tone = intent === 'accent' ? 'onAccent' : 'primary';
 

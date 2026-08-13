@@ -114,12 +114,22 @@ export function SwatchQuizCard(): React.JSX.Element {
       />
 
       {upsert.isSuccess && (
-        <Text variant="caption" tone="secondary" style={{ marginTop: tokens.spacing.sm }}>
+        <Text
+          variant="caption"
+          tone="secondary"
+          accessibilityLiveRegion="polite"
+          style={{ marginTop: tokens.spacing.sm }}
+        >
           Saved — we’ll lean toward these when styling your looks.
         </Text>
       )}
       {upsert.isError && (
-        <Text variant="caption" tone="secondary" style={{ marginTop: tokens.spacing.sm }}>
+        <Text
+          variant="caption"
+          tone="secondary"
+          accessibilityLiveRegion="polite"
+          style={{ marginTop: tokens.spacing.sm }}
+        >
           We couldn’t save your colours just now. Please try again.
         </Text>
       )}

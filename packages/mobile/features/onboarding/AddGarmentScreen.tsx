@@ -207,7 +207,12 @@ export function AddGarmentScreen(): React.JSX.Element {
           </Text>
         )}
         {notice !== null && (
-          <Text variant="caption" tone="secondary" style={{ marginBottom: tokens.spacing.md }}>
+          <Text
+            variant="caption"
+            tone="secondary"
+            accessibilityLiveRegion="polite"
+            style={{ marginBottom: tokens.spacing.md }}
+          >
             {notice}
           </Text>
         )}
