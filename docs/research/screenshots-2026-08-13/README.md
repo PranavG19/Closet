@@ -16,10 +16,17 @@ bricking the app on device (dyld symbol mismatch — see `c0f2f2c`).
 | `07-today.png` | Today | Hero + "camel outerwear / with black", "Why this?", "Wore this today" (now logs the whole look, not just the hero) |
 | `08-signin.png` | Sign in | **Previously never visually verified.** Serif hero, honest privacy line ("Nothing leaves your phone until you choose the pieces to add"), Apple-first buttons, footer references "You" (was "Profile") |
 
-## Known follow-ups (observed on device, agent-fixable, not yet done)
-- Rainbow swatch grid in "Your colours" breaks the muted palette — needs a curated desaturated set.
-- "Save my colours" is a 3rd pink shade — reconcile with the crimson primary.
-- Today reads sparse in-harness (unsigned cutouts show a hanger glyph; real cutouts would fill the hero).
+| `09-swatches-muted.png` | You (Your colours) | Swatch grid **softened** from vivid crayon (0.65 sat) to muted editorial tones (0.42) — fixes the rainbow tonal break; hues preserved so the palette scorer's round-trip still holds |
+| `10-dedupe-banner.png` | Closet | **F4 dedupe-by-pick**: "REVIEW 1 POSSIBLE DUPLICATE" prompt (on-device findDuplicatePairs found a near-dup) — captured with a temporarily-seeded Hamming-3 fixture pair, reverted after |
+| `11-dedupe-review-sheet.png` | Dedupe review sheet | Both garments side by side, "Keep this one" per side (→ keep-one merge, wear history re-points), quiet "Keep both" (client-side, non-destructive) |
+
+## Resolved since first draft
+- Rainbow swatch grid → **fixed** (screenshot 09).
+- "Save my colours 3rd pink" → **false positive** (it's the crimson at disabled opacity 0.5, not a new token).
+
+## Known follow-ups (not launch blockers)
+- Today reads sparse in-harness (unsigned cutouts show a hanger glyph; real cutouts fill the hero).
+- Item-detail view / duplicate-outfit / color-facet: competitor-parity SUGGESTIONS, not MVP scope (F4 is satisfied by grid+filters+dedupe); roadmap, not gaps.
 
 The grey gear (top-right) is the Expo dev-client Tools button, not part of the app.
 
