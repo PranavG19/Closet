@@ -73,7 +73,9 @@ export function HarnessApp(): React.JSX.Element {
     () =>
       new ApiClient({
         getToken: makeTokenSource(port),
-        fetchFn: makeFakeBackend({ entitlementActive: true }),
+        // Defaults to an active membership so the harness lands on the full app; set
+        // EXPO_PUBLIC_HARNESS_FREE=1 to exercise the non-member paywall/upgrade path.
+        fetchFn: makeFakeBackend({ entitlementActive: process.env.EXPO_PUBLIC_HARNESS_FREE !== '1' }),
         config: HARNESS_CONFIG,
       }),
     [port],
