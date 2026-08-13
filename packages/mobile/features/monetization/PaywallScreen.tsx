@@ -29,9 +29,9 @@ import { useOffer, usePurchase, useRestore } from './hooks.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 
 const VALUE_POINTS: readonly string[] = [
-  'Unlimited garment parsing',
-  'Daily outfit suggestions',
-  'Your full palette match',
+  'Every piece you own, digitised',
+  'A look chosen for you each morning',
+  'Styled around your colours',
 ];
 
 export function PaywallScreen(): React.JSX.Element {
@@ -109,7 +109,7 @@ export function PaywallScreen(): React.JSX.Element {
     return (
       <Screen scroll padding="lg">
         <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.sm }}>
-          Go premium
+          Your whole closet, waiting
         </Text>
         <Card variant="surface" padding="lg">
           {valueCard}
@@ -183,7 +183,7 @@ export function PaywallScreen(): React.JSX.Element {
         )}
 
         <Button
-          label={purchase.isPending ? 'Contacting the store…' : 'Subscribe'}
+          label={purchase.isPending ? 'Opening the store…' : 'Become a member'}
           accent="pink"
           disabled={purchase.isPending}
           onPress={() => {

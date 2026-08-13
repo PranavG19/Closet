@@ -49,7 +49,9 @@ const CATEGORY_LABEL: Readonly<Record<WardrobeCategory, string>> = {
 const AVAILABILITY_LABEL: Readonly<Record<Availability, string>> = {
   clean: 'Ready to wear',
   dirty: 'In the wash',
-  unavailable: 'Unavailable',
+  // "Set aside", not the clinical "Unavailable" — the one cold word among warm state labels,
+  // and it matches statusChange.ts's action label ("Set aside") so the state and the verb agree.
+  unavailable: 'Set aside',
 };
 
 export function categoryLabel(category: WardrobeCategory): string {

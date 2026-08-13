@@ -7,14 +7,16 @@
 // outfit row is a stable react-query ref) so parent re-renders during scroll don't
 // re-render every visible card.
 import React from 'react';
-import { View, Image, TextInput, FlatList, type ImageStyle, type ListRenderItem, type TextStyle, type ViewStyle } from 'react-native';
+import { View, Image, Pressable, FlatList, type ImageStyle, type ListRenderItem, type ViewStyle } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import type { OutfitSummary } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useOutfits, useDeleteOutfit, useRenameOutfit } from '../../src/api/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
-import { Screen, Text, Button, Divider, SectionHeader, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
+import { Screen, Text, Divider, SectionHeader, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 import { OutfitBuilderScreen } from './OutfitBuilderScreen.js';
+import { OutfitDetailScreen } from './OutfitDetailScreen.js';
 
 // "3 pieces" / "1 piece" / "No pieces yet" — singular/plural correct, and an honest empty
 // label rather than "0 pieces" (an outfit with nothing in it reads as unfinished, not a count).
@@ -57,118 +59,60 @@ const OutfitPreviewStrip = React.memo(function OutfitPreviewStrip({
   );
 });
 
+// A clean, tappable list row — the LOOK, not its chrome. Previously each card carried a
+// permanent two-link action bar (Rename/Remove) that mutated in place into Save/Cancel or
+// Delete/Keep, plus an inline TextInput that shifted every row below it — the "two bars"
+// clutter. Management now lives on the look's own detail page (OutfitDetailScreen); the row is
+// preview + name + count + a chevron, and the whole row taps through. This matches the module's
+// own stated intent: "the card shows the LOOK, not just its name".
 const OutfitCard = React.memo(function OutfitCard({
   outfit,
   uris,
-  onDelete,
-  onRename,
-  deleting,
-  renaming,
+  onOpen,
   style,
 }: {
   readonly outfit: OutfitSummary;
   // Signed-URL map keyed by cutout PATH (the parent signs every outfit's preview paths in one
   // pass). A path missing from the map draws an empty well.
   readonly uris: Readonly<Record<string, string>>;
-  // Called with this outfit's id once the two-tap confirm is satisfied. Stable (useCallback).
-  readonly onDelete: (id: string) => void;
-  // Called with { id, name } to rename (name null clears it). Stable (useCallback).
-  readonly onRename: (id: string, name: string) => void;
-  // True while THIS outfit's delete is in flight — disables the confirm so a double-tap can't
-  // fire two deletes.
-  readonly deleting: boolean;
-  // True while THIS outfit's rename is in flight.
-  readonly renaming: boolean;
+  // Open this look's detail page. Stable (useCallback in the screen).
+  readonly onOpen: (outfit: OutfitSummary) => void;
   readonly style: ViewStyle;
 }): React.JSX.Element {
   const tokens = useTokens();
-  // Two-tap confirm, local to the card: "Remove" arms → "Delete this look?" confirms. A saved
-  // outfit is rebuildable (unlike an account), so this is a light guard against a mis-tap, not
-  // the heavyweight type-to-confirm the account purge needs.
-  const [armed, setArmed] = React.useState(false);
-  // Inline rename: "Rename" reveals a TextInput seeded with the current name; Save commits.
-  const [editing, setEditing] = React.useState(false);
-  const [draft, setDraft] = React.useState('');
-
-  const nameInput: TextStyle = {
-    minHeight: 44,
-    borderWidth: 1,
-    borderColor: tokens.color.border.hairline,
-    borderRadius: tokens.radius.sm,
-    backgroundColor: tokens.color.bg.surface,
-    paddingHorizontal: tokens.spacing.md,
-    color: tokens.color.text.primary,
-    fontSize: tokens.typography.body.fontSize,
-    marginTop: tokens.spacing.sm,
-  };
-
-  const beginRename = (): void => {
-    setDraft(outfit.name ?? '');
-    setEditing(true);
-  };
-  const commitRename = (): void => {
-    onRename(outfit.id, draft);
-    setEditing(false);
-  };
-
   // A bare row on the canvas (law 2: not a card), divided by a hairline. An untitled look wears
   // its placeholder name in the serif `note` italic (synthesis §3.5); a named one is `title`.
   return (
     <View style={style}>
       <Divider />
-      <View style={{ paddingTop: tokens.spacing.lg }}>
-        {outfit.name !== null ? (
-          <Text variant="title" tone="primary">
-            {outfit.name}
-          </Text>
-        ) : (
-          <Text variant="note" tone="secondary">
-            Untitled look
-          </Text>
-        )}
-        <Text variant="overline" style={{ marginTop: tokens.spacing.xs }}>
-          {piecesLabel(outfit.item_count)}
-        </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${outfit.name ?? 'Untitled look'}, ${piecesLabel(outfit.item_count)}. Open to rename or delete.`}
+        onPress={() => onOpen(outfit)}
+        style={{ paddingTop: tokens.spacing.lg }}
+      >
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <View style={{ flex: 1 }}>
+            {outfit.name !== null ? (
+              <Text variant="title" tone="primary">
+                {outfit.name}
+              </Text>
+            ) : (
+              <Text variant="note" tone="secondary">
+                Untitled look
+              </Text>
+            )}
+            <Text variant="overline" style={{ marginTop: tokens.spacing.xs }}>
+              {piecesLabel(outfit.item_count)}
+            </Text>
+          </View>
+          {/* A quiet chevron signals the row taps through — the only chrome on the card. */}
+          <Ionicons name="chevron-forward" size={20} color={tokens.color.text.tertiary} />
+        </View>
         {outfit.preview_paths.length > 0 && (
           <OutfitPreviewStrip paths={outfit.preview_paths} uris={uris} />
         )}
-        {editing ? (
-          <>
-            <TextInput
-              value={draft}
-              onChangeText={setDraft}
-              autoFocus
-              maxLength={80}
-              placeholder="Name this look"
-              placeholderTextColor={tokens.color.text.tertiary}
-              accessibilityLabel="Outfit name"
-              editable={!renaming}
-              style={nameInput}
-            />
-            <View style={{ flexDirection: 'row', marginTop: tokens.spacing.md, gap: tokens.spacing.xl }}>
-              <Button label={renaming ? 'Saving…' : 'Save'} intent="link" disabled={renaming} onPress={commitRename} />
-              <Button label="Cancel" intent="ghost" disabled={renaming} onPress={() => setEditing(false)} />
-            </View>
-          </>
-        ) : !armed ? (
-          <View style={{ flexDirection: 'row', marginTop: tokens.spacing.md, gap: tokens.spacing.xl }}>
-            <Button label="Rename" intent="link" onPress={beginRename} />
-            <Button label="Remove" intent="ghost" onPress={() => setArmed(true)} />
-          </View>
-        ) : (
-          <View style={{ flexDirection: 'row', marginTop: tokens.spacing.md, gap: tokens.spacing.xl }}>
-            {/* the destructive action wears the red rule (synthesis §3.1 exception) — quiet, not a fill */}
-            <Button
-              label={deleting ? 'Removing…' : 'Delete this look'}
-              intent="link"
-              accent="red"
-              disabled={deleting}
-              onPress={() => onDelete(outfit.id)}
-            />
-            <Button label="Keep" intent="ghost" disabled={deleting} onPress={() => setArmed(false)} />
-          </View>
-        )}
-      </View>
+      </Pressable>
     </View>
   );
 });
@@ -180,6 +124,9 @@ export function OutfitsScreen(): React.JSX.Element {
   // is a flat tab bar with no stack), declared before any early return so the hook order is
   // stable across the loading/empty/error branches (Rules of Hooks).
   const [building, setBuilding] = React.useState(false);
+  // The id of the outfit whose detail page is open (null = the list). Management (rename/delete)
+  // lives there, off the list rows. Declared before any early return (Rules of Hooks).
+  const [openId, setOpenId] = React.useState<string | null>(null);
   // Mount → first-ready metric. Unconditional, before any early return, so the hook order is
   // stable across the building/loading/empty/error branches (Rules of Hooks).
   useScreenLoad('outfits', query.isSuccess);
@@ -201,7 +148,12 @@ export function OutfitsScreen(): React.JSX.Element {
   // fresh identity each render.
   const deleteOutfit = useDeleteOutfit();
   const deletingId = deleteOutfit.isPending ? deleteOutfit.variables : undefined;
-  const onDelete = React.useCallback((id: string) => deleteOutfit.mutate(id), [deleteOutfit]);
+  // Delete from the detail page; on a confirmed delete, close the page back to the list (the
+  // just-deleted look no longer exists to show).
+  const onDelete = React.useCallback(
+    (id: string) => deleteOutfit.mutate(id, { onSuccess: () => setOpenId(null) }),
+    [deleteOutfit],
+  );
 
   const renameOutfit = useRenameOutfit();
   const renamingId = renameOutfit.isPending ? renameOutfit.variables.id : undefined;
@@ -209,6 +161,7 @@ export function OutfitsScreen(): React.JSX.Element {
     (id: string, name: string) => renameOutfit.mutate({ id, name }),
     [renameOutfit],
   );
+  const onOpen = React.useCallback((outfit: OutfitSummary) => setOpenId(outfit.id), []);
 
   if (building) {
     return <OutfitBuilderScreen onDone={() => setBuilding(false)} onCancel={() => setBuilding(false)} />;
@@ -220,11 +173,27 @@ export function OutfitsScreen(): React.JSX.Element {
   }
 
   const outfits = query.data.outfits;
+  // Detail page for the open look. Resolved from the live list so a rename reflects immediately;
+  // if the id vanished (e.g. deleted in another session) we fall back to the list.
+  const openOutfit = openId !== null ? outfits.find((o) => o.id === openId) : undefined;
+  if (openOutfit !== undefined) {
+    return (
+      <OutfitDetailScreen
+        outfit={openOutfit}
+        uris={uris}
+        onBack={() => setOpenId(null)}
+        onRename={onRename}
+        onDelete={onDelete}
+        renaming={renamingId === openOutfit.id}
+        deleting={deletingId === openOutfit.id}
+      />
+    );
+  }
   if (outfits.length === 0) {
     return (
       <EmptyState
         eyebrow="Your looks"
-        title="No outfits yet"
+        title="Your looks live here"
         body="Build a look from your closet and save it here."
         actionLabel="Build an outfit"
         onAction={() => setBuilding(true)}
@@ -234,15 +203,7 @@ export function OutfitsScreen(): React.JSX.Element {
 
   const rowSpacing: ViewStyle = { marginBottom: tokens.spacing.lg };
   const renderItem: ListRenderItem<OutfitSummary> = ({ item }) => (
-    <OutfitCard
-      outfit={item}
-      uris={uris}
-      onDelete={onDelete}
-      onRename={onRename}
-      deleting={deletingId === item.id}
-      renaming={renamingId === item.id}
-      style={rowSpacing}
-    />
+    <OutfitCard outfit={item} uris={uris} onOpen={onOpen} style={rowSpacing} />
   );
   return (
     <Screen padding="lg">
@@ -258,9 +219,9 @@ export function OutfitsScreen(): React.JSX.Element {
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         style={{ marginTop: tokens.spacing.lg }}
-        // Re-render visible cards when signed URLs land OR a delete starts/ends (both change
-        // identity/value); without this the memo'd cards would keep stale wells / button state.
-        extraData={`${Object.keys(uris).length}|${deletingId ?? ''}|${renamingId ?? ''}`}
+        // Re-render visible cards when signed URLs land (the map identity changes); the cards no
+        // longer carry per-card delete/rename state (that moved to the detail page).
+        extraData={Object.keys(uris).length}
         showsVerticalScrollIndicator={false}
       />
     </Screen>

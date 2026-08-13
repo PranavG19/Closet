@@ -25,11 +25,13 @@ import { useWardrobe, useToggleAvailability } from '../../src/api/index.js';
 import {
   Screen,
   Text,
+  Button,
   SectionHeader,
   LoadingState,
   EmptyState,
   ErrorState,
 } from '../../src/ui/index.js';
+import { useNav } from '../../src/navigation/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { FilterBar } from './FilterBar.js';
@@ -128,6 +130,10 @@ const ItemTile = React.memo(function ItemTile({
 
 export function WardrobeScreen(): React.JSX.Element {
   const tokens = useTokens();
+  // Programmatic navigation seam — the empty-closet CTA sends her to the Add flow (the CTA was
+  // a no-op before the nav seam existed), and the "in the wash" filter can hand off to the
+  // batch-laundry surface (Laundry is no longer a tab; it's reached from here).
+  const nav = useNav();
   // F4: the active filter, declared FIRST so the hook order is stable across every branch
   // below (Rules of Hooks). Its params drive the list query — the SERVER filters under RLS
   // (wardrobe/list.ts), so changing a chip refetches a genuinely filtered page rather than
@@ -174,10 +180,10 @@ export function WardrobeScreen(): React.JSX.Element {
     return (
       <EmptyState
         eyebrow="Your closet"
-        title="Your closet is empty"
+        title="Your closet starts here"
         body="Add your first pieces and they'll appear here as clean cutouts."
         actionLabel="Add clothing"
-        onAction={() => {}}
+        onAction={() => nav.navigate('add')}
       />
     );
   }
@@ -200,6 +206,15 @@ export function WardrobeScreen(): React.JSX.Element {
         <Text variant="overline">{`${pieceCount} ${pieceCount === 1 ? 'piece' : 'pieces'}`}</Text>
       </View>
       <FilterBar filter={filter} onChange={setFilter} />
+      {/* Laundry is no longer a tab — it's the "in the wash" facet of the closet. When that
+          facet is active and there are dirty pieces, offer the batch mark-clean surface (doing
+          laundry is a LOAD, not one garment). The quiet link is the entry; the filtered grid
+          above already shows exactly what's in the wash. */}
+      {filter.availability === 'dirty' && items.length > 0 && (
+        <View style={{ marginBottom: tokens.spacing.md }}>
+          <Button label="Mark a load clean" intent="link" onPress={() => nav.navigate('laundry')} />
+        </View>
+      )}
       {items.length === 0 ? (
         // Filtered to nothing — DISTINCT from an empty closet. She owns clothes; this selection
         // just has none, so the advice is "loosen the filter", not "add pieces". The bar stays

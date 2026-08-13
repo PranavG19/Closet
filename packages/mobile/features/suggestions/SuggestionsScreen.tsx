@@ -99,11 +99,11 @@ export function SuggestionsScreen(): React.JSX.Element {
     const nothingOwned = rows.length === 0;
     return (
       <EmptyState
-        title={nothingOwned ? 'Nothing to suggest yet' : 'Everything is in the wash'}
+        title={nothingOwned ? "Let's build your first look" : 'Everything is in the wash'}
         body={
           nothingOwned
             ? "Add a few pieces and we'll style today's look for you."
-            : 'Mark something clean in Laundry and today’s look will appear here.'
+            : 'Mark something clean in your closet and today’s look will appear here.'
         }
       />
     );

@@ -228,7 +228,7 @@ export function outcomeMessage(outcome: AddGarmentOutcome): string {
     case 'upload_failed':
       return "We couldn't send that photo. Check your connection and try again.";
     case 'needs_membership':
-      return 'Adding your full closet is part of membership.';
+      return 'Your whole closet unlocks with membership.';
     case 'teaser_exhausted':
       return "You've used your free previews. Join to add the rest of your closet.";
     case 'already_parsing':

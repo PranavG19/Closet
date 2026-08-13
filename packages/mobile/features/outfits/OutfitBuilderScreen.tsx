@@ -231,7 +231,7 @@ export function OutfitBuilderScreen({ onDone, onCancel }: OutfitBuilderScreenPro
       )}
 
       <Button
-        label={create.isPending ? 'Saving…' : 'Save look'}
+        label={create.isPending ? 'Saving…' : 'Save this look'}
         disabled={!complete || create.isPending}
         onPress={onSave}
         style={{ marginTop: tokens.spacing.lg }}

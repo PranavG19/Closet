@@ -29,6 +29,7 @@ import { useTokens } from '../../src/tokens/index.js';
 import { Screen, Card, Text, Button, Divider, SectionHeader, LoadingState } from '../../src/ui/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { useSession } from '../../src/session/index.js';
+import { useNav } from '../../src/navigation/index.js';
 import { useDeleteAccount, useExportMyData, useEntitlement } from '../../src/api/index.js';
 import { loadLegalLinks } from '../../src/config/legalLinks.js';
 import {
@@ -84,6 +85,9 @@ export interface AccountScreenProps {
 export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.JSX.Element {
   const tokens = useTokens();
   const { user, signOut } = useSession();
+  // The paywall is no longer a tab (a permanent paywall tab is a dark pattern); it's reached
+  // from the Membership section below when she isn't entitled.
+  const nav = useNav();
   const exportMutation = useExportMyData();
   const deleteMutation = useDeleteAccount();
   // Current membership status, shown as a plain plan line + a manage-subscription link. NOT
@@ -172,11 +176,22 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
           {entitlement.isSuccess
             ? entitlement.data.entitlement_active
               ? 'Premium — every feature is unlocked.'
-              : 'Free plan.'
+              : "You're on the free plan."
             : entitlement.isError
               ? "We couldn't check your membership just now."
               : 'Checking your membership…'}
         </Text>
+        {/* When she isn't a member, the ONE earned filled action on this section is the upgrade
+            — this is the paywall's entry point now that Plan is not a tab. Shown only once the
+            entitlement read has resolved as inactive, so it never flashes for a member or during
+            the check. Opens the paywall surface via the nav seam. */}
+        {entitlement.isSuccess && !entitlement.data.entitlement_active && (
+          <Button
+            label="Upgrade to Premium"
+            accent="pink"
+            onPress={() => nav.navigate('profile')}
+          />
+        )}
         {/* Apple manages auto-renewable subscriptions from the App Store, not in-app — this
             opens the user's own subscriptions there (also where she cancels; deleting the
             account below does NOT cancel a store subscription). */}

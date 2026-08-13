@@ -1,7 +1,19 @@
-// The main-surface tab registry. Structural: the set of top-level surfaces and
-// their order. A real nav library (expo-router / @react-navigation) slots in later
-// and consumes THIS list; screens do not change. Kept as data so the shell renders
-// from it without a switch per tab.
+// The surface registry. `TabKey` is the full set of navigable surfaces — the App.tsx `screens`
+// map and NavContext's navigate() both key by it, so EVERY surface keeps a key even when it is
+// not a labelled tab. `TABS` (below) is only the LABELLED bottom-bar destinations.
+//
+// The bar was seven tabs, which overflowed iOS HIG's five-max (the "Account" label clipped off
+// the right edge on a real device) and read cluttered for a calm, premium app. It is now FOUR
+// destinations + a center Add action:
+//   - `add`     → a center create FAB, not a labelled tab (it's the app's core verb, an action,
+//                 not a browse destination). Reached via the FAB and the empty-closet CTA.
+//   - `laundry` → folded into Closet's "In the wash" availability filter (LaundryScreen is
+//                 literally useWardrobe({availability:'dirty'})); reached contextually from
+//                 the Closet filter, so no capability is lost and a whole tab is removed.
+//   - `profile` → the paywall. A permanent paywall tab is the dark-pattern the product rules
+//                 out; reached instead from the "Upgrade" row in You when not entitled, and
+//                 contextual upsell. Account deletion (Apple 5.1.1(v)) stays reachable in You,
+//                 which remains a real tab.
 export type TabKey =
   | 'wardrobe'
   | 'add'
@@ -17,11 +29,8 @@ export type TabKey =
 // assistive tech / colour-blind users — meaning is never by hue alone (docs/03).
 export type IoniconName =
   | 'shirt-outline'
-  | 'add-circle-outline'
   | 'sparkles-outline'
   | 'layers-outline'
-  | 'water-outline'
-  | 'star-outline'
   | 'person-outline';
 
 export interface TabDef {
@@ -30,20 +39,17 @@ export interface TabDef {
   readonly icon: IoniconName;
 }
 
+// The four LABELLED destinations, in bar order. The center Add FAB is rendered by NavShell
+// between the second and third of these, so it visually straddles the bar centre without
+// consuming one of the four label slots.
 export const TABS: readonly TabDef[] = [
   { key: 'wardrobe', label: 'Closet', icon: 'shirt-outline' },
-  // Add-garment (F1). Sits SECOND, next to the closet it fills, because it is the flow every
-  // other surface depends on having run — an empty closet makes Today, Outfits and Laundry all
-  // empty too. With icons the label can now be short + always legible at 1/7 width.
-  { key: 'add', label: 'Add', icon: 'add-circle-outline' },
+  // Today (suggestions) — the daily-return surface, the reason she opens the app. Sits to the
+  // LEFT of the center Add FAB.
   { key: 'suggestions', label: 'Today', icon: 'sparkles-outline' },
   { key: 'outfits', label: 'Outfits', icon: 'layers-outline' },
-  { key: 'laundry', label: 'Laundry', icon: 'water-outline' },
-  // The paywall/membership surface. KEY stays `profile` (the contract App.tsx keys its screen
-  // map by); label "Plan" for width.
-  { key: 'profile', label: 'Plan', icon: 'star-outline' },
-  // The identity + data-rights surface. It is a TOP-LEVEL tab, not buried in a
-  // submenu, because Apple Review Guideline 5.1.1(v) requires account deletion to be
-  // reachable in-app and a reviewer has to be able to FIND it without guidance.
-  { key: 'account', label: 'Account', icon: 'person-outline' },
+  // Identity + data-rights + membership. Labelled "You" (warmer, and the screen's own masthead
+  // already reads "You"). Stays a top-level tab because Apple Review Guideline 5.1.1(v) requires
+  // account deletion to be reachable in-app and a reviewer must be able to FIND it unguided.
+  { key: 'account', label: 'You', icon: 'person-outline' },
 ];

@@ -51,9 +51,13 @@ export function SignInScreen(): React.JSX.Element {
         <Text variant="display" tone="primary">
           Your closet, finally organised
         </Text>
+        {/* The privacy line states ONLY the structurally-guaranteed claim (nothing uploads
+            without an approval tap), never on-device "screening" — that claim is BLOCKED until
+            a classifier ships (content/store/app-store-listing.md:233; mirrors
+            onboarding/intake.ts APPROVAL_ONLY_PROMISE). Over-claiming here is both a store-review
+            risk and inconsistent with the copy the Add flow is held to. */}
         <Text variant="body" tone="secondary">
-          Sign in to start. Your photos are checked on this device before anything is
-          ever uploaded.
+          Sign in to start. Nothing leaves your phone until you choose the pieces to add.
         </Text>
       </View>
 
@@ -75,7 +79,7 @@ export function SignInScreen(): React.JSX.Element {
           disabled={busy}
         />
         <Text variant="caption" tone="tertiary">
-          You can export or permanently delete everything from Profile at any time.
+          You can export or permanently delete everything from You at any time.
         </Text>
       </View>
     </Screen>

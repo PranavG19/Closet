@@ -152,7 +152,7 @@ export function AddGarmentScreen(): React.JSX.Element {
     return (
       <ErrorState
         title="Photo import isn't ready yet"
-        body="This build can't open your photo library. Everything else in your closet still works."
+        body="We can't open your photo library right now. Everything else in your closet still works."
       />
     );
   }
@@ -186,7 +186,7 @@ export function AddGarmentScreen(): React.JSX.Element {
           Add to your closet
         </Text>
         <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.lg }}>
-          Add clothing
+          What are we adding?
         </Text>
         {/* THE PRIVACY MOMENT — stated before she opens her photo library, which is the point at
             which it matters. In the serif `note` italic so it reads as a considered promise, not
