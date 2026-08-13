@@ -163,13 +163,15 @@ export function NavShell({ screens, initialTab = 'wardrobe' }: NavShellProps): R
         <View style={bar} accessibilityRole="tablist">
           {leftTabs.map(renderTab)}
           <Pressable
+            // A button, NOT a tab: it's the create action, not a browse destination — so no
+            // `selected` state (that's tab semantics) and no tab role. VoiceOver announces it as
+            // "Add clothing, button", distinct from the four tabs around it.
             accessibilityRole="button"
             accessibilityLabel="Add clothing"
-            accessibilityState={{ selected: active === 'add' }}
             onPress={() => setActive('add')}
             style={fab}
           >
-            <Ionicons name="add" size={30} color={tokens.color.text.onAccent} />
+            <Ionicons name="add" size={30} color={tokens.color.text.onAccent} accessible={false} />
           </Pressable>
           {rightTabs.map(renderTab)}
         </View>
