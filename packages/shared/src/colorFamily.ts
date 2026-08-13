@@ -133,9 +133,19 @@ const NEUTRAL_SWATCH_HEX: Readonly<Record<'black' | 'white' | 'gray' | 'beige' |
   navy: '#1f2d5a',
 };
 
+// Saturation/lightness of the chromatic quiz swatches. Deliberately MUTED (0.42/0.58), not
+// the vivid 0.65/0.5 "crayon" they were — a fully-saturated primary/secondary grid reads like
+// an HTML colour picker and breaks the app's warm, desaturated editorial palette (design
+// review). These two axes do NOT affect the hue bucket (the swatch's centre hue is `step*30`),
+// so the round-trip guarantee still holds — `toColorFamily(familySwatchHex(f)) === f` — and
+// 0.42 stays well above NEUTRAL_SATURATION_CEILING (0.15), so each swatch is still classified
+// as its own chromatic family rather than collapsing to a neutral.
+const SWATCH_SATURATION = 0.42;
+const SWATCH_LIGHTNESS = 0.58;
+
 export function familySwatchHex(family: ColorFamily): string {
   const step = CHROMATIC_BY_HUE_STEP.indexOf(family);
-  if (step >= 0) return hslToHex(step * 30, 0.65, 0.5); // centre hue of the family's bucket
+  if (step >= 0) return hslToHex(step * 30, SWATCH_SATURATION, SWATCH_LIGHTNESS); // centre hue of the family's bucket
   return NEUTRAL_SWATCH_HEX[family as keyof typeof NEUTRAL_SWATCH_HEX];
 }
 
