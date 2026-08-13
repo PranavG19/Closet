@@ -16,7 +16,7 @@ import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useCreateOutfit } from '../../src/api/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
-import { Screen, Card, Text, Button, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
+import { Screen, Text, Button, Divider, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 import {
   EMPTY_DRAFT,
   OUTFIT_SLOTS,
@@ -188,9 +188,22 @@ export function OutfitBuilderScreen({ onDone, onCancel }: OutfitBuilderScreenPro
         if (candidates.length === 0) return null;
         const placedId = draft.filled[slot];
         const placed = placedId !== undefined ? byId.get(placedId) : undefined;
+        // A flat on-canvas slot, NOT an elevated white Card — a stack of raised white cards on the
+        // cream canvas reads as generic/Material and breaks the editorial language every list
+        // surface (Closet, Laundry, Outfits) already uses: a hairline divider + the section title,
+        // candidates on the warm sunken wells. The figure/ground is carried by the divider rhythm,
+        // not a shadowed tile.
         return (
-          <Card key={slot} variant="surface" padding="md" style={{ marginBottom: tokens.spacing.md }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <View key={slot} style={{ marginBottom: tokens.spacing.lg }}>
+            <Divider />
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginTop: tokens.spacing.md,
+              }}
+            >
               <Text variant="title" tone="primary">
                 {SLOT_LABEL[slot]}
               </Text>
@@ -215,7 +228,7 @@ export function OutfitBuilderScreen({ onDone, onCancel }: OutfitBuilderScreenPro
                 />
               ))}
             </ScrollView>
-          </Card>
+          </View>
         );
       })}
 
