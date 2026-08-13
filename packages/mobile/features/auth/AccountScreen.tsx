@@ -30,6 +30,7 @@ import { Screen, Card, Text, Button, Divider, SectionHeader, LoadingState } from
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { useSession } from '../../src/session/index.js';
 import { useNav } from '../../src/navigation/index.js';
+import { useBillingPort } from '../../src/billing/index.js';
 import { useDeleteAccount, useExportMyData, useEntitlement } from '../../src/api/index.js';
 import { loadLegalLinks } from '../../src/config/legalLinks.js';
 import { appVersion } from '../../src/config/appInfo.js';
@@ -95,6 +96,12 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
   // gated on: the section renders "checking / couldn't check" rather than blocking the whole
   // account surface on a billing read. Declared with the other hooks (Rules of Hooks).
   const entitlement = useEntitlement();
+  // Restore purchases from the Account screen — Apple wants restore reachable without forcing a
+  // trip through the paywall, and a returning member (deleted + reinstalled) lands HERE, not the
+  // paywall. Calls the billing port directly (the useRestore hook lives in features/monetization,
+  // which features/auth may not import; the port is a src/ seam, which it may). Entitlement is
+  // still server-truth — a restore refetches it rather than flipping the UI locally.
+  const billing = useBillingPort();
   // The App-Store-required legal destinations. privacy/terms are null until a real https URL
   // is configured (EXPO_PUBLIC_*), in which case the row is hidden rather than linking to a
   // dead placeholder. manage-subscriptions is Apple's fixed system deep link, always present.
@@ -108,6 +115,26 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
   const [deleteArmed, setDeleteArmed] = useState(false);
   const [typed, setTyped] = useState('');
   const token = confirmationToken(typed);
+
+  // Restore-purchases local state. A one-line notice under the button (never an alert), same
+  // honest phrasing as the paywall's restore.
+  const [restoring, setRestoring] = useState(false);
+  const [restoreNotice, setRestoreNotice] = useState<string | null>(null);
+  const onRestore = async (): Promise<void> => {
+    setRestoreNotice(null);
+    setRestoring(true);
+    try {
+      const { restored } = await billing.restore();
+      // Entitlement is server-truth (webhook-written); a restore that found something refetches
+      // it rather than flipping the UI here.
+      if (restored) void entitlement.refetch();
+      setRestoreNotice(restored ? 'Your membership is restored.' : "We didn't find a previous membership.");
+    } catch {
+      setRestoreNotice("We couldn't reach the store.");
+    } finally {
+      setRestoring(false);
+    }
+  };
 
   const onExport = (): void => {
     exportMutation.mutate(undefined, {
@@ -201,6 +228,20 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
           intent="link"
           onPress={() => void Linking.openURL(legal.manageSubscriptionsUrl)}
         />
+        {/* Restore purchases — Apple requires this reachable for auto-renewable subs, and a
+            reinstalling member reaches Account before the paywall. A quiet link; the notice sits
+            under it (never an alert). */}
+        <Button
+          label={restoring ? 'Checking…' : 'Restore purchases'}
+          intent="link"
+          disabled={restoring}
+          onPress={() => void onRestore()}
+        />
+        {restoreNotice !== null && (
+          <Text variant="caption" tone="secondary">
+            {restoreNotice}
+          </Text>
+        )}
       </View>
 
       {extraSection}
