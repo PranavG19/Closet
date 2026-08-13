@@ -286,18 +286,29 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
         ) : null}
       </View>
 
-      {/* Legal. App Store 3.1.2 requires a functional Privacy Policy AND Terms of Use link
-          reachable in-app for a subscription app. Each row appears ONLY when a real https URL
-          is configured (EXPO_PUBLIC_PRIVACY_POLICY_URL / _TERMS_OF_USE_URL) — a hidden row is
-          strictly better at review than one that opens a 404. When BOTH are unset the whole
-          section collapses; that unset state is the one remaining human-required launch step. */}
-      {(legal.privacyPolicyUrl !== null || legal.termsOfUseUrl !== null) && (
+      {/* Help & legal. App Store 3.1.2 requires a functional Privacy Policy AND Terms of Use link
+          reachable in-app for a subscription app; the Contact row is not an Apple requirement but
+          the published privacy policy promises users a contact for their data-rights requests, so
+          it belongs in the binary. Each row appears ONLY when its destination is configured
+          (EXPO_PUBLIC_PRIVACY_POLICY_URL / _TERMS_OF_USE_URL / _SUPPORT_EMAIL|_SUPPORT_URL) — a
+          hidden row is strictly better at review than one that opens a 404. When ALL are unset the
+          whole section collapses; those unset values are human-required launch config. */}
+      {(legal.privacyPolicyUrl !== null ||
+        legal.termsOfUseUrl !== null ||
+        legal.supportUrl !== null) && (
         <>
           <Divider />
           <View style={[section, { marginTop: tokens.spacing.xl }]}>
             <Text variant="title" tone="primary">
-              Legal
+              Help &amp; legal
             </Text>
+            {legal.supportUrl !== null && (
+              <Button
+                label="Contact support"
+                intent="link"
+                onPress={() => void Linking.openURL(legal.supportUrl!)}
+              />
+            )}
             {legal.privacyPolicyUrl !== null && (
               <Button
                 label="Privacy Policy"

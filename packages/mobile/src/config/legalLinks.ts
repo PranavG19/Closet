@@ -19,6 +19,14 @@ export interface LegalLinks {
   readonly privacyPolicyUrl: string | null;
   // Public Terms of Use / EULA URL. null when unset (same reasoning).
   readonly termsOfUseUrl: string | null;
+  // A contact destination for support. null when unset (same reasoning as the legal rows).
+  // NOT an App Store requirement (Apple's Support URL lives in the App Store Connect listing),
+  // but the PUBLISHED privacy policy routes users to a contact for every data-rights request
+  // (rectification, erasure fallback, withdraw consent — privacy-policy.md §6/§10/§11) and the
+  // subscription terms point billing questions there too, so the promise exists in the binary's
+  // own legal text: shipping with no in-app contact path breaks a commitment the app makes.
+  // Resolved from an email (→ mailto:) or a hosted support URL, whichever is configured.
+  readonly supportUrl: string | null;
   // Apple's canonical manage-subscriptions destination. Opens the user's own subscriptions
   // in the App Store; a fixed system URL, always present.
   readonly manageSubscriptionsUrl: string;
@@ -38,10 +46,28 @@ function httpsUrlOrNull(value: string | undefined): string | null {
   return trimmed;
 }
 
+// The support destination accepts EITHER a plain email (the privacy policy promises an email
+// contact specifically → minted into a `mailto:` so the row opens the mail composer) OR a hosted
+// https support page. Anything that is neither a bare email nor an https URL reads as unset (→
+// null) so the row self-hides exactly like the legal rows, never shipping a dead contact. A
+// minimal `local@domain.tld` shape check keeps a placeholder like "TBC" or "REPLACE_ME" from
+// rendering as a broken mailto.
+function supportDestinationOrNull(email: string | undefined, url: string | undefined): string | null {
+  const trimmedEmail = email?.trim();
+  if (trimmedEmail !== undefined && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(trimmedEmail)) {
+    return `mailto:${trimmedEmail}`;
+  }
+  return httpsUrlOrNull(url);
+}
+
 export function loadLegalLinks(): LegalLinks {
   return {
     privacyPolicyUrl: httpsUrlOrNull(process.env.EXPO_PUBLIC_PRIVACY_POLICY_URL),
     termsOfUseUrl: httpsUrlOrNull(process.env.EXPO_PUBLIC_TERMS_OF_USE_URL),
+    supportUrl: supportDestinationOrNull(
+      process.env.EXPO_PUBLIC_SUPPORT_EMAIL,
+      process.env.EXPO_PUBLIC_SUPPORT_URL,
+    ),
     manageSubscriptionsUrl: APPLE_MANAGE_SUBSCRIPTIONS_URL,
   };
 }
