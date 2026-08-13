@@ -62,6 +62,10 @@ export function SuggestionsScreen(): React.JSX.Element {
   // "Why this?" disclosure toggle. Declared with the other hooks, before any early return,
   // so the hook order is stable regardless of loading/fallback branches (Rules of Hooks).
   const [showWhy, setShowWhy] = React.useState(false);
+  // True while the sequential wear-log loop is in flight. Local (not logWear.isPending) because
+  // logWear's single-slot pending state only reflects the last call in a multi-row loop, so it
+  // would flicker and clear between items. Declared before any early return (Rules of Hooks).
+  const [loggingWear, setLoggingWear] = React.useState(false);
   // Mount → first-ready metric. Ready = wardrobe query resolved (the suggestion is computed
   // on-device from it; the palette read is advisory and not gated on). Unconditional, before
   // any early return, so the hook order is stable (Rules of Hooks).
@@ -174,6 +178,25 @@ export function SuggestionsScreen(): React.JSX.Element {
           .join(', ')}`
       : undefined;
 
+  // Log every piece of the look, sequentially, each with its own client_id (see the button
+  // comment for why sequential + distinct ids). mutateAsync so the loop awaits each write; a
+  // failure stops the run (the wardrobe/recent-wears invalidation already reflects whatever
+  // succeeded, and there is no batch to roll back).
+  const logWholeLook = async (): Promise<void> => {
+    setLoggingWear(true);
+    try {
+      for (const row of selectedRows) {
+        await logWear.mutateAsync({ item_id: row.id, client_id: mintClientId() });
+      }
+    } catch {
+      // The mutation's own error state is not surfaced as copy here (raw errors can carry PII,
+      // per the app-wide rule); the wear either logged or it didn't, and the daily loop is
+      // advisory. Swallow rather than alarm.
+    } finally {
+      setLoggingWear(false);
+    }
+  };
+
   // The suggested garment's real cutout, once its URL is signed. Falls back to the Hero's own
   // empty well (a sunken band) when absent — never a category word over the hero.
   const heroUri = cutouts.data?.[hero.id];
@@ -228,12 +251,20 @@ export function SuggestionsScreen(): React.JSX.Element {
           </View>
         )}
 
-        {/* The primary action — a quiet, confident underlined link, not a shouting pill (law 3). */}
+        {/* The primary action — a quiet, confident underlined link, not a shouting pill (law 3).
+            Logs the WHOLE look, not just the hero: the suggestion is a multi-item outfit
+            ("with black denim & boots"), so wearing it is a wear of every selected piece.
+            Submitted SEQUENTIALLY, matching LaundryScreen/AddGarmentScreen — there is no batch
+            wear endpoint, and firing N at once would race the shared wardrobe/recent-wears cache
+            invalidation each mutation triggers. Each row gets its OWN minted client_id: the
+            wear_log UNIQUE index is (user_id, client_id) (migration 0006), so a single shared id
+            would silently dedup all but the first row. Minted at tap time (idempotency: a
+            react-query retry reuses the same client_id and replays instead of double-logging). */}
         <Button
-          label={logWear.isPending ? 'Logging…' : 'Wore this today'}
+          label={loggingWear ? 'Logging…' : 'Wore this today'}
           intent="link"
-          disabled={logWear.isPending}
-          onPress={() => logWear.mutate({ item_id: hero.id, client_id: mintClientId() })}
+          disabled={loggingWear}
+          onPress={() => void logWholeLook()}
           style={{ marginTop: tokens.spacing.sm }}
         />
       </View>
