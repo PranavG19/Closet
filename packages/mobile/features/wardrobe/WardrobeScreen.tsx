@@ -20,8 +20,9 @@ import React from 'react';
 import { View, Image, Pressable, FlatList, type ViewStyle, type ImageStyle, type ListRenderItem } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Availability, WardrobeItemRow } from '@closet/shared';
+import { findDuplicatePairs } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
-import { useWardrobe, useToggleAvailability } from '../../src/api/index.js';
+import { useWardrobe, useToggleAvailability, useResolveDedupe } from '../../src/api/index.js';
 import {
   Screen,
   Text,
@@ -36,6 +37,7 @@ import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 import { FilterBar } from './FilterBar.js';
 import { StatusSheet } from './StatusSheet.js';
+import { DedupeReviewSheet } from './DedupeReviewSheet.js';
 import { deriveListParams, hasActiveFilter, availabilityLabel, type WardrobeFilter } from './wardrobeFilters.js';
 
 // Memoized: in a FlatList the parent re-renders on every windowing change, so without
@@ -165,12 +167,44 @@ export function WardrobeScreen(): React.JSX.Element {
   // their URLs arrive, rather than the whole grid waiting on image signing.
   const cutouts = useCutoutUris(query.data?.items ?? []);
 
+  // F4 dedupe-by-pick. Detection is ON-DEVICE + pure (findDuplicatePairs over the phashes the
+  // rows already carry — docs/06 §3: no server pass). Computed here, off the CURRENT items.
+  // `dismissed` holds pair-keys she chose "keep both" on this session, so a genuinely-different
+  // pair stays hidden without any server state (keep-both is a client-side no-op by design).
+  // `reviewing` gates the sheet; a merge removes the discard so the refetch drops the pair.
+  const items = query.data?.items ?? [];
+  const [dismissed, setDismissed] = React.useState<ReadonlySet<string>>(new Set());
+  const [reviewing, setReviewing] = React.useState(false);
+  const resolveDedupe = useResolveDedupe();
+  const pairKey = (a: string, b: string): string => `${a}|${b}`;
+  // All likely-dup pairs over the loaded rows, minus the ones she dismissed this session.
+  const pendingPairs = React.useMemo(
+    () =>
+      findDuplicatePairs(items.map((it) => ({ id: it.id, phash: it.phash }))).filter(
+        (p) => !dismissed.has(pairKey(p.a, p.b)),
+      ),
+    [items, dismissed],
+  );
+  const byId = React.useMemo(() => new Map(items.map((it) => [it.id, it])), [items]);
+  // The pair currently under review = the first pending one whose BOTH rows are still present
+  // (a merge or an availability refetch can drop one). Nulls out cleanly when the batch empties.
+  const activePair = reviewing ? pendingPairs.find((p) => byId.has(p.a) && byId.has(p.b)) : undefined;
+  const onKeepBoth = (): void => {
+    if (activePair === undefined) return;
+    setDismissed((current) => new Set(current).add(pairKey(activePair.a, activePair.b)));
+  };
+  const onKeepOne = (keepId: string, discardId: string): void => {
+    // Server keep-one merge: re-points wear history to the keeper, deletes the discard. On
+    // success the wardrobe query invalidates (see useResolveDedupe), the discard leaves `items`,
+    // and this pair falls out of pendingPairs — advancing to the next pair automatically.
+    resolveDedupe.mutate({ keep_id: keepId, discard_id: discardId });
+  };
+
   if (query.isPending) return <LoadingState message="Loading your closet…" />;
   if (query.isError) {
     return <ErrorState body="We couldn't load your closet." onRetry={() => void query.refetch()} />;
   }
 
-  const items = query.data.items;
   const filtered = hasActiveFilter(filter);
   // A TRULY empty closet (no filter, no items) is the only case that takes over the whole
   // screen — there is nothing to filter, so the filter bar would be noise. A filtered-empty
@@ -215,6 +249,17 @@ export function WardrobeScreen(): React.JSX.Element {
           <Button label="Mark a load clean" intent="link" onPress={() => nav.navigate('laundry')} />
         </View>
       )}
+      {/* F4 dedupe-by-pick entry. Shown only when the on-device compare found undismissed
+          likely-duplicate pairs — a quiet prompt to review them, never an interruption. */}
+      {pendingPairs.length > 0 && (
+        <View style={{ marginBottom: tokens.spacing.md }}>
+          <Button
+            label={`Review ${pendingPairs.length} possible duplicate${pendingPairs.length === 1 ? '' : 's'}`}
+            intent="link"
+            onPress={() => setReviewing(true)}
+          />
+        </View>
+      )}
       {items.length === 0 ? (
         // Filtered to nothing — DISTINCT from an empty closet. She owns clothes; this selection
         // just has none, so the advice is "loosen the filter", not "add pieces". The bar stays
@@ -243,6 +288,30 @@ export function WardrobeScreen(): React.JSX.Element {
         onClose={() => setStatusItem(null)}
         onSelect={onSelectStatus}
       />
+      {/* F4 dedupe review. `pair` is null (sheet hidden) unless we're reviewing AND a resolvable
+          pair remains — so when the batch empties (all merged/dismissed) the sheet closes itself.
+          Both cutout URIs come from the same signed map the grid uses. */}
+      {(() => {
+        if (!reviewing || activePair === undefined) return null;
+        const left = byId.get(activePair.a);
+        const right = byId.get(activePair.b);
+        if (left === undefined || right === undefined) return null;
+        const currentIndex = pendingPairs.findIndex((p) => p.a === activePair.a && p.b === activePair.b);
+        return (
+          <DedupeReviewSheet
+            pair={{
+              left: { item: left, cutoutUri: cutouts.data?.[left.id] },
+              right: { item: right, cutoutUri: cutouts.data?.[right.id] },
+            }}
+            index={currentIndex < 0 ? 0 : currentIndex}
+            total={pendingPairs.length}
+            busy={resolveDedupe.isPending}
+            onKeep={onKeepOne}
+            onKeepBoth={onKeepBoth}
+            onClose={() => setReviewing(false)}
+          />
+        );
+      })()}
     </Screen>
   );
 }
