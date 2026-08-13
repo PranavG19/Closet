@@ -32,6 +32,7 @@ import { useSession } from '../../src/session/index.js';
 import { useNav } from '../../src/navigation/index.js';
 import { useDeleteAccount, useExportMyData, useEntitlement } from '../../src/api/index.js';
 import { loadLegalLinks } from '../../src/config/legalLinks.js';
+import { appVersion } from '../../src/config/appInfo.js';
 import {
   DELETE_CONFIRMATION_WORD,
   confirmationToken,
@@ -336,6 +337,13 @@ export function AccountScreen({ extraSection }: AccountScreenProps = {}): React.
           </View>
         )}
       </View>
+
+      {/* A quiet footer with the app version — standard settings convention, and the string a
+          user quotes to support / a reviewer reads off the build under test. Sourced from
+          app.json (appInfo), so there's no second place to bump it. */}
+      <Text variant="caption" tone="tertiary" style={{ marginTop: tokens.spacing.md }}>
+        {`Version ${appVersion()}`}
+      </Text>
     </Screen>
   );
 }

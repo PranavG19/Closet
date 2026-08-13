@@ -9,7 +9,7 @@
       "bundleIdentifier": "com.example.closetapp",
       "supportsTablet": false,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "Your photos are checked on this device to find the clothes in them. Only the clothing photos you approve are ever uploaded — everything else never leaves your phone."
+        "NSPhotoLibraryUsageDescription": "You choose which photos to add to your closet. Only the ones you approve are ever uploaded — everything else never leaves your phone."
       }
     },
     "android": {
