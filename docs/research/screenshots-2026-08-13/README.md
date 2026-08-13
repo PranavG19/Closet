@@ -11,6 +11,7 @@ bricking the app on device (dyld symbol mismatch — see `c0f2f2c`).
 | `02-outfits-clean-rows.png` | Outfits | **Clean editorial list rows** — name + count + chevron, no per-card action bar (the "two bars" are gone) |
 | `03-outfit-detail.png` | Outfit detail | **New tap-through OutfitDetailScreen** — Rename + Remove (with "your garments stay in your closet" copy) live here, off the list |
 | `04-you-membership.png` | You (Account) | Tab **relabelled "You"**; Membership section. The "Upgrade to Premium" row is correctly ABSENT here because the harness user is entitled (gate: `isSuccess && !entitlement_active`) |
+| `05-add-back-privacy-copy.png` | Add (via FAB) | **FAB → Add surface + "‹ BACK" affordance** (the tabless surface isn't a dead end). Copy fixes live: title "What are we adding?"; privacy line is the honest APPROVAL_ONLY_PROMISE ("Nothing is uploaded until you approve it…"), NOT the blocked on-device "screening" claim |
 
 The grey gear (top-right) is the Expo dev-client Tools button, not part of the app.
 
