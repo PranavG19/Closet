@@ -60,15 +60,20 @@ export function StatusSheet({ item, onClose, onSelect, busy = false }: StatusShe
       animationType="slide"
       onRequestClose={onClose}
     >
-      {/* Tap-outside closes. The inner Pressable swallows the tap so a press on the sheet body
-          doesn't bubble up to the scrim and dismiss it. */}
-      <Pressable style={scrim} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close">
-        {/* accessible={false}: this Pressable exists only to swallow taps on the sheet body so
-            they don't bubble to the scrim and dismiss it. Without this, VoiceOver surfaces it as
-            an unlabeled interactive element; marking it inaccessible lets focus fall through to
-            the real controls (title, chip, status rows) it wraps. */}
-        <Pressable onPress={() => {}} accessible={false}>
+      {/* Tap-outside closes (a sighted affordance). The scrim MUST be accessible={false}: an
+          accessible ancestor collapses its whole subtree into one element on iOS, so a scrim with
+          role=button would make VoiceOver see only "Close" and the status rows inside would be
+          unreachable. Tap-outside is not a VoiceOver-operable gesture anyway — the OS back gesture
+          / onRequestClose is the screen-reader dismiss path — so dropping the a11y role loses
+          nothing for VoiceOver while unblocking the real controls. */}
+      <Pressable style={scrim} onPress={onClose} accessible={false}>
+        {/* Swallows body taps so a press on the sheet doesn't bubble to the scrim and dismiss it.
+            accessibilityViewIsModal confines VoiceOver to the sheet while it's open, so focus can't
+            wander to the grid/tab bar behind it. It sits on this wrapper (a plain Pressable/View
+            that forwards the prop) rather than Card, whose primitive API takes no a11y props. */}
+        <Pressable onPress={() => {}} accessible={false} accessibilityViewIsModal>
           <Card padding="lg" style={sheet}>
+
             {item !== null && (
               <>
                 <Text variant="title" tone="primary">

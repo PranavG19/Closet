@@ -112,7 +112,10 @@ const ItemTile = React.memo(function ItemTile({
       <Pressable
         onPress={() => onPressStatus(item)}
         accessibilityRole="button"
-        accessibilityLabel={`Change availability for ${item.color ?? item.category}`}
+        // The CURRENT state is folded into the label: the dot+overline that shows it live inside
+        // this accessible Pressable, which collapses them, so without this a VoiceOver user never
+        // hears whether the piece is ready / in the wash before deciding to change it.
+        accessibilityLabel={`Change availability for ${item.color ?? item.category}, currently ${availabilityLabel(item.availability)}`}
         // The visible dot+overline is ~16pt tall, but this is the primary F7 affordance. hitSlop
         // (not minHeight) expands the tap area to ≥44pt WITHOUT adding vertical space between
         // every grid tile's label and the row below — the layout is unchanged, the target isn't.
@@ -269,7 +272,12 @@ export function WardrobeScreen(): React.JSX.Element {
         // just has none, so the advice is "loosen the filter", not "add pieces". The bar stays
         // above so she can clear it.
         <View style={{ paddingVertical: tokens.spacing.xl }}>
-          <Text variant="body" tone="secondary" style={{ textAlign: 'center' }}>
+          <Text
+            variant="body"
+            tone="secondary"
+            accessibilityLiveRegion="polite"
+            style={{ textAlign: 'center' }}
+          >
             Nothing matches these filters. Tap a selected chip to clear it.
           </Text>
         </View>

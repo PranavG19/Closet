@@ -84,7 +84,10 @@ export function DedupeReviewSheet({
           {label}
         </Text>
         <Button
-          label="Keep this one"
+          // The garment name is IN the label so VoiceOver can tell the two sides apart — without
+          // it both buttons announce an identical "Keep this one, button" and she can't tell which
+          // piece she's keeping (the visible cutout + name disambiguate for a sighted user only).
+          label={`Keep ${label}`}
           intent="secondary"
           disabled={busy}
           onPress={() => onKeep(which.item.id, other.item.id)}

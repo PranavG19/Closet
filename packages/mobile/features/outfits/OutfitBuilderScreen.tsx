@@ -233,7 +233,12 @@ export function OutfitBuilderScreen({ onDone, onCancel }: OutfitBuilderScreenPro
       })}
 
       {reason !== null && (
-        <Text variant="caption" tone="tertiary" style={{ marginTop: tokens.spacing.sm, textAlign: 'center' }}>
+        <Text
+          variant="caption"
+          tone="tertiary"
+          accessibilityLiveRegion="polite"
+          style={{ marginTop: tokens.spacing.sm, textAlign: 'center' }}
+        >
           {reason}
         </Text>
       )}

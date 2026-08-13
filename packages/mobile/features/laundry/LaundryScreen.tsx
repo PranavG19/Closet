@@ -117,21 +117,28 @@ export function LaundryScreen(): React.JSX.Element {
   const isMutating = toggleAvailability.isPending;
   const renderItem: ListRenderItem<WardrobeItemRow> = ({ item }) => {
     const selected = isSelected(basket, item.id);
+    // The row is NOT one big accessible Pressable: an accessible ancestor collapses its subtree
+    // into a single element on iOS, which would swallow the nested "Mark clean" button and make
+    // the one-off path VoiceOver-inoperable. So the checkbox role sits on ONLY the select tap
+    // area (SelectMark + name), and "Mark clean" is a SIBLING — two independently focusable
+    // controls. A plain View carries the divider + layout.
     return (
-      <Pressable
-        onPress={() => setBasket(toggle(basket, item.id))}
-        accessibilityRole="checkbox"
-        accessibilityState={{ checked: selected }}
-        accessibilityLabel={`${item.color ?? item.category}, in the wash`}
-      >
+      <View>
         <Divider />
         <View style={row}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md }}>
+          <Pressable
+            onPress={() => setBasket(toggle(basket, item.id))}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: selected }}
+            accessibilityLabel={`${item.color ?? item.category}, in the wash`}
+            hitSlop={{ top: tokens.spacing.md, bottom: tokens.spacing.md }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: tokens.spacing.md, flex: 1 }}
+          >
             <SelectMark selected={selected} />
             <Text variant="body" tone="primary">
               {item.color ?? item.category}
             </Text>
-          </View>
+          </Pressable>
           {/* The one-off path: mark exactly one garment clean without building a selection.
               A quiet link, not a filled button — the filled action is the batch bar only. */}
           {!selected && (
@@ -143,7 +150,7 @@ export function LaundryScreen(): React.JSX.Element {
             />
           )}
         </View>
-      </Pressable>
+      </View>
     );
   };
 
