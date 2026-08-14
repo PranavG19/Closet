@@ -10,6 +10,7 @@
 // cross-feature import zone scaffolding) and grows with the code it guards.
 
 import tseslint from "typescript-eslint";
+import reactHooks from "eslint-plugin-react-hooks";
 
 // <<< GENERATED FEATURE_ROOTS (gen-conventions.mjs) — DO NOT EDIT >>>
 const FEATURE_ROOTS = [
@@ -54,4 +55,22 @@ export default tseslint.config(
     ],
   },
   ...tseslint.configs.recommended,
+  // react-hooks: the Rules of Hooks are STRUCTURAL — a hook placed after an early return
+  // ("rendered more hooks than during the previous render") is a runtime crash this repo
+  // otherwise cannot catch, because it has no render-test infrastructure (a .test.tsx matches
+  // no vitest glob) so the only prior oracle was running the screen on the simulator. Scoped
+  // to the mobile package, where the React components live.
+  {
+    files: ["packages/mobile/**/*.{ts,tsx}"],
+    // typecheck-fixtures/ are negative-space TYPE assertions that are SUPPOSED to fail to compile
+    // (unrepresentable.test.ts spawns a real tsc over them and asserts the errors); they
+    // deliberately misuse hooks to prove the type system refuses the forged argument, and they are
+    // never rendered or shipped. Linting them for Rules of Hooks would flag the very anti-pattern
+    // they exist to document.
+    ignores: ["packages/mobile/typecheck-fixtures/**"],
+    plugins: { "react-hooks": reactHooks },
+    rules: {
+      "react-hooks/rules-of-hooks": "error",
+    },
+  },
 );
