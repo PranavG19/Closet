@@ -163,6 +163,19 @@ export function OutfitsScreen(): React.JSX.Element {
   );
   const onOpen = React.useCallback((outfit: OutfitSummary) => setOpenId(outfit.id), []);
 
+  // Memoized so it is a STABLE object reference across renders. OutfitCard is React.memo'd, and
+  // a fresh `{ marginBottom }` literal every render made its `style` prop compare-unequal every
+  // time — silently defeating the memo, so every visible card re-rendered on any parent state
+  // change (delete/rename pending, openId). `uris` and `onOpen` are already stable, so memoizing
+  // this restores the bail-out. Declared BEFORE the early returns so the hook order is stable
+  // across the building/loading/empty/detail branches (Rules of Hooks) — placing them after a
+  // return crashes the list render with "rendered more hooks than during the previous render".
+  const rowSpacing = React.useMemo<ViewStyle>(() => ({ marginBottom: tokens.spacing.lg }), [tokens]);
+  const renderItem = React.useCallback<ListRenderItem<OutfitSummary>>(
+    ({ item }) => <OutfitCard outfit={item} uris={uris} onOpen={onOpen} style={rowSpacing} />,
+    [uris, onOpen, rowSpacing],
+  );
+
   if (building) {
     return <OutfitBuilderScreen onDone={() => setBuilding(false)} onCancel={() => setBuilding(false)} />;
   }
@@ -201,16 +214,6 @@ export function OutfitsScreen(): React.JSX.Element {
     );
   }
 
-  // Memoized so it is a STABLE object reference across renders. OutfitCard is React.memo'd, and
-  // a fresh `{ marginBottom }` literal every render made its `style` prop compare-unequal every
-  // time — silently defeating the memo, so every visible card re-rendered on any parent state
-  // change (delete/rename pending, openId). `uris` and `onOpen` are already stable, so memoizing
-  // this restores the bail-out.
-  const rowSpacing = React.useMemo<ViewStyle>(() => ({ marginBottom: tokens.spacing.lg }), [tokens]);
-  const renderItem = React.useCallback<ListRenderItem<OutfitSummary>>(
-    ({ item }) => <OutfitCard outfit={item} uris={uris} onOpen={onOpen} style={rowSpacing} />,
-    [uris, onOpen, rowSpacing],
-  );
   return (
     <Screen padding="lg">
       {/* Masthead: eyebrow + serif title, with the quiet build action on the shared baseline. */}
