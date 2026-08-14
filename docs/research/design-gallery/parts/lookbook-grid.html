@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>closet-app — Lookbook (imagery-forward)</title>
+<style>
+  :root{
+    --cream:#F6F2EC;
+    --surface:#FFFFFF;
+    --well:#EDE6DB;
+    --well-deep:#E4DBCD;
+    --ink:#221F1B;
+    --ink-2:#655F58;
+    --ink-3:#6C655C;
+    --crimson:#B62E58;
+    --blush:#E0708F;
+    --dot-ready:#4E8A6A;
+    --dot-wash:#9A7A38;
+    --dot-set:#847E76;
+    --hair:#E4DCD0;
+    --hair-onimg:rgba(255,255,255,0.28);
+    --serif:Georgia,'Times New Roman',serif;
+    --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0;}
+
+  body{
+    font-family:var(--sans);
+    background:
+      radial-gradient(120% 90% at 50% -10%, #FBF8F3 0%, #F1EADF 55%, #E9E0D2 100%);
+    color:var(--ink);
+    min-height:100vh;
+    padding:64px 32px 88px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .gallery-head{
+    text-align:center;
+    margin-bottom:52px;
+  }
+  .gallery-head .kicker{
+    font-size:11px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--ink-3);margin-bottom:14px;
+  }
+  .gallery-head h1{
+    font-family:var(--serif);
+    font-weight:400;
+    font-size:34px;
+    letter-spacing:-0.4px;
+    color:var(--ink);
+  }
+  .gallery-head p{
+    margin-top:12px;font-size:14px;color:var(--ink-2);
+    max-width:560px;margin-left:auto;margin-right:auto;line-height:1.55;
+  }
+
+  .row{
+    display:flex;
+    gap:56px;
+    justify-content:center;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+
+  .frameblock{display:flex;flex-direction:column;align-items:center;gap:18px;}
+
+  .phone{
+    position:relative;
+    width:390px;height:844px;
+    background:var(--cream);
+    border-radius:44px;
+    box-shadow:
+      0 2px 0 rgba(255,255,255,0.6) inset,
+      0 40px 80px -30px rgba(58,44,30,0.42),
+      0 8px 24px -12px rgba(58,44,30,0.28);
+    overflow:hidden;
+    border:1px solid rgba(0,0,0,0.06);
+  }
+  /* subtle bezel */
+  .phone::after{
+    content:"";position:absolute;inset:0;border-radius:44px;
+    border:6px solid #10100E;
+    box-shadow:0 0 0 1px rgba(255,255,255,0.06) inset;
+    pointer-events:none;
+  }
+  .screen{position:absolute;inset:6px;border-radius:38px;overflow:hidden;background:var(--cream);}
+
+  .frame-label{
+    font-family:var(--serif);
+    font-size:15px;color:var(--ink-2);letter-spacing:0.2px;
+  }
+  .frame-label span{color:var(--ink-3);font-family:var(--sans);font-size:11px;
+    text-transform:uppercase;letter-spacing:2px;display:block;margin-top:3px;}
+
+  /* ---------- status bar ---------- */
+  .statusbar{
+    position:relative;z-index:5;
+    height:52px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 26px 6px;font-size:14px;font-weight:600;color:var(--ink);
+  }
+  .statusbar.onimg{color:#fff;}
+  .statusbar .time{letter-spacing:0.3px;}
+  .statusbar .icons{display:flex;gap:6px;align-items:center;}
+  .statusbar .bars{display:flex;gap:2px;align-items:flex-end;height:11px;}
+  .statusbar .bars i{width:3px;background:currentColor;border-radius:1px;display:block;}
+  .statusbar .bars i:nth-child(1){height:4px;}
+  .statusbar .bars i:nth-child(2){height:6px;}
+  .statusbar .bars i:nth-child(3){height:8px;}
+  .statusbar .bars i:nth-child(4){height:11px;}
+  .statusbar .batt{width:22px;height:11px;border:1.5px solid currentColor;border-radius:3px;position:relative;}
+  .statusbar .batt::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;background:currentColor;border-radius:0 1px 1px 0;}
+  .statusbar .batt i{position:absolute;inset:1.5px;width:70%;background:currentColor;border-radius:1px;}
+
+  /* ---------- overline ---------- */
+  .overline{
+    font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-3);
+  }
+  .overline.light{color:rgba(255,255,255,0.82);}
+
+  /* ---------- tab bar ---------- */
+  .tabbar{
+    position:absolute;left:6px;right:6px;bottom:6px;height:92px;
+    background:rgba(255,255,255,0.82);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border-top:1px solid var(--hair);
+    border-radius:0 0 38px 38px;
+    display:flex;align-items:flex-start;justify-content:space-around;
+    padding:14px 18px 0;z-index:20;
+  }
+  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;width:56px;color:var(--ink-3);}
+  .tab .ic{width:22px;height:22px;position:relative;}
+  .tab .lbl{font-size:10px;letter-spacing:0.4px;}
+  .tab.active{color:var(--ink);}
+  .tab.active .lbl{color:var(--ink);font-weight:600;}
+
+  /* icon glyphs (CSS) */
+  .ic-closet::before{content:"";position:absolute;inset:1px;border:2px solid currentColor;border-radius:3px;}
+  .ic-closet::after{content:"";position:absolute;left:50%;top:1px;bottom:1px;width:2px;background:currentColor;transform:translateX(-50%);}
+  .ic-today{border:2px solid currentColor;border-radius:50%;}
+  .ic-today::after{content:"";position:absolute;top:-4px;left:50%;width:2px;height:6px;background:currentColor;transform:translateX(-50%);border-radius:2px;}
+  .ic-outfits::before{content:"";position:absolute;left:1px;top:3px;width:9px;height:16px;border:2px solid currentColor;border-radius:2px;}
+  .ic-outfits::after{content:"";position:absolute;right:1px;top:0;width:9px;height:16px;border:2px solid currentColor;border-radius:2px;}
+  .ic-you{border:2px solid currentColor;border-radius:50%;overflow:hidden;}
+  .ic-you::before{content:"";position:absolute;top:3px;left:50%;width:7px;height:7px;background:currentColor;border-radius:50%;transform:translateX(-50%);}
+  .ic-you::after{content:"";position:absolute;bottom:-6px;left:50%;width:15px;height:12px;background:currentColor;border-radius:50%;transform:translateX(-50%);}
+
+  .fab{
+    width:56px;height:56px;border-radius:50%;
+    background:var(--crimson);
+    margin-top:-22px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 10px 22px -6px rgba(182,46,88,0.55);
+    position:relative;
+  }
+  .fab::before,.fab::after{content:"";position:absolute;background:#fff;border-radius:2px;}
+  .fab::before{width:20px;height:2.5px;}
+  .fab::after{width:2.5px;height:20px;}
+
+  /* ================= SCREEN 1 — CLOSET ================= */
+  .s1-head{padding:6px 26px 14px;}
+  .s1-titlerow{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px;}
+  .s1-titlerow h1{font-family:var(--serif);font-weight:400;font-size:36px;letter-spacing:-0.5px;}
+  .s1-count{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-3);}
+
+  .chips{display:flex;gap:8px;padding:2px 26px 12px;overflow:hidden;}
+  .chip{
+    font-size:13px;color:var(--ink-2);
+    padding:8px 15px;border-radius:999px;
+    border:1px solid var(--hair);background:var(--surface);white-space:nowrap;
+  }
+  .chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .segs{display:flex;gap:22px;padding:2px 26px 16px;border-bottom:1px solid var(--hair);}
+  .seg{font-size:13px;color:var(--ink-3);padding-bottom:9px;position:relative;}
+  .seg.on{color:var(--ink);font-weight:600;}
+  .seg.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--crimson);border-radius:2px;}
+
+  /* imagery-forward edge-to-edge grid */
+  .lookgrid{
+    display:grid;grid-template-columns:1fr 1fr;gap:2px;
+    background:var(--hair);
+  }
+  .looktile{
+    position:relative;height:236px;overflow:hidden;
+    background:linear-gradient(160deg,#F1EBE1 0%, #E7DECF 100%);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .looktile.tone-white{background:linear-gradient(160deg,#FBF9F5 0%, #ECE5D9 100%);}
+  .looktile.tone-black{background:linear-gradient(160deg,#EDE7DC 0%, #DED4C4 100%);}
+  .looktile.tone-camel{background:linear-gradient(160deg,#F2E9D9 0%, #E7D6BB 100%);}
+  .looktile.tone-rose{background:linear-gradient(160deg,#F6EBE9 0%, #EBD7D6 100%);}
+
+  .looktile .caption{
+    position:absolute;left:14px;right:14px;bottom:12px;z-index:3;
+    display:flex;align-items:flex-end;justify-content:space-between;
+  }
+  .looktile .caption .nm{
+    font-family:var(--serif);font-size:20px;color:var(--ink);
+    text-transform:lowercase;letter-spacing:0.2px;line-height:1;
+  }
+  .looktile .caption .state{
+    display:flex;align-items:center;gap:5px;
+    font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-2);
+  }
+  .looktile .caption .dot{width:7px;height:7px;border-radius:50%;background:var(--dot-ready);}
+  .dot.wash{background:var(--dot-wash);}
+  .dot.set{background:var(--dot-set);}
+  /* number tag magazine-style */
+  .looktile .no{
+    position:absolute;left:14px;top:12px;z-index:3;
+    font-family:var(--serif);font-size:12px;color:var(--ink-2);letter-spacing:1px;
+  }
+  .looktile .grad{
+    position:absolute;inset:0;z-index:2;
+    background:linear-gradient(to top, rgba(237,230,219,0.9) 0%, rgba(237,230,219,0) 42%);
+  }
+
+  /* ---------- CSS garments ---------- */
+  .garment{position:relative;z-index:1;filter:drop-shadow(0 14px 20px rgba(58,44,30,0.14));}
+
+  /* top / blouse */
+  .g-top{width:150px;height:150px;}
+  .g-top .body{position:absolute;left:32px;right:32px;top:34px;bottom:6px;background:#FCFBF8;border-radius:8px 8px 12px 12px;box-shadow:inset 0 -18px 26px -20px rgba(0,0,0,0.18);}
+  .g-top .sh-l,.g-top .sh-r{position:absolute;top:22px;width:44px;height:52px;background:#FCFBF8;border-radius:14px;}
+  .g-top .sh-l{left:6px;transform:rotate(18deg);}
+  .g-top .sh-r{right:6px;transform:rotate(-18deg);}
+  .g-top .collar{position:absolute;left:50%;top:26px;width:34px;height:20px;background:linear-gradient(180deg,#F1EBE1,#F1EBE1);transform:translateX(-50%);clip-path:polygon(0 0,100% 0,50% 100%);}
+  .g-top .placket{position:absolute;left:50%;top:40px;width:2px;height:96px;background:#E7DECF;transform:translateX(-50%);}
+
+  /* shoe (loafer/pump) */
+  .g-shoe{width:170px;height:130px;}
+  .g-shoe .sole{position:absolute;left:14px;right:18px;bottom:34px;height:46px;background:#1E1B18;border-radius:40px 40px 26px 40px;transform:rotate(-4deg);box-shadow:inset 0 -8px 14px -8px rgba(255,255,255,0.15);}
+  .g-shoe .vamp{position:absolute;left:78px;bottom:52px;width:74px;height:60px;background:#1E1B18;border-radius:60px 70px 8px 40px;transform:rotate(-8deg);}
+  .g-shoe .heel{position:absolute;right:22px;bottom:8px;width:12px;height:34px;background:#1E1B18;border-radius:0 0 3px 3px;transform:rotate(4deg);}
+  .g-shoe .shine{position:absolute;left:44px;bottom:60px;width:26px;height:10px;background:rgba(255,255,255,0.16);border-radius:10px;transform:rotate(-10deg);}
+
+  /* coat / outerwear */
+  .g-coat{width:150px;height:172px;}
+  .g-coat .body{position:absolute;left:34px;right:34px;top:36px;bottom:0;background:#CBA36A;border-radius:10px 10px 6px 6px;box-shadow:inset 0 -22px 30px -22px rgba(0,0,0,0.22);}
+  .g-coat .sh-l,.g-coat .sh-r{position:absolute;top:26px;width:40px;height:120px;background:#CBA36A;border-radius:18px 8px 8px 8px;}
+  .g-coat .sh-l{left:8px;transform:rotate(6deg);}
+  .g-coat .sh-r{right:8px;transform:rotate(-6deg);border-radius:8px 18px 8px 8px;}
+  .g-coat .lapel-l,.g-coat .lapel-r{position:absolute;top:34px;width:26px;height:74px;background:#BE9358;}
+  .g-coat .lapel-l{left:44px;clip-path:polygon(0 0,100% 8%,60% 100%);}
+  .g-coat .lapel-r{right:44px;clip-path:polygon(0 8%,100% 0,40% 100%);}
+  .g-coat .belt{position:absolute;left:34px;right:34px;top:104px;height:9px;background:#B98D50;}
+  .g-coat .btn{position:absolute;left:50%;width:5px;height:5px;border-radius:50%;background:#8f6d3c;transform:translateX(-50%);}
+  .g-coat .b1{top:64px;} .g-coat .b2{top:86px;}
+
+  /* dress */
+  .g-dress{width:140px;height:170px;}
+  .g-dress .bod{position:absolute;left:52px;right:52px;top:30px;height:60px;background:#E9C6CE;border-radius:6px 6px 0 0;}
+  .g-dress .skirt{position:absolute;left:50%;top:84px;width:120px;height:82px;background:#E9C6CE;transform:translateX(-50%);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%);border-radius:0 0 14px 14px;box-shadow:inset 0 -18px 26px -20px rgba(0,0,0,0.16);}
+  .g-dress .strap-l,.g-dress .strap-r{position:absolute;top:16px;width:6px;height:30px;background:#E9C6CE;border-radius:3px;}
+  .g-dress .strap-l{left:60px;transform:rotate(10deg);}
+  .g-dress .strap-r{right:60px;transform:rotate(-10deg);}
+  .g-dress .waist{position:absolute;left:52px;right:52px;top:82px;height:5px;background:#dcb1ba;}
+
+  /* ================= SCREEN 2 — TODAY (cover) ================= */
+  .cover{position:absolute;inset:0;overflow:hidden;
+    background:
+      radial-gradient(90% 60% at 50% 34%, #F3ECDF 0%, #E9DFCE 60%, #DCCFB8 100%);
+  }
+  .cover .band{
+    position:absolute;left:0;right:0;top:30%;height:180px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0));
+  }
+  .cover .hero-garment{
+    position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) scale(1.9);
+  }
+  .cover .top-meta{
+    position:absolute;left:26px;top:60px;z-index:6;
+  }
+  /* magazine cover line */
+  .cover .coverline{
+    position:absolute;left:26px;right:26px;bottom:214px;z-index:6;
+  }
+  .cover .coverline .kick{
+    font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;
+  }
+  .cover .coverline h1{
+    font-family:var(--serif);font-weight:400;font-size:52px;line-height:0.94;
+    letter-spacing:-1px;color:var(--ink);
+  }
+  .cover .coverline .sub{
+    font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink-2);margin-top:8px;
+  }
+  .cover .actions{
+    position:absolute;left:26px;right:26px;bottom:132px;z-index:6;
+    padding-top:20px;border-top:1px solid var(--hair);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .cover .actions .why{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-3);}
+  .cover .actions .wore{
+    font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--crimson);
+    padding-bottom:5px;border-bottom:2px solid var(--crimson);
+  }
+  /* big hero coat scaled */
+  .hero-garment .g-coat{width:150px;height:172px;}
+
+  /* ================= SCREEN 3 — YOU ================= */
+  .s3{position:absolute;inset:0;overflow-y:hidden;}
+  .s3-scroll{padding:6px 26px 120px;}
+  .s3 h1{font-family:var(--serif);font-weight:400;font-size:36px;letter-spacing:-0.5px;margin-top:6px;}
+  .s3 .block{padding:22px 0;border-bottom:1px solid var(--hair);}
+  .s3 .block:last-child{border-bottom:none;}
+  .s3 .block h2{font-family:var(--serif);font-weight:400;font-size:21px;margin-bottom:10px;}
+  .s3 .row-line{display:flex;align-items:baseline;justify-content:space-between;margin-top:8px;}
+  .s3 .val{font-size:15px;color:var(--ink);}
+  .s3 .muted{font-size:14px;color:var(--ink-2);line-height:1.5;}
+  .link{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--crimson);white-space:nowrap;}
+  .link.plain{color:var(--ink-3);}
+  .link.danger{color:var(--crimson);}
+  .s3 .links-row{display:flex;gap:26px;margin-top:14px;}
+
+  .swatches{display:flex;gap:12px;margin-top:16px;}
+  .swatch{width:40px;height:40px;border-radius:12px;box-shadow:0 4px 10px -6px rgba(58,44,30,0.4),0 0 0 1px rgba(0,0,0,0.04) inset;}
+  .sw1{background:#C9B7A2;} .sw2{background:#9C6F63;} .sw3{background:#6E7A6B;}
+  .sw4{background:#B8697F;} .sw5{background:#5C5A66;} .sw6{background:#D9C36B;}
+
+  .version{margin-top:26px;text-align:center;font-size:11px;letter-spacing:1px;color:var(--ink-3);}
+
+  @media (max-width:1360px){ .row{gap:40px;} }
+</style>
+</head>
+<body>
+
+  <div class="gallery-head">
+    <div class="kicker">closet-app · design exploration</div>
+    <h1>Lookbook — imagery-forward</h1>
+    <p>The Atelier palette held (cream, serif, one crimson action) but the layout language shifts from “app” to a printed lookbook: edge-to-edge tiles, type overlaid on imagery, and a full-screen magazine cover for Today.</p>
+  </div>
+
+  <div class="row">
+
+    <!-- ================= SCREEN 1 — CLOSET ================= -->
+    <div class="frameblock">
+      <div class="phone"><div class="screen">
+        <div class="statusbar">
+          <span class="time">9:41</span>
+          <span class="icons">
+            <span class="bars"><i></i><i></i><i></i><i></i></span>
+            <span class="batt"><i></i></span>
+          </span>
+        </div>
+
+        <div class="s1-head">
+          <div class="overline">Your Closet</div>
+          <div class="s1-titlerow">
+            <h1>Closet</h1>
+            <span class="s1-count">6 Pieces</span>
+          </div>
+        </div>
+
+        <div class="chips">
+          <span class="chip on">Tops</span>
+          <span class="chip">Bottoms</span>
+          <span class="chip">Dresses</span>
+          <span class="chip">Outerwear</span>
+          <span class="chip">Shoes</span>
+        </div>
+
+        <div class="segs">
+          <span class="seg on">Ready to wear</span>
+          <span class="seg">In the wash</span>
+          <span class="seg">Set aside</span>
+        </div>
+
+        <div class="lookgrid">
+          <div class="looktile tone-white">
+            <span class="no">01</span>
+            <div class="garment g-top">
+              <div class="sh-l"></div><div class="sh-r"></div>
+              <div class="body"></div>
+              <div class="collar"></div><div class="placket"></div>
+            </div>
+            <div class="grad"></div>
+            <div class="caption">
+              <span class="nm">white</span>
+              <span class="state"><span class="dot"></span>Ready to wear</span>
+            </div>
+          </div>
+
+          <div class="looktile tone-black">
+            <span class="no">02</span>
+            <div class="garment g-dress">
+              <div class="strap-l"></div><div class="strap-r"></div>
+              <div class="bod"></div><div class="waist"></div><div class="skirt"></div>
+            </div>
+            <div class="grad"></div>
+            <div class="caption">
+              <span class="nm">black</span>
+              <span class="state"><span class="dot"></span>Ready to wear</span>
+            </div>
+          </div>
+
+          <div class="looktile tone-camel">
+            <span class="no">03</span>
+            <div class="garment g-coat">
+              <div class="sh-l"></div><div class="sh-r"></div>
+              <div class="body"></div>
+              <div class="lapel-l"></div><div class="lapel-r"></div>
+              <div class="btn b1"></div><div class="btn b2"></div>
+              <div class="belt"></div>
+            </div>
+            <div class="grad"></div>
+            <div class="caption">
+              <span class="nm">camel</span>
+              <span class="state"><span class="dot"></span>Ready to wear</span>
+            </div>
+          </div>
+
+          <div class="looktile tone-rose">
+            <span class="no">04</span>
+            <div class="garment g-shoe">
+              <div class="sole"></div><div class="vamp"></div>
+              <div class="heel"></div><div class="shine"></div>
+            </div>
+            <div class="grad"></div>
+            <div class="caption">
+              <span class="nm">rose</span>
+              <span class="state"><span class="dot"></span>Ready to wear</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab active"><span class="ic ic-closet"></span><span class="lbl">Closet</span></div>
+          <div class="tab"><span class="ic ic-today"></span><span class="lbl">Today</span></div>
+          <div class="fab"></div>
+          <div class="tab"><span class="ic ic-outfits"></span><span class="lbl">Outfits</span></div>
+          <div class="tab"><span class="ic ic-you"></span><span class="lbl">You</span></div>
+        </div>
+
+      </div></div>
+      <div class="frame-label">Closet<span>Grid</span></div>
+    </div>
+
+    <!-- ================= SCREEN 2 — TODAY ================= -->
+    <div class="frameblock">
+      <div class="phone"><div class="screen">
+        <div class="cover">
+          <div class="band"></div>
+          <div class="hero-garment">
+            <div class="garment g-coat">
+              <div class="sh-l"></div><div class="sh-r"></div>
+              <div class="body"></div>
+              <div class="lapel-l"></div><div class="lapel-r"></div>
+              <div class="btn b1"></div><div class="btn b2"></div>
+              <div class="belt"></div>
+            </div>
+          </div>
+
+          <div class="statusbar" style="position:absolute;left:0;right:0;top:0;">
+            <span class="time">9:41</span>
+            <span class="icons">
+              <span class="bars"><i></i><i></i><i></i><i></i></span>
+              <span class="batt"><i></i></span>
+            </span>
+          </div>
+
+          <div class="top-meta">
+            <div class="overline">Today</div>
+          </div>
+
+          <div class="coverline">
+            <div class="kick">The look for today</div>
+            <h1>Camel<br>outerwear</h1>
+            <div class="sub">with black</div>
+          </div>
+
+          <div class="actions">
+            <span class="why">Why this?</span>
+            <span class="wore">Wore this today</span>
+          </div>
+        </div>
+
+        <div class="tabbar">
+          <div class="tab"><span class="ic ic-closet"></span><span class="lbl">Closet</span></div>
+          <div class="tab active"><span class="ic ic-today"></span><span class="lbl">Today</span></div>
+          <div class="fab"></div>
+          <div class="tab"><span class="ic ic-outfits"></span><span class="lbl">Outfits</span></div>
+          <div class="tab"><span class="ic ic-you"></span><span class="lbl">You</span></div>
+        </div>
+
+      </div></div>
+      <div class="frame-label">Today<span>The reveal</span></div>
+    </div>
+
+    <!-- ================= SCREEN 3 — YOU ================= -->
+    <div class="frameblock">
+      <div class="phone"><div class="screen">
+        <div class="statusbar">
+          <span class="time">9:41</span>
+          <span class="icons">
+            <span class="bars"><i></i><i></i><i></i><i></i></span>
+            <span class="batt"><i></i></span>
+          </span>
+        </div>
+
+        <div class="s3"><div class="s3-scroll">
+          <div class="overline">Your Account</div>
+          <h1>You</h1>
+
+          <div class="block">
+            <div class="overline">Signed in as</div>
+            <div class="row-line">
+              <span class="val">tester@example.com</span>
+              <span class="link plain">Sign out</span>
+            </div>
+          </div>
+
+          <div class="block">
+            <h2>Membership</h2>
+            <p class="muted">Premium — every feature is unlocked.</p>
+            <div class="links-row">
+              <span class="link">Manage subscription</span>
+              <span class="link plain">Restore purchases</span>
+            </div>
+          </div>
+
+          <div class="block">
+            <h2>Your colours</h2>
+            <div class="swatches">
+              <span class="swatch sw1"></span>
+              <span class="swatch sw2"></span>
+              <span class="swatch sw3"></span>
+              <span class="swatch sw4"></span>
+              <span class="swatch sw5"></span>
+              <span class="swatch sw6"></span>
+            </div>
+          </div>
+
+          <div class="block">
+            <h2>Your data</h2>
+            <div class="row-line">
+              <span class="muted">A private copy of your wardrobe.</span>
+              <span class="link plain">Export my data</span>
+            </div>
+          </div>
+
+          <div class="block">
+            <h2>Delete my account</h2>
+            <div class="row-line">
+              <span class="muted">This cannot be undone.</span>
+              <span class="link danger">Delete my account</span>
+            </div>
+          </div>
+
+          <div class="version">closet · version 1.0.0 (1)</div>
+        </div></div>
+
+        <div class="tabbar">
+          <div class="tab"><span class="ic ic-closet"></span><span class="lbl">Closet</span></div>
+          <div class="tab"><span class="ic ic-today"></span><span class="lbl">Today</span></div>
+          <div class="fab"></div>
+          <div class="tab"><span class="ic ic-outfits"></span><span class="lbl">Outfits</span></div>
+          <div class="tab active"><span class="ic ic-you"></span><span class="lbl">You</span></div>
+        </div>
+
+      </div></div>
+      <div class="frame-label">You<span>Account</span></div>
+    </div>
+
+  </div>
+
+</body>
+</html>

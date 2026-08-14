@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>closet-app — Editorial Noir</title>
+<style>
+  :root{
+    /* Editorial Noir — dark luxe */
+    --ink:        #17140F;   /* warm-black canvas */
+    --ink-2:      #1F1B15;   /* raised surface   */
+    --well:       #100D09;   /* sunken garment well */
+    --well-hi:    #26211A;   /* well inner light edge */
+    --bone:       #F4EEE3;   /* primary text (cream/bone) */
+    --bone-2:     #B7AF9F;   /* secondary text */
+    --bone-3:     #8B8375;   /* tertiary / overline */
+    --hair:       #2E2820;   /* hairline divider */
+    --hair-2:     #38312790; /* softer hairline */
+    --crimson:    #E23A63;   /* glowing accent */
+    --crimson-dim:#B62E58;
+    --blush:      #E0708F;
+    --ready:      #6FBF92;   /* clean */
+    --wash:       #C79A44;   /* in-wash */
+    --aside:      #A29A8C;   /* set-aside */
+    --serif: Georgia, 'Times New Roman', serif;
+    --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  *{ box-sizing:border-box; margin:0; padding:0; }
+
+  body{
+    font-family:var(--sans);
+    background:
+      radial-gradient(1200px 700px at 50% -10%, #211C15 0%, #14110C 55%, #0D0B08 100%);
+    color:var(--bone);
+    min-height:100vh;
+    padding:56px 24px 72px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .page-head{ text-align:center; margin-bottom:44px; }
+  .page-head .eyebrow{
+    font-size:11px; letter-spacing:3px; text-transform:uppercase;
+    color:var(--bone-3); margin-bottom:12px;
+  }
+  .page-head h1{
+    font-family:var(--serif); font-weight:400; font-size:34px; letter-spacing:.3px;
+    color:var(--bone);
+  }
+  .page-head h1 .em{ color:var(--crimson); font-style:italic; }
+  .page-head p{ margin-top:10px; color:var(--bone-2); font-size:13.5px; }
+
+  .row{
+    display:flex; gap:52px; justify-content:center; align-items:flex-start;
+    flex-wrap:wrap; max-width:1400px; margin:0 auto;
+  }
+
+  .frame-wrap{ display:flex; flex-direction:column; align-items:center; gap:18px; }
+
+  /* iPhone frame */
+  .phone{
+    position:relative;
+    width:390px; height:844px;
+    background:var(--ink);
+    border-radius:44px;
+    padding:0;
+    box-shadow:
+      0 0 0 2px #050403,
+      0 0 0 11px #0B0906,
+      0 0 0 12px #2A241C,
+      0 46px 90px -30px rgba(0,0,0,.85),
+      0 10px 30px rgba(0,0,0,.6);
+    overflow:hidden;
+  }
+  .screen{
+    position:absolute; inset:0;
+    border-radius:44px;
+    overflow:hidden;
+    display:flex; flex-direction:column;
+    background:var(--ink);
+  }
+
+  /* notch */
+  .notch{
+    position:absolute; top:11px; left:50%; transform:translateX(-50%);
+    width:122px; height:32px; background:#000; border-radius:20px; z-index:40;
+  }
+
+  /* status bar */
+  .status{
+    height:54px; flex:0 0 54px;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:16px 30px 0; font-size:14px; font-weight:600; color:var(--bone);
+    z-index:30;
+  }
+  .status .dots{ display:flex; gap:5px; align-items:center; }
+  .status .sig{ display:flex; gap:2px; align-items:flex-end; }
+  .status .sig i{ width:3px; background:var(--bone); border-radius:1px; display:block; }
+  .status .sig i:nth-child(1){ height:5px; opacity:.9;}
+  .status .sig i:nth-child(2){ height:7px;}
+  .status .sig i:nth-child(3){ height:9px;}
+  .status .sig i:nth-child(4){ height:11px;}
+  .batt{ width:23px; height:12px; border:1.4px solid var(--bone); border-radius:3px; position:relative; }
+  .batt::after{ content:""; position:absolute; right:-3px; top:3px; width:2px; height:6px; background:var(--bone); border-radius:0 1px 1px 0; }
+  .batt::before{ content:""; position:absolute; left:1.5px; top:1.5px; bottom:1.5px; width:13px; background:var(--bone); border-radius:1px; }
+
+  /* generic content */
+  .body{ flex:1 1 auto; overflow:hidden; position:relative; }
+  .pad{ padding:0 26px; }
+
+  .overline{
+    font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--bone-3);
+  }
+  .display{
+    font-family:var(--serif); font-weight:400; color:var(--bone); letter-spacing:.3px;
+  }
+
+  /* ---------- SCREEN 1 : CLOSET ---------- */
+  .head-line{ display:flex; justify-content:space-between; align-items:flex-end; margin-top:6px; }
+  .head-line .title{ font-size:40px; line-height:1; }
+  .head-line .count{ font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--bone-3); padding-bottom:6px; }
+
+  .chips{ display:flex; gap:22px; margin-top:22px; overflow:hidden; }
+  .chip{ font-size:14px; color:var(--bone-2); white-space:nowrap; padding-bottom:2px; }
+  .chip.on{ color:var(--bone); }
+
+  .subfilter{ display:flex; gap:24px; margin-top:18px; }
+  .subfilter span{ font-size:13px; color:var(--bone-3); position:relative; padding-bottom:8px; }
+  .subfilter span.on{ color:var(--bone); }
+  .subfilter span.on::after{
+    content:""; position:absolute; left:0; right:0; bottom:0; height:2px;
+    background:var(--crimson); border-radius:2px;
+    box-shadow:0 0 10px 1px rgba(226,58,99,.6);
+  }
+
+  .divider{ height:1px; background:var(--hair); margin:18px 0 0; }
+
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px 16px; margin-top:20px; }
+  .tile .well{
+    position:relative; width:100%; aspect-ratio:1/1.12; border-radius:6px;
+    background:
+      radial-gradient(120% 90% at 50% 12%, rgba(255,240,220,.06), transparent 60%),
+      linear-gradient(180deg, #14110C 0%, var(--well) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255,245,225,.05),
+      inset 0 -14px 26px rgba(0,0,0,.55),
+      inset 0 0 0 1px rgba(255,255,255,.02);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .tile .name{ font-family:var(--serif); font-size:19px; color:var(--bone); margin-top:12px; }
+  .tile .state{ display:flex; align-items:center; gap:7px; margin-top:5px; }
+  .dot{ width:7px; height:7px; border-radius:50%; }
+  .dot.ready{ background:var(--ready); box-shadow:0 0 7px rgba(111,191,146,.7);}
+  .dot.wash{ background:var(--wash); box-shadow:0 0 7px rgba(199,154,68,.6);}
+  .dot.aside{ background:var(--aside); }
+  .state .lbl{ font-size:9.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--bone-3); }
+
+  /* garment silhouettes (CSS-drawn) */
+  .g{ position:relative; filter:drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
+
+  /* Top / blouse */
+  .g-top{ width:96px; height:104px; }
+  .g-top .torso{
+    position:absolute; left:16px; right:16px; top:22px; bottom:0;
+    background:var(--garm); border-radius:6px 6px 10px 10px;
+  }
+  .g-top .neck{
+    position:absolute; left:50%; top:16px; transform:translateX(-50%);
+    width:30px; height:20px; background:var(--ink);
+    border-radius:0 0 40px 40px; z-index:3;
+  }
+  .g-top .shoulder{
+    position:absolute; top:20px; width:34px; height:26px; background:var(--garm);
+  }
+  .g-top .shoulder.l{ left:0; transform:skewX(20deg); border-radius:8px 4px 0 12px; }
+  .g-top .shoulder.r{ right:0; transform:skewX(-20deg); border-radius:4px 8px 12px 0; }
+
+  /* Dress */
+  .g-dress{ width:90px; height:120px; }
+  .g-dress .bodice{
+    position:absolute; left:26px; right:26px; top:18px; height:40px;
+    background:var(--garm); border-radius:4px;
+  }
+  .g-dress .skirt{
+    position:absolute; left:50%; top:50px; transform:translateX(-50%);
+    width:0; height:0;
+    border-left:44px solid transparent; border-right:44px solid transparent;
+    border-top:70px solid var(--garm);
+    border-radius:0 0 20px 20px;
+  }
+  .g-dress .neck{
+    position:absolute; left:50%; top:14px; transform:translateX(-50%);
+    width:26px; height:16px; background:var(--ink); border-radius:0 0 30px 30px; z-index:3;
+  }
+  .g-dress .strap{ position:absolute; top:14px; width:8px; height:16px; background:var(--garm); }
+  .g-dress .strap.l{ left:22px; transform:rotate(12deg);}
+  .g-dress .strap.r{ right:22px; transform:rotate(-12deg);}
+
+  /* Coat / outerwear */
+  .g-coat{ width:98px; height:118px; }
+  .g-coat .body{
+    position:absolute; left:16px; right:16px; top:24px; bottom:0;
+    background:var(--garm); border-radius:8px 8px 6px 6px;
+  }
+  .g-coat .collar-l,.g-coat .collar-r{
+    position:absolute; top:22px; width:0; height:0; z-index:3;
+    border-top:34px solid var(--garm);
+  }
+  .g-coat .collar-l{ left:30px; border-right:16px solid transparent; }
+  .g-coat .collar-r{ right:30px; border-left:16px solid transparent; }
+  .g-coat .lapel{
+    position:absolute; left:50%; top:24px; transform:translateX(-50%);
+    width:2px; bottom:6px; background:var(--ink); opacity:.5;
+  }
+  .g-coat .sh{ position:absolute; top:22px; width:26px; height:22px; background:var(--garm); }
+  .g-coat .sh.l{ left:4px; border-radius:10px 2px 0 8px; }
+  .g-coat .sh.r{ right:4px; border-radius:2px 10px 8px 0; }
+  .g-coat .belt{ position:absolute; left:16px; right:16px; top:74px; height:6px; background:rgba(0,0,0,.35);}
+
+  /* Shoe / heel */
+  .g-shoe{ width:110px; height:76px; }
+  .g-shoe .sole{
+    position:absolute; left:6px; bottom:14px; width:92px; height:20px;
+    background:var(--garm); border-radius:4px 20px 22px 8px;
+  }
+  .g-shoe .upper{
+    position:absolute; left:6px; bottom:26px; width:56px; height:34px;
+    background:var(--garm); border-radius:26px 30px 0 0; transform:skewX(-6deg);
+  }
+  .g-shoe .heel{
+    position:absolute; right:12px; bottom:2px; width:9px; height:34px;
+    background:var(--garm); border-radius:0 0 3px 3px; transform:skewX(-4deg);
+  }
+
+  /* ---------- SCREEN 2 : TODAY ---------- */
+  .today .hero{
+    position:relative; height:512px; flex:0 0 512px;
+    background:
+      radial-gradient(90% 70% at 50% 40%, #2A241B 0%, #1A160F 58%, #100D09 100%);
+    overflow:hidden;
+  }
+  .today .hero .band{
+    position:absolute; left:0; right:0; top:150px; height:220px;
+    background:linear-gradient(180deg, rgba(255,238,214,.05), rgba(255,238,214,.015));
+    border-top:1px solid rgba(255,240,220,.06);
+    border-bottom:1px solid rgba(0,0,0,.35);
+  }
+  .today .hero .spot{
+    position:absolute; left:50%; top:60px; transform:translateX(-50%);
+    width:260px; height:260px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,244,224,.14), transparent 65%);
+    filter:blur(6px);
+  }
+  .today .hero .center{
+    position:absolute; left:50%; top:150px; transform:translateX(-50%);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .today .hero .center .g-coat{ transform:scale(1.75); }
+  .today .hero .overline{ position:absolute; top:20px; left:26px; color:var(--bone-2); }
+  .today .hero .fade{
+    position:absolute; left:0; right:0; bottom:0; height:200px;
+    background:linear-gradient(180deg, transparent, var(--ink) 88%);
+  }
+  .today .hero .caption{ position:absolute; left:26px; right:26px; bottom:26px; }
+  .today .hero .caption .title{ font-size:38px; line-height:1.02; }
+  .today .hero .caption .sub{ font-family:var(--serif); font-style:italic; font-size:19px; color:var(--bone-2); margin-top:6px; }
+
+  .today .actions{ padding:26px; }
+  .today .actions .link{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 0; border-bottom:1px solid var(--hair);
+  }
+  .today .actions .link:first-child{ border-top:1px solid var(--hair); }
+  .today .actions .link .k{ font-size:12px; letter-spacing:2px; text-transform:uppercase; color:var(--bone-2); }
+  .today .actions .link .worn{ color:var(--crimson); }
+  .today .actions .link .worn u{
+    text-decoration:none; border-bottom:2px solid var(--crimson); padding-bottom:3px;
+    text-shadow:0 0 12px rgba(226,58,99,.45);
+  }
+  .today .actions .arrow{ color:var(--bone-3); font-size:16px; }
+
+  /* ---------- SCREEN 3 : YOU ---------- */
+  .you .sec{ padding-top:26px; }
+  .you .display.title{ font-size:40px; line-height:1; margin-top:6px; }
+  .you h3{ font-family:var(--serif); font-weight:400; font-size:22px; color:var(--bone); margin-bottom:14px; }
+  .you .kv .k{ font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--bone-3); }
+  .you .kv .v{ font-size:16px; color:var(--bone); margin-top:6px; }
+  .you .lnk{ font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:var(--crimson); margin-top:12px; display:inline-block; text-shadow:0 0 10px rgba(226,58,99,.35);}
+  .you .lnk.muted{ color:var(--bone-2); text-shadow:none; }
+  .you .body-copy{ font-size:15px; line-height:1.6; color:var(--bone-2); margin-bottom:4px; }
+  .you .divider{ margin:24px 0 0; }
+  .you .links-row{ display:flex; gap:26px; margin-top:14px; }
+  .swatches{ display:flex; gap:11px; margin-top:6px; }
+  .swatch{ width:38px; height:38px; border-radius:12px; box-shadow:inset 0 0 0 1px rgba(255,255,255,.06), 0 6px 12px rgba(0,0,0,.4); }
+  .danger{ color:#E23A63 !important; border-bottom:2px solid rgba(226,58,99,.5); padding-bottom:2px; }
+  .you .version{ font-size:11px; letter-spacing:1px; color:var(--bone-3); text-align:center; margin-top:30px; }
+
+  /* ---------- TAB BAR ---------- */
+  .tabbar{
+    flex:0 0 92px; height:92px; position:relative;
+    background:linear-gradient(180deg, rgba(31,27,21,.4), var(--ink-2));
+    border-top:1px solid var(--hair);
+    display:flex; align-items:flex-start; justify-content:space-between;
+    padding:14px 30px 0;
+  }
+  .tab{ display:flex; flex-direction:column; align-items:center; gap:6px; width:52px; }
+  .tab .ic{ width:22px; height:22px; position:relative; opacity:.55; }
+  .tab .tl{ font-size:10px; letter-spacing:.5px; color:var(--bone-3); }
+  .tab.on .ic{ opacity:1; }
+  .tab.on .tl{ color:var(--bone); }
+
+  /* simple icon glyphs via borders */
+  .ic-closet{ border:1.8px solid var(--bone-2); border-radius:3px; }
+  .ic-closet::after{ content:""; position:absolute; left:50%; top:2px; bottom:2px; width:1.6px; background:var(--bone-2); transform:translateX(-50%);}
+  .tab.on .ic-closet{ border-color:var(--bone);} .tab.on .ic-closet::after{ background:var(--bone);}
+  .ic-today{ border:1.8px solid var(--bone-2); border-radius:50%; }
+  .ic-today::after{ content:""; position:absolute; left:50%; top:50%; width:1.6px; height:7px; background:var(--bone-2); transform-origin:bottom; transform:translate(-50%,-100%) rotate(35deg);}
+  .tab.on .ic-today{ border-color:var(--bone);} .tab.on .ic-today::after{ background:var(--bone);}
+  .ic-outfits{ border:1.8px solid var(--bone-2); border-radius:3px; }
+  .ic-outfits::before{ content:""; position:absolute; inset:3px 3px auto 3px; height:1.6px; background:var(--bone-2);}
+  .ic-outfits::after{ content:""; position:absolute; left:3px; right:3px; bottom:3px; height:1.6px; background:var(--bone-2);}
+  .ic-you{ border:1.8px solid var(--bone-2); border-radius:50%; width:16px; height:16px; margin-top:2px;}
+  .ic-you::after{ content:""; position:absolute; left:50%; top:4px; width:6px; height:6px; border-radius:50%; background:var(--bone-2); transform:translateX(-50%);}
+  .tab.on .ic-you{ border-color:var(--bone);} .tab.on .ic-you::after{ background:var(--bone);}
+  .tab.on .ic-outfits{ border-color:var(--bone);} .tab.on .ic-outfits::before,.tab.on .ic-outfits::after{ background:var(--bone);}
+
+  .fab-slot{ width:52px; display:flex; justify-content:center; }
+  .fab{
+    width:56px; height:56px; border-radius:50%;
+    background:radial-gradient(circle at 40% 32%, #F1497A, var(--crimson) 60%, #A9264D 100%);
+    margin-top:-24px; position:relative;
+    box-shadow:
+      0 0 0 6px var(--ink-2),
+      0 0 22px 4px rgba(226,58,99,.55),
+      0 12px 20px rgba(0,0,0,.5);
+  }
+  .fab::before,.fab::after{
+    content:""; position:absolute; left:50%; top:50%; background:#fff; border-radius:2px;
+    transform:translate(-50%,-50%);
+  }
+  .fab::before{ width:20px; height:2.6px; }
+  .fab::after{ width:2.6px; height:20px; }
+
+  .home-ind{ position:absolute; bottom:9px; left:50%; transform:translateX(-50%); width:128px; height:5px; border-radius:3px; background:rgba(244,238,227,.55); z-index:50; }
+
+  .caption-label{
+    font-family:var(--serif); font-size:15px; color:var(--bone-2);
+    letter-spacing:.5px;
+  }
+  .caption-label b{ color:var(--bone); font-weight:400; }
+</style>
+</head>
+<body>
+
+  <div class="page-head">
+    <div class="eyebrow">CLOSET-APP · DESIGN EXPLORATION</div>
+    <h1>Editorial <span class="em">Noir</span></h1>
+    <p>Nighttime atelier — deep warm ink, bone type, the serif intact, one crimson that glows.</p>
+  </div>
+
+  <div class="row">
+
+    <!-- ============ SCREEN 1 : CLOSET ============ -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="status">
+            <span>9:41</span>
+            <span class="dots">
+              <span class="sig"><i></i><i></i><i></i><i></i></span>
+              <span style="font-size:11px;letter-spacing:.5px;">5G</span>
+              <span class="batt"></span>
+            </span>
+          </div>
+
+          <div class="body">
+            <div class="pad">
+              <div class="overline">YOUR CLOSET</div>
+              <div class="head-line">
+                <div class="display title">Closet</div>
+                <div class="count">6 Pieces</div>
+              </div>
+
+              <div class="chips">
+                <span class="chip on">Tops</span>
+                <span class="chip">Bottoms</span>
+                <span class="chip">Dresses</span>
+                <span class="chip">Outerwear</span>
+                <span class="chip">Shoes</span>
+              </div>
+
+              <div class="subfilter">
+                <span class="on">Ready to wear</span>
+                <span>In the wash</span>
+                <span>Set aside</span>
+              </div>
+              <div class="divider"></div>
+
+              <div class="grid">
+                <div class="tile">
+                  <div class="well">
+                    <div class="g g-top" style="--garm:#EDE6D8">
+                      <div class="shoulder l"></div><div class="shoulder r"></div>
+                      <div class="torso"></div><div class="neck"></div>
+                    </div>
+                  </div>
+                  <div class="name">white</div>
+                  <div class="state"><span class="dot ready"></span><span class="lbl">Ready to wear</span></div>
+                </div>
+
+                <div class="tile">
+                  <div class="well">
+                    <div class="g g-dress" style="--garm:#2C2822">
+                      <div class="strap l"></div><div class="strap r"></div>
+                      <div class="bodice"></div><div class="skirt"></div><div class="neck"></div>
+                    </div>
+                  </div>
+                  <div class="name">black</div>
+                  <div class="state"><span class="dot ready"></span><span class="lbl">Ready to wear</span></div>
+                </div>
+
+                <div class="tile">
+                  <div class="well">
+                    <div class="g g-coat" style="--garm:#B58A5A">
+                      <div class="sh l"></div><div class="sh r"></div>
+                      <div class="body"></div>
+                      <div class="collar-l"></div><div class="collar-r"></div>
+                      <div class="belt"></div><div class="lapel"></div>
+                    </div>
+                  </div>
+                  <div class="name">camel</div>
+                  <div class="state"><span class="dot wash"></span><span class="lbl">In the wash</span></div>
+                </div>
+
+                <div class="tile">
+                  <div class="well">
+                    <div class="g g-shoe" style="--garm:#C98BA0">
+                      <div class="upper"></div><div class="sole"></div><div class="heel"></div>
+                    </div>
+                  </div>
+                  <div class="name">rose</div>
+                  <div class="state"><span class="dot aside"></span><span class="lbl">Set aside</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab on"><span class="ic ic-closet"></span><span class="tl">Closet</span></div>
+            <div class="tab"><span class="ic ic-today"></span><span class="tl">Today</span></div>
+            <div class="fab-slot"><div class="fab"></div></div>
+            <div class="tab"><span class="ic ic-outfits"></span><span class="tl">Outfits</span></div>
+            <div class="tab"><span class="ic ic-you"></span><span class="tl">You</span></div>
+          </div>
+          <div class="home-ind"></div>
+        </div>
+      </div>
+      <div class="caption-label"><b>Closet</b></div>
+    </div>
+
+    <!-- ============ SCREEN 2 : TODAY ============ -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen today">
+          <div class="status">
+            <span>9:41</span>
+            <span class="dots">
+              <span class="sig"><i></i><i></i><i></i><i></i></span>
+              <span style="font-size:11px;letter-spacing:.5px;">5G</span>
+              <span class="batt"></span>
+            </span>
+          </div>
+
+          <div class="body" style="display:flex;flex-direction:column;">
+            <div class="hero">
+              <div class="spot"></div>
+              <div class="band"></div>
+              <div class="overline">TODAY</div>
+              <div class="center">
+                <div class="g g-coat" style="--garm:#B58A5A">
+                  <div class="sh l"></div><div class="sh r"></div>
+                  <div class="body"></div>
+                  <div class="collar-l"></div><div class="collar-r"></div>
+                  <div class="belt"></div><div class="lapel"></div>
+                </div>
+              </div>
+              <div class="fade"></div>
+              <div class="caption">
+                <div class="display title">Camel outerwear</div>
+                <div class="sub">with black</div>
+              </div>
+            </div>
+
+            <div class="actions">
+              <div class="link">
+                <span class="k">Why this?</span>
+                <span class="arrow">→</span>
+              </div>
+              <div class="link">
+                <span class="k worn"><u>Wore this today</u></span>
+                <span class="arrow" style="color:var(--crimson)">✓</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab"><span class="ic ic-closet"></span><span class="tl">Closet</span></div>
+            <div class="tab on"><span class="ic ic-today"></span><span class="tl">Today</span></div>
+            <div class="fab-slot"><div class="fab"></div></div>
+            <div class="tab"><span class="ic ic-outfits"></span><span class="tl">Outfits</span></div>
+            <div class="tab"><span class="ic ic-you"></span><span class="tl">You</span></div>
+          </div>
+          <div class="home-ind"></div>
+        </div>
+      </div>
+      <div class="caption-label"><b>Today</b></div>
+    </div>
+
+    <!-- ============ SCREEN 3 : YOU ============ -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen you">
+          <div class="status">
+            <span>9:41</span>
+            <span class="dots">
+              <span class="sig"><i></i><i></i><i></i><i></i></span>
+              <span style="font-size:11px;letter-spacing:.5px;">5G</span>
+              <span class="batt"></span>
+            </span>
+          </div>
+
+          <div class="body">
+            <div class="pad">
+              <div class="overline">YOUR ACCOUNT</div>
+              <div class="display title">You</div>
+
+              <div class="sec kv">
+                <div class="k">Signed in as</div>
+                <div class="v">tester@example.com</div>
+                <span class="lnk muted">Sign out</span>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="sec">
+                <h3>Membership</h3>
+                <p class="body-copy">Premium — every feature is unlocked.</p>
+                <div class="links-row">
+                  <span class="lnk">Manage subscription</span>
+                  <span class="lnk muted">Restore purchases</span>
+                </div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="sec">
+                <h3>Your colours</h3>
+                <div class="swatches">
+                  <span class="swatch" style="background:#3A4A52"></span>
+                  <span class="swatch" style="background:#8C5A4A"></span>
+                  <span class="swatch" style="background:#C9A24B"></span>
+                  <span class="swatch" style="background:#6E7A55"></span>
+                  <span class="swatch" style="background:#B57C93"></span>
+                  <span class="swatch" style="background:#5B5F6E"></span>
+                </div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="sec">
+                <h3>Your data</h3>
+                <span class="lnk muted">Export my data</span>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="sec">
+                <h3>Delete my account</h3>
+                <span class="lnk danger">Delete my account</span>
+              </div>
+
+              <div class="version">CLOSET · VERSION 1.0.0 (MVP)</div>
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab"><span class="ic ic-closet"></span><span class="tl">Closet</span></div>
+            <div class="tab"><span class="ic ic-today"></span><span class="tl">Today</span></div>
+            <div class="fab-slot"><div class="fab"></div></div>
+            <div class="tab"><span class="ic ic-outfits"></span><span class="tl">Outfits</span></div>
+            <div class="tab on"><span class="ic ic-you"></span><span class="tl">You</span></div>
+          </div>
+          <div class="home-ind"></div>
+        </div>
+      </div>
+      <div class="caption-label"><b>You</b></div>
+    </div>
+
+  </div>
+
+</body>
+</html>

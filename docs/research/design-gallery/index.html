@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>closet-app — design directions (iteration 1)</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #2b2622; color: #EDE6DB;
+    font-family: system-ui, -apple-system, sans-serif; line-height: 1.5;
+  }
+  header.top {
+    padding: 40px 32px 24px; border-bottom: 1px solid #4a423a;
+    position: sticky; top: 0; background: #2b2622ee; backdrop-filter: blur(8px); z-index: 10;
+  }
+  header.top h1 { font-family: Georgia, serif; font-weight: 600; font-size: 30px; margin: 0 0 6px; letter-spacing: -0.3px; }
+  header.top p { margin: 0; color: #b7afa2; font-size: 14px; }
+  nav.jump { margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px; }
+  nav.jump a {
+    font-size: 12px; text-decoration: none; color: #EDE6DB; border: 1px solid #4a423a;
+    padding: 5px 11px; border-radius: 999px; white-space: nowrap;
+  }
+  nav.jump a:hover { border-color: #B62E58; }
+  main { padding: 24px 32px 96px; display: flex; flex-direction: column; gap: 56px; }
+  .theme-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 16px; }
+  .badge { display: inline-block; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #fff; padding: 3px 9px; border-radius: 999px; margin-bottom: 8px; }
+  .theme h2 { font-family: Georgia, serif; font-size: 24px; margin: 0 0 4px; }
+  .desc { margin: 0; color: #cfc6bb; max-width: 70ch; }
+  .sig { margin: 6px 0 0; color: #a89f95; font-size: 13px; max-width: 70ch; }
+  .open { flex: none; font-size: 13px; color: #EDE6DB; text-decoration: none; border: 1px solid #4a423a; padding: 8px 14px; border-radius: 10px; }
+  .open:hover { border-color: #B62E58; }
+  .frame-wrap {
+    background: #f6f2ec; border-radius: 16px; overflow: hidden; border: 1px solid #4a423a;
+    /* the part files render their own themed page bg; the iframe just windows it */
+  }
+  iframe { width: 100%; height: 1000px; border: 0; display: block; background: #f6f2ec; }
+  footer { padding: 24px 32px; color: #8a8177; font-size: 12px; border-top: 1px solid #4a423a; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>closet-app — design directions</h1>
+  <p>Iteration 1 · 8 directions · 2026-08-14 — 70% close to today · 20% a step away · 10% a departure. Refined by successive design-panel workflows; directions are added, culled, and improved each round.</p>
+  <nav class="jump">
+    <a href="#atelier-baseline">Atelier — Baseline</a>
+    <a href="#atelier-warm">Atelier — Warm</a>
+    <a href="#atelier-ivory">Atelier — Ivory Air</a>
+    <a href="#atelier-editorial">Atelier — Editorial Bold</a>
+    <a href="#atelier-mono-serif">Atelier — Serif Throughout</a>
+    <a href="#editorial-noir">Editorial Noir</a>
+    <a href="#lookbook-grid">Lookbook (imagery-forward)</a>
+    <a href="#studio-pop">Studio Pop</a>
+  </nav>
+</header>
+<main>
+
+    <section class="theme" id="atelier-baseline">
+      <div class="theme-head">
+        <div>
+          <span class="badge" style="background:#4E8A6A">70% · close to today</span>
+          <h2>Atelier — Baseline</h2>
+          <p class="desc">The current Atelier design at its best — editorial restraint with warm cream canvas, sunken garment wells, serif display headings, hairline dividers, and a single earned crimson action per screen.</p>
+          <p class="sig"><strong>Signature move:</strong> Every garment is a clean CSS-drawn silhouette on a 6px sunken well, tinted per-piece via one custom property so the shapes read as white/black/camel/rose — no images, fully consistent.</p>
+        </div>
+        <a class="open" href="parts/atelier-baseline.html" target="_blank" rel="noopener">Open full ↗</a>
+      </div>
+      <div class="frame-wrap">
+        <iframe src="parts/atelier-baseline.html" loading="lazy" title="Atelier — Baseline"></iframe>
+      </div>
+    </section>
+
+    <section class="theme" id="atelier-warm">
+      <div class="theme-head">
+        <div>
+          <span class="badge" style="background:#4E8A6A">70% · close to today</span>
+          <h2>Atelier — Warm</h2>
+          <p class="desc">The existing Atelier system nudged one step cozier — a deeper cream canvas, warmer amber-toned shadows, ~15% more negative space, and slightly larger serif display moments.</p>
+          <p class="sig"><strong>Signature move:</strong> Re-tuned the shadow from neutral grey to a warm sepia so every card, well, and hero garment casts a soft honey-toned shadow — the whole surface reads as sunlit.</p>
+        </div>
+        <a class="open" href="parts/atelier-warm.html" target="_blank" rel="noopener">Open full ↗</a>
+      </div>
+      <div class="frame-wrap">
+        <iframe src="parts/atelier-warm.html" loading="lazy" title="Atelier — Warm"></iframe>
+      </div>
+    </section>
+
+    <section class="theme" id="atelier-ivory">
+      <div class="theme-head">
+        <div>
+          <span class="badge" style="background:#4E8A6A">70% · close to today</span>
+          <h2>Atelier — Ivory Air</h2>
+          <p class="desc">The quiet-luxury take: a cooler near-ivory canvas, thinner hairlines, quieter overlines, and a roomier grid that reads like gallery-white calm while keeping the lone crimson action and serif display.</p>
+          <p class="sig"><strong>Signature move:</strong> Dialed the whole system airier — cooler #FAF7F2 canvas, lighter hairlines, 10px overlines — so the single crimson action carries more weight against expanded negative space.</p>
+        </div>
+        <a class="open" href="parts/atelier-ivory.html" target="_blank" rel="noopener">Open full ↗</a>
+      </div>
+      <div class="frame-wrap">
+        <iframe src="parts/atelier-ivory.html" loading="lazy" title="Atelier — Ivory Air"></iframe>
+      </div>
+    </section>
+
+    <section class="theme" id="atelier-editorial">
+      <div class="theme-head">
+        <div>
+          <span class="badge" style="background:#4E8A6A">70% · close to today</span>
+          <h2>Atelier — Editorial Bold</h2>
+          <p class="desc">The shipped Atelier system pushed to magazine-masthead scale — oversized serif display headings anchor each screen against generous cream space, with a single deliberate crimson action per view.</p>
+          <p class="sig"><strong>Signature move:</strong> A dramatic size jump between a 52–56px Georgia headline and 16px body, in confident left-weighted asymmetry, so each screen reads like an editorial cover rather than a settings list.</p>
+        </div>
+        <a class="open" href="parts/atelier-editorial.html" target="_blank" rel="noopener">Open full ↗</a>
+      </div>
+      <div class="frame-wrap">
+        <iframe src="parts/atelier-editorial.html" loading="lazy" title="Atelier — Editorial Bold"></iframe>
+      </div>
+    </section>
+
+    <section class="theme" id="atelier-mono-serif">
+      <div class="theme-head">
+        <div>
+          <span class="badge" style="background:#4E8A6A">70% · close to today</span>
+          <h2>Atelier — Serif Throughout</h2>
+          <p class="desc">The Atelier baseline rendered entirely in Georgia, retiring the sans so display, overlines, and body copy share one literary, bespoke-tailoring voice.</p>
+          <p class="sig"><strong>Signature move:</strong> Serif italics become the app's intimate voice (garment names, subtitles, 'signed in' values in Georgia italic), so typographic identity — not colour or layout — carries the variation.</p>
+        </div>
+        <a class="open" href="parts/atelier-mono-serif.html" target="_blank" rel="noopener">Open full ↗</a>
+      </div>
+      <div class="frame-wrap">
+        <iframe src="parts/atelier-mono-serif.html" loading="lazy" title="Atelier — Serif Throughout"></iframe>
+      </div>
+    </section>
+
+    <section class="theme" id="editorial-noir">
+      <div class="theme-head">
+        <div>
+          <span class="badge" style="background:#9A7A38">20% · a step away</span>
+          <h2>Editorial Noir</h2>
+          <p class="desc">The Atelier editorial system inverted into a warm-ink nighttime atelier — bone-cream type and the same serif display on deep charcoal, garment cutouts floating on darker wells lit by a soft spot, with the crimson action now glowing.</p>
+          <p class="sig"><strong>Signature move:</strong> The crimson accent literally emits light — every earned action carries a soft crimson glow, so the one accent reads as the only warm light source in a dark room.</p>
+        </div>
+        <a class="open" href="parts/editorial-noir.html" target="_blank" rel="noopener">Open full ↗</a>
+      </div>
+      <div class="frame-wrap">
+        <iframe src="parts/editorial-noir.html" loading="lazy" title="Editorial Noir"></iframe>
+      </div>
+    </section>
+
+    <section class="theme" id="lookbook-grid">
+      <div class="theme-head">
+        <div>
+          <span class="badge" style="background:#9A7A38">20% · a step away</span>
+          <h2>Lookbook (imagery-forward)</h2>
+          <p class="desc">A magazine-lookbook reframe that keeps cream/serif/single-crimson but pushes garments edge-to-edge in a tight two-column spread, overlays type on imagery, and turns Today into a full-screen cover.</p>
+          <p class="sig"><strong>Signature move:</strong> Edge-to-edge full-bleed garment tiles with the name/state caption and a magazine '01–04' number tag set over each image on a soft gradient — dropping card chrome so the closet reads as a printed spread.</p>
+        </div>
+        <a class="open" href="parts/lookbook-grid.html" target="_blank" rel="noopener">Open full ↗</a>
+      </div>
+      <div class="frame-wrap">
+        <iframe src="parts/lookbook-grid.html" loading="lazy" title="Lookbook (imagery-forward)"></iframe>
+      </div>
+    </section>
+
+    <section class="theme" id="studio-pop">
+      <div class="theme-head">
+        <div>
+          <span class="badge" style="background:#B62E58">10% · a real departure</span>
+          <h2>Studio Pop</h2>
+          <p class="desc">A joyful Gen-Z boutique departure that trades cream-and-crimson restraint for confident colour-blocked panels (electric grape, hot tangerine, zesty lime), oversized italic display type, and rounder shapes — loud in palette but still minimalist in composition.</p>
+          <p class="sig"><strong>Signature move:</strong> Each tile sits on its own full-saturation candy-tinted well and the Today reveal becomes a radial tangerine-to-magenta hero with floating blend-mode blobs — colour-blocking promoted from accent to structural surface.</p>
+        </div>
+        <a class="open" href="parts/studio-pop.html" target="_blank" rel="noopener">Open full ↗</a>
+      </div>
+      <div class="frame-wrap">
+        <iframe src="parts/studio-pop.html" loading="lazy" title="Studio Pop"></iframe>
+      </div>
+    </section>
+</main>
+<footer>Generated gallery — each frame is a standalone mockup in <code>parts/&lt;slug&gt;.html</code>. This is design exploration, not shipped UI.</footer>
+</body>
+</html>

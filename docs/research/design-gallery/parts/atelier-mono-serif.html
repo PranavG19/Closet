@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Atelier — Serif Throughout</title>
+<style>
+  :root{
+    --cream:#F6F2EC;
+    --surface:#FFFFFF;
+    --well:#EDE6DB;
+    --ink:#221F1B;
+    --ink-2:#655F58;
+    --ink-3:#6C655C;
+    --crimson:#B62E58;
+    --blush:#E0708F;
+    --dot-ready:#4E8A6A;
+    --dot-wash:#9A7A38;
+    --dot-set:#847E76;
+    --hair:#E4DCD0;
+    --serif:Georgia,'Times New Roman',serif;
+    --shadow:0 26px 60px -28px rgba(52,42,30,.42), 0 8px 24px -18px rgba(52,42,30,.30);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    font-family:var(--serif);
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 700px at 50% -10%, #FBF8F2 0%, rgba(251,248,242,0) 60%),
+      linear-gradient(180deg,#EFE8DD 0%, #E7DECF 100%);
+    min-height:100vh;
+    padding:64px 40px 96px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  .gallery-head{
+    text-align:center;
+    max-width:820px;
+    margin:0 auto 52px;
+  }
+  .gallery-kicker{
+    font-family:var(--serif);
+    font-style:italic;
+    letter-spacing:.5px;
+    color:var(--crimson);
+    font-size:15px;
+    margin-bottom:12px;
+  }
+  .gallery-head h1{
+    font-family:var(--serif);
+    font-weight:400;
+    font-size:34px;
+    letter-spacing:.2px;
+    margin:0 0 10px;
+  }
+  .gallery-head p{
+    font-family:var(--serif);
+    color:var(--ink-3);
+    font-size:15px;
+    line-height:1.6;
+    margin:0;
+  }
+
+  .row{
+    display:flex;
+    gap:56px;
+    justify-content:center;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+
+  .frame-wrap{display:flex;flex-direction:column;align-items:center;gap:20px;}
+  .frame-label{
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:16px;
+    color:var(--ink-2);
+    letter-spacing:.3px;
+  }
+
+  /* Phone bezel */
+  .phone{
+    width:390px;
+    height:844px;
+    border-radius:44px;
+    background:#211d17;
+    padding:5px;
+    box-shadow:var(--shadow);
+    position:relative;
+  }
+  .screen{
+    position:relative;
+    width:100%;
+    height:100%;
+    border-radius:40px;
+    overflow:hidden;
+    background:var(--cream);
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* Status bar */
+  .statusbar{
+    height:52px;
+    flex:0 0 52px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 30px 0 34px;
+    font-family:var(--serif);
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:.4px;
+    color:var(--ink);
+  }
+  .sb-right{display:flex;align-items:center;gap:7px;}
+  .sb-right svg{display:block;}
+
+  /* Common label styles */
+  .overline{
+    font-family:var(--serif);
+    text-transform:uppercase;
+    letter-spacing:2px;
+    font-size:11px;
+    color:var(--ink-3);
+  }
+  .display{
+    font-family:var(--serif);
+    font-weight:400;
+    color:var(--ink);
+    line-height:1.02;
+    letter-spacing:.2px;
+  }
+
+  .content{flex:1 1 auto;overflow:hidden;position:relative;}
+
+  /* ===== SCREEN 1 — CLOSET ===== */
+  .closet-head{padding:14px 28px 0;}
+  .closet-title-row{
+    display:flex;align-items:baseline;justify-content:space-between;
+    margin-top:6px;
+  }
+  .closet-title-row .display{font-size:40px;}
+  .pieces{
+    font-family:var(--serif);
+    text-transform:uppercase;
+    letter-spacing:2px;
+    font-size:11px;
+    color:var(--ink-3);
+    padding-bottom:5px;
+  }
+
+  .chips{
+    display:flex;gap:22px;
+    padding:22px 28px 0;
+    font-family:var(--serif);
+    font-size:16px;
+    color:var(--ink-2);
+    overflow:hidden;
+  }
+  .chips .chip.active{color:var(--ink);font-style:italic;}
+
+  .subfilter{
+    display:flex;gap:26px;
+    padding:16px 28px 4px;
+    font-family:var(--serif);
+    font-size:13.5px;
+    color:var(--ink-3);
+    border-bottom:1px solid var(--hair);
+    margin:14px 0 0;
+  }
+  .subfilter .sf{position:relative;padding-bottom:12px;}
+  .subfilter .sf.sel{color:var(--ink);}
+  .subfilter .sf.sel::after{
+    content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;
+    background:var(--crimson);border-radius:2px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px 20px;
+    padding:24px 28px 18px;
+  }
+  .tile{display:flex;flex-direction:column;}
+  .well{
+    background:var(--well);
+    border-radius:6px;
+    aspect-ratio:1/1.14;
+    position:relative;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 1px 3px rgba(70,58,42,.10);
+    overflow:hidden;
+  }
+  .tile-name{
+    font-family:var(--serif);
+    font-size:19px;
+    color:var(--ink);
+    margin:12px 0 5px;
+    font-style:italic;
+  }
+  .state{display:flex;align-items:center;gap:7px;}
+  .dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;}
+  .state .lbl{
+    font-family:var(--serif);
+    text-transform:uppercase;
+    letter-spacing:1.6px;
+    font-size:9.5px;
+    color:var(--ink-3);
+  }
+
+  /* CSS-drawn garments */
+  .garment{width:118px;height:118px;position:relative;}
+  /* Top / blouse */
+  .g-top .body{
+    position:absolute;left:50%;top:26px;transform:translateX(-50%);
+    width:70px;height:74px;background:#FCFAF6;
+    border-radius:10px 10px 16px 16px;
+    box-shadow:inset 0 -10px 18px -12px rgba(70,58,42,.20);
+  }
+  .g-top .sl-l,.g-top .sl-r{
+    position:absolute;top:24px;width:30px;height:40px;background:#FCFAF6;
+    border-radius:12px;
+  }
+  .g-top .sl-l{left:6px;transform:rotate(20deg);}
+  .g-top .sl-r{right:6px;transform:rotate(-20deg);}
+  .g-top .neck{
+    position:absolute;left:50%;top:22px;transform:translateX(-50%);
+    width:26px;height:16px;background:var(--well);
+    border-radius:0 0 16px 16px;z-index:2;
+  }
+
+  /* Dress (black) */
+  .g-dress .body{
+    position:absolute;left:50%;top:24px;transform:translateX(-50%);
+    width:0;height:0;
+    border-left:36px solid transparent;
+    border-right:36px solid transparent;
+    border-top:82px solid #2A2622;
+  }
+  .g-dress .bodice{
+    position:absolute;left:50%;top:24px;transform:translateX(-50%);
+    width:44px;height:34px;background:#2A2622;border-radius:8px 8px 0 0;
+  }
+  .g-dress .sl-l,.g-dress .sl-r{
+    position:absolute;top:26px;width:22px;height:30px;background:#2A2622;border-radius:10px;
+  }
+  .g-dress .sl-l{left:20px;transform:rotate(24deg);}
+  .g-dress .sl-r{right:20px;transform:rotate(-24deg);}
+  .g-dress .neck{
+    position:absolute;left:50%;top:22px;transform:translateX(-50%);
+    width:20px;height:12px;background:var(--well);border-radius:0 0 12px 12px;z-index:2;
+  }
+
+  /* Coat / outerwear (camel) */
+  .g-coat .body{
+    position:absolute;left:50%;top:26px;transform:translateX(-50%);
+    width:64px;height:78px;background:#C79A5E;
+    border-radius:12px 12px 6px 6px;
+  }
+  .g-coat .lapel-l,.g-coat .lapel-r{
+    position:absolute;top:26px;width:0;height:0;
+    border-top:34px solid #B98A4C;
+  }
+  .g-coat .lapel-l{left:50%;margin-left:-32px;border-right:16px solid transparent;}
+  .g-coat .lapel-r{left:50%;border-left:16px solid transparent;}
+  .g-coat .sl-l,.g-coat .sl-r{
+    position:absolute;top:28px;width:24px;height:52px;background:#C79A5E;border-radius:10px;
+  }
+  .g-coat .sl-l{left:6px;transform:rotate(10deg);}
+  .g-coat .sl-r{right:6px;transform:rotate(-10deg);}
+  .g-coat .belt{
+    position:absolute;left:50%;top:70px;transform:translateX(-50%);
+    width:64px;height:7px;background:#A97D42;z-index:3;
+  }
+  .g-coat .btn{
+    position:absolute;left:50%;transform:translateX(-50%);
+    width:4px;height:4px;border-radius:50%;background:#8E6a34;z-index:4;
+  }
+
+  /* Shoe / heel (rose) */
+  .g-shoe .sole{
+    position:absolute;left:22px;bottom:30px;
+    width:74px;height:26px;background:var(--blush);
+    border-radius:6px 26px 22px 8px;
+  }
+  .g-shoe .heel{
+    position:absolute;right:24px;bottom:8px;
+    width:8px;height:26px;background:var(--blush);
+    border-radius:0 0 3px 3px;transform:rotate(6deg);
+  }
+  .g-shoe .vamp{
+    position:absolute;left:26px;bottom:44px;
+    width:40px;height:30px;background:var(--blush);
+    border-radius:24px 30px 0 0;
+  }
+
+  /* Bottom tab bar */
+  .tabbar{
+    flex:0 0 92px;
+    border-top:1px solid var(--hair);
+    background:rgba(255,255,255,.72);
+    backdrop-filter:blur(8px);
+    display:flex;align-items:flex-start;justify-content:space-between;
+    padding:12px 26px 0;
+    position:relative;
+  }
+  .tab{
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+    width:56px;
+    font-family:var(--serif);
+    font-size:11px;
+    color:var(--ink-3);
+    letter-spacing:.3px;
+  }
+  .tab.active{color:var(--ink);}
+  .tab.active .ic{color:var(--ink);}
+  .tab .ic{color:var(--ink-3);height:24px;display:flex;align-items:center;}
+  .fab{
+    width:60px;height:60px;border-radius:50%;
+    background:var(--crimson);
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 12px 24px -8px rgba(182,46,88,.6);
+    margin-top:-16px;
+    color:#fff;
+  }
+  .fab-wrap{width:60px;display:flex;justify-content:center;}
+
+  /* ===== SCREEN 2 — TODAY ===== */
+  .hero{
+    position:relative;
+    height:512px;flex:0 0 512px;
+    background:
+      radial-gradient(120% 80% at 50% 26%, #FBF8F2 0%, #F0E9DE 70%, #E9E0D2 100%);
+    overflow:hidden;
+  }
+  .hero .band{
+    position:absolute;left:0;right:0;top:120px;height:250px;
+    background:linear-gradient(180deg,rgba(237,230,219,0) 0%,#EDE6DB 22%,#EDE6DB 78%,rgba(237,230,219,0) 100%);
+  }
+  .hero .today-over{
+    position:absolute;top:22px;left:28px;z-index:3;
+  }
+  .hero-garment{
+    position:absolute;left:50%;top:150px;transform:translateX(-50%) scale(1.72);
+    z-index:2;
+  }
+  .hero-caption{
+    position:absolute;left:28px;right:28px;bottom:26px;z-index:3;
+  }
+  .hero-caption .display{font-size:34px;}
+  .hero-caption .sub{
+    font-family:var(--serif);font-style:italic;
+    color:var(--ink-2);font-size:17px;margin-top:6px;
+  }
+  .today-actions{
+    padding:26px 28px 0;
+    border-top:1px solid var(--hair);
+    margin:22px 28px 0;
+    display:flex;flex-direction:column;gap:22px;
+  }
+  .today-link{
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .today-link .k{
+    font-family:var(--serif);text-transform:uppercase;letter-spacing:2px;font-size:11.5px;
+    color:var(--ink-3);
+  }
+  .today-link .worn{
+    color:var(--ink);font-style:italic;
+    text-transform:uppercase;letter-spacing:2px;font-size:11.5px;
+    position:relative;padding-bottom:6px;
+  }
+  .today-link .worn::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--crimson);border-radius:2px;
+  }
+  .chev{color:var(--ink-3);}
+
+  /* ===== SCREEN 3 — YOU ===== */
+  .you-scroll{padding:14px 28px 0;overflow:hidden;height:100%;}
+  .you-title{font-size:40px;margin-top:6px;}
+  .section{padding:24px 0;border-top:1px solid var(--hair);}
+  .section:first-of-type{border-top:none;}
+  .section .s-title{
+    font-family:var(--serif);font-size:22px;color:var(--ink);margin:0 0 14px;font-weight:400;
+  }
+  .kv{margin-bottom:4px;}
+  .kv .k{
+    font-family:var(--serif);text-transform:uppercase;letter-spacing:2px;font-size:10.5px;color:var(--ink-3);
+  }
+  .kv .v{font-family:var(--serif);font-size:17px;color:var(--ink);margin-top:6px;font-style:italic;}
+  .row-links{display:flex;gap:26px;margin-top:14px;}
+  .txt-link{
+    font-family:var(--serif);text-transform:uppercase;letter-spacing:1.8px;font-size:11px;color:var(--ink-2);
+  }
+  .txt-link.crimson{color:var(--crimson);}
+  .body-copy{font-family:var(--serif);font-size:16px;line-height:1.55;color:var(--ink-2);margin:2px 0 0;}
+  .swatches{display:flex;gap:12px;margin-top:16px;}
+  .sw{width:38px;height:38px;border-radius:12px;box-shadow:inset 0 1px 2px rgba(70,58,42,.12);}
+  .danger-link{
+    font-family:var(--serif);text-transform:uppercase;letter-spacing:1.8px;font-size:11px;color:var(--crimson);
+  }
+  .version{
+    font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--ink-3);
+    text-align:center;padding:8px 0 4px;
+  }
+</style>
+</head>
+<body>
+
+  <div class="gallery-head">
+    <div class="gallery-kicker">Atelier — Serif Throughout</div>
+    <h1>A wardrobe read like a book</h1>
+    <p>The same cream, crimson and hairline structure of Atelier, set entirely in Georgia — display, labels and body alike — for a literary, bespoke-tailoring register. Sans is retired; italics carry the intimate voice.</p>
+  </div>
+
+  <div class="row">
+
+    <!-- ===================== SCREEN 1 — CLOSET ===================== -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sb-right">
+              <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#221F1B"/><rect x="4.5" y="5" width="3" height="7" rx="1" fill="#221F1B"/><rect x="9" y="2.5" width="3" height="9.5" rx="1" fill="#221F1B"/><rect x="13.5" y="0" width="3" height="12" rx="1" fill="#221F1B"/></svg>
+              <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.2c2.3 0 4.4.9 6 2.4l-1.4 1.4C11.9 4.8 10.3 4.2 8.5 4.2S5.1 4.8 3.9 6L2.5 4.6C4.1 3.1 6.2 2.2 8.5 2.2Z" fill="#221F1B"/><circle cx="8.5" cy="9.2" r="1.6" fill="#221F1B"/></svg>
+              <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="1" width="21" height="10" rx="3" fill="none" stroke="#221F1B" stroke-opacity=".5"/><rect x="2" y="2.5" width="16" height="7" rx="1.6" fill="#221F1B"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#221F1B" fill-opacity=".5"/></svg>
+            </span>
+          </div>
+
+          <div class="content">
+            <div class="closet-head">
+              <div class="overline">Your Closet</div>
+              <div class="closet-title-row">
+                <div class="display">Closet</div>
+                <div class="pieces">6 Pieces</div>
+              </div>
+            </div>
+
+            <div class="chips">
+              <span class="chip active">Tops</span>
+              <span class="chip">Bottoms</span>
+              <span class="chip">Dresses</span>
+              <span class="chip">Outerwear</span>
+              <span class="chip">Shoes</span>
+            </div>
+
+            <div class="subfilter">
+              <span class="sf sel">Ready to wear</span>
+              <span class="sf">In the wash</span>
+              <span class="sf">Set aside</span>
+            </div>
+
+            <div class="grid">
+              <!-- tile 1: top / white -->
+              <div class="tile">
+                <div class="well">
+                  <div class="garment g-top">
+                    <span class="neck"></span>
+                    <span class="sl-l"></span><span class="sl-r"></span>
+                    <span class="body"></span>
+                  </div>
+                </div>
+                <div class="tile-name">white</div>
+                <div class="state"><span class="dot" style="background:var(--dot-ready)"></span><span class="lbl">Ready to wear</span></div>
+              </div>
+
+              <!-- tile 2: dress / black -->
+              <div class="tile">
+                <div class="well">
+                  <div class="garment g-dress">
+                    <span class="neck"></span>
+                    <span class="sl-l"></span><span class="sl-r"></span>
+                    <span class="body"></span>
+                    <span class="bodice"></span>
+                  </div>
+                </div>
+                <div class="tile-name">black</div>
+                <div class="state"><span class="dot" style="background:var(--dot-ready)"></span><span class="lbl">Ready to wear</span></div>
+              </div>
+
+              <!-- tile 3: coat / camel -->
+              <div class="tile">
+                <div class="well">
+                  <div class="garment g-coat">
+                    <span class="body"></span>
+                    <span class="sl-l"></span><span class="sl-r"></span>
+                    <span class="lapel-l"></span><span class="lapel-r"></span>
+                    <span class="btn" style="top:48px"></span>
+                    <span class="btn" style="top:60px"></span>
+                    <span class="belt"></span>
+                  </div>
+                </div>
+                <div class="tile-name">camel</div>
+                <div class="state"><span class="dot" style="background:var(--dot-wash)"></span><span class="lbl">In the wash</span></div>
+              </div>
+
+              <!-- tile 4: shoe / rose -->
+              <div class="tile">
+                <div class="well">
+                  <div class="garment g-shoe">
+                    <span class="vamp"></span>
+                    <span class="sole"></span>
+                    <span class="heel"></span>
+                  </div>
+                </div>
+                <div class="tile-name">rose</div>
+                <div class="state"><span class="dot" style="background:var(--dot-set)"></span><span class="lbl">Set aside</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- tab bar -->
+          <div class="tabbar">
+            <div class="tab active">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 8.5 12 4l8 4.5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-10Z" stroke="currentColor" stroke-width="1.5"/><path d="M12 4v15.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              Closet
+            </div>
+            <div class="tab">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+              Today
+            </div>
+            <div class="fab-wrap">
+              <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></div>
+            </div>
+            <div class="tab">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              Outfits
+            </div>
+            <div class="tab">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              You
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-label">Closet</div>
+    </div>
+
+    <!-- ===================== SCREEN 2 — TODAY ===================== -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sb-right">
+              <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#221F1B"/><rect x="4.5" y="5" width="3" height="7" rx="1" fill="#221F1B"/><rect x="9" y="2.5" width="3" height="9.5" rx="1" fill="#221F1B"/><rect x="13.5" y="0" width="3" height="12" rx="1" fill="#221F1B"/></svg>
+              <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.2c2.3 0 4.4.9 6 2.4l-1.4 1.4C11.9 4.8 10.3 4.2 8.5 4.2S5.1 4.8 3.9 6L2.5 4.6C4.1 3.1 6.2 2.2 8.5 2.2Z" fill="#221F1B"/><circle cx="8.5" cy="9.2" r="1.6" fill="#221F1B"/></svg>
+              <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="1" width="21" height="10" rx="3" fill="none" stroke="#221F1B" stroke-opacity=".5"/><rect x="2" y="2.5" width="16" height="7" rx="1.6" fill="#221F1B"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#221F1B" fill-opacity=".5"/></svg>
+            </span>
+          </div>
+
+          <div class="content">
+            <div class="hero">
+              <div class="band"></div>
+              <div class="today-over overline">Today</div>
+              <div class="hero-garment">
+                <div class="garment g-coat">
+                  <span class="body"></span>
+                  <span class="sl-l"></span><span class="sl-r"></span>
+                  <span class="lapel-l"></span><span class="lapel-r"></span>
+                  <span class="btn" style="top:48px"></span>
+                  <span class="btn" style="top:60px"></span>
+                  <span class="belt"></span>
+                </div>
+              </div>
+              <div class="hero-caption">
+                <div class="display">Camel outerwear</div>
+                <div class="sub">with black</div>
+              </div>
+            </div>
+
+            <div class="today-actions">
+              <div class="today-link">
+                <span class="k">Why this?</span>
+                <span class="chev"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6.5 4l5 5-5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+              <div class="today-link">
+                <span class="worn">Wore this today</span>
+                <span class="chev"><svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M6.5 4l5 5-5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="tabbar">
+            <div class="tab">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 8.5 12 4l8 4.5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-10Z" stroke="currentColor" stroke-width="1.5"/><path d="M12 4v15.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              Closet
+            </div>
+            <div class="tab active">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+              Today
+            </div>
+            <div class="fab-wrap">
+              <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></div>
+            </div>
+            <div class="tab">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              Outfits
+            </div>
+            <div class="tab">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              You
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-label">Today</div>
+    </div>
+
+    <!-- ===================== SCREEN 3 — YOU ===================== -->
+    <div class="frame-wrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="sb-right">
+              <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="7" width="3" height="5" rx="1" fill="#221F1B"/><rect x="4.5" y="5" width="3" height="7" rx="1" fill="#221F1B"/><rect x="9" y="2.5" width="3" height="9.5" rx="1" fill="#221F1B"/><rect x="13.5" y="0" width="3" height="12" rx="1" fill="#221F1B"/></svg>
+              <svg width="17" height="12" viewBox="0 0 17 12"><path d="M8.5 2.2c2.3 0 4.4.9 6 2.4l-1.4 1.4C11.9 4.8 10.3 4.2 8.5 4.2S5.1 4.8 3.9 6L2.5 4.6C4.1 3.1 6.2 2.2 8.5 2.2Z" fill="#221F1B"/><circle cx="8.5" cy="9.2" r="1.6" fill="#221F1B"/></svg>
+              <svg width="26" height="12" viewBox="0 0 26 12"><rect x="0.5" y="1" width="21" height="10" rx="3" fill="none" stroke="#221F1B" stroke-opacity=".5"/><rect x="2" y="2.5" width="16" height="7" rx="1.6" fill="#221F1B"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#221F1B" fill-opacity=".5"/></svg>
+            </span>
+          </div>
+
+          <div class="content">
+            <div class="you-scroll">
+              <div class="overline">Your Account</div>
+              <div class="display you-title">You</div>
+
+              <div class="section" style="border-top:none;padding-top:22px;">
+                <div class="kv">
+                  <div class="k">Signed in as</div>
+                  <div class="v">tester@example.com</div>
+                </div>
+                <div class="row-links"><span class="txt-link">Sign out</span></div>
+              </div>
+
+              <div class="section">
+                <div class="s-title">Membership</div>
+                <p class="body-copy">Premium — every feature is unlocked.</p>
+                <div class="row-links">
+                  <span class="txt-link">Manage subscription</span>
+                  <span class="txt-link">Restore purchases</span>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="s-title">Your colours</div>
+                <div class="swatches">
+                  <span class="sw" style="background:#B8452E"></span>
+                  <span class="sw" style="background:#C9A24B"></span>
+                  <span class="sw" style="background:#5E7D6A"></span>
+                  <span class="sw" style="background:#3E4C63"></span>
+                  <span class="sw" style="background:#C58BA0"></span>
+                  <span class="sw" style="background:#6E5A47"></span>
+                </div>
+              </div>
+
+              <div class="section">
+                <div class="s-title">Your data</div>
+                <div class="row-links"><span class="txt-link">Export my data</span></div>
+              </div>
+
+              <div class="section">
+                <div class="s-title">Delete my account</div>
+                <div class="row-links"><span class="danger-link">Delete my account</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="version">Atelier · version 1.0.0 (100)</div>
+
+          <div class="tabbar">
+            <div class="tab">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 8.5 12 4l8 4.5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-10Z" stroke="currentColor" stroke-width="1.5"/><path d="M12 4v15.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              Closet
+            </div>
+            <div class="tab">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+              Today
+            </div>
+            <div class="fab-wrap">
+              <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></div>
+            </div>
+            <div class="tab">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              Outfits
+            </div>
+            <div class="tab active">
+              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              You
+            </div>
+          </div>
+
+        </div>
+      </div>
+      <div class="frame-label">You</div>
+    </div>
+
+  </div>
+</body>
+</html>

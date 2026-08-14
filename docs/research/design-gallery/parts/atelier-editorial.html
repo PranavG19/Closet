@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — Editorial Bold</title>
+<style>
+  :root{
+    --cream:#F6F2EC;
+    --white:#FFFFFF;
+    --well:#EDE6DB;
+    --ink:#221F1B;
+    --ink2:#655F58;
+    --ink3:#6C655C;
+    --crimson:#B62E58;
+    --blush:#E0708F;
+    --ready:#4E8A6A;
+    --wash:#9A7A38;
+    --aside:#847E76;
+    --hair:#E4DCD0;
+    --serif:Georgia,'Times New Roman',serif;
+    --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+    --shadow:0 24px 60px -28px rgba(52,40,30,.42);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--sans);
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 700px at 20% -5%, #FBF8F2 0%, transparent 60%),
+      radial-gradient(1000px 800px at 100% 110%, #F1EADF 0%, transparent 55%),
+      #EFE8DC;
+    -webkit-font-smoothing:antialiased;
+    padding:64px 40px 80px;
+  }
+
+  .gallery-head{max-width:1360px;margin:0 auto 44px;text-align:center}
+  .gallery-head .overline{
+    font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);
+    display:inline-block;margin-bottom:14px;
+  }
+  .gallery-head h1{
+    font-family:var(--serif);font-weight:400;color:var(--ink);
+    font-size:52px;line-height:1;letter-spacing:-.02em;
+  }
+  .gallery-head p{color:var(--ink2);font-size:15px;margin-top:14px}
+  .gallery-head .rule{width:52px;height:2px;background:var(--crimson);margin:22px auto 0}
+
+  .row{
+    display:flex;gap:52px;justify-content:center;align-items:flex-start;
+    flex-wrap:wrap;max-width:1500px;margin:0 auto;
+  }
+
+  .framewrap{display:flex;flex-direction:column;align-items:center;gap:18px}
+  .caption{
+    font-family:var(--serif);font-style:italic;color:var(--ink2);font-size:16px;
+  }
+  .caption .no{
+    font-family:var(--sans);font-style:normal;font-size:10px;letter-spacing:2px;
+    text-transform:uppercase;color:var(--ink3);margin-right:8px;
+    border:1px solid var(--hair);border-radius:999px;padding:3px 8px;
+  }
+
+  /* ---- phone shell ---- */
+  .phone{
+    width:390px;height:844px;border-radius:44px;
+    background:linear-gradient(#2b2723,#171310);
+    padding:11px;box-shadow:var(--shadow);
+    position:relative;
+  }
+  .screen{
+    width:100%;height:100%;border-radius:34px;overflow:hidden;
+    background:var(--cream);position:relative;display:flex;flex-direction:column;
+  }
+
+  .statusbar{
+    height:52px;flex:0 0 52px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 26px 0 30px;font-size:14px;font-weight:600;color:var(--ink);
+  }
+  .statusbar .dots{display:flex;align-items:center;gap:5px}
+  .statusbar .sig{display:flex;align-items:flex-end;gap:2px;height:11px}
+  .statusbar .sig i{width:3px;background:var(--ink);border-radius:1px;display:block}
+  .statusbar .sig i:nth-child(1){height:4px}
+  .statusbar .sig i:nth-child(2){height:6px}
+  .statusbar .sig i:nth-child(3){height:8px}
+  .statusbar .sig i:nth-child(4){height:11px}
+  .statusbar .bat{
+    width:24px;height:12px;border:1.5px solid var(--ink);border-radius:3px;position:relative;padding:1.5px;
+  }
+  .statusbar .bat::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;background:var(--ink);border-radius:0 1px 1px 0}
+  .statusbar .bat i{display:block;height:100%;width:75%;background:var(--ink);border-radius:1px}
+
+  .body{flex:1;overflow:hidden;position:relative}
+  .pad{padding:0 24px}
+
+  .overline{
+    font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--ink3);
+    font-weight:600;
+  }
+  .display{
+    font-family:var(--serif);font-weight:400;color:var(--ink);
+    letter-spacing:-.025em;line-height:.92;
+  }
+
+  /* ---- chips ---- */
+  .chiprow{display:flex;gap:9px;overflow:hidden;padding:0 24px}
+  .chip{
+    flex:0 0 auto;font-size:13px;color:var(--ink2);
+    padding:8px 15px;border-radius:999px;border:1px solid var(--hair);
+    background:var(--white);white-space:nowrap;
+  }
+  .chip.on{color:var(--white);background:var(--ink);border-color:var(--ink)}
+
+  .segrow{display:flex;gap:22px;padding:0 24px;border-bottom:1px solid var(--hair);margin-top:4px}
+  .seg{
+    font-size:12.5px;color:var(--ink3);padding:12px 0 13px;position:relative;
+  }
+  .seg.on{color:var(--ink);font-weight:600}
+  .seg.on::after{
+    content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--crimson);
+  }
+
+  /* ---- garment tiles ---- */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:18px 24px 0}
+  .tile{}
+  .well{
+    background:var(--well);border-radius:6px;height:186px;position:relative;overflow:hidden;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .well::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(120px 120px at 50% 38%, rgba(255,255,255,.5), transparent 70%);
+    pointer-events:none;
+  }
+  .tile .name{font-family:var(--serif);font-size:19px;color:var(--ink);margin-top:11px;letter-spacing:-.01em}
+  .tile .state{display:flex;align-items:center;gap:6px;margin-top:5px}
+  .dot{width:7px;height:7px;border-radius:999px;flex:0 0 auto}
+  .dot.ready{background:var(--ready)}
+  .dot.wash{background:var(--wash)}
+  .dot.aside{background:var(--aside)}
+  .tile .lbl{font-size:9.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink3);font-weight:600}
+
+  /* ---- CSS garments (svg) ---- */
+  .g{filter:drop-shadow(0 10px 14px rgba(60,45,30,.14))}
+
+  /* ---- tab bar ---- */
+  .tabbar{
+    flex:0 0 92px;background:var(--white);border-top:1px solid var(--hair);
+    display:flex;align-items:flex-start;justify-content:space-around;padding-top:12px;position:relative;
+  }
+  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;width:56px;color:var(--ink3)}
+  .tab svg{width:23px;height:23px;display:block}
+  .tab span{font-size:10px;letter-spacing:.3px}
+  .tab.on{color:var(--ink)}
+  .tab.on span{font-weight:600}
+  .fab{
+    width:58px;height:58px;border-radius:999px;background:var(--crimson);
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    margin-top:-20px;box-shadow:0 12px 22px -8px rgba(182,46,88,.7);
+  }
+  .fab svg{width:24px;height:24px}
+  .tabspacer{width:56px}
+
+  /* ---- Screen 2 hero ---- */
+  .hero{
+    position:relative;height:498px;overflow:hidden;
+    background:linear-gradient(180deg,#F0E9DE 0%, #E9E0D3 100%);
+  }
+  .hero .band{
+    position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);
+    height:220px;background:var(--well);
+  }
+  .hero .bandglow{
+    position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);
+    width:260px;height:260px;border-radius:999px;
+    background:radial-gradient(circle, rgba(255,255,255,.65), transparent 68%);
+  }
+  .hero .toplabel{position:absolute;top:20px;left:24px}
+  .hero .garment{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);z-index:2}
+  .hero .titleblock{position:absolute;left:24px;bottom:26px;right:24px;z-index:3}
+  .hero .titleblock .sub{color:var(--ink2);font-size:16px;margin-top:8px;font-family:var(--serif);font-style:italic}
+  .hero .scrim{
+    position:absolute;left:0;right:0;bottom:0;height:200px;z-index:1;
+    background:linear-gradient(180deg,transparent, rgba(246,242,236,.9) 78%, var(--cream));
+  }
+
+  .reveal-actions{padding:22px 24px 0}
+  .actline{display:flex;flex-direction:column;gap:18px;margin-top:20px}
+  .actlink{display:flex;align-items:center;justify-content:space-between}
+  .actlink .k{font-size:12px;letter-spacing:2.2px;text-transform:uppercase;color:var(--ink3);font-weight:600}
+  .actlink .k.crimson{
+    color:var(--crimson);border-bottom:2px solid var(--crimson);padding-bottom:5px;align-self:flex-start;
+  }
+  .actlink .arrow{color:var(--ink3)}
+
+  /* ---- Screen 3 account ---- */
+  .acc-section{padding:0 24px}
+  .acc-title{font-family:var(--serif);font-size:23px;color:var(--ink);letter-spacing:-.01em}
+  .kv{margin-top:10px}
+  .kv .k{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);font-weight:600}
+  .kv .v{font-size:16px;color:var(--ink);margin-top:5px}
+  .biglink{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--ink);font-weight:600;margin-top:12px;display:inline-block}
+  .biglink.crimson{color:var(--crimson)}
+  .linkgroup{display:flex;gap:24px;margin-top:14px}
+  .sect-divider{height:1px;background:var(--hair);margin:24px 24px}
+  .swatches{display:flex;gap:10px;margin-top:14px}
+  .sw{width:34px;height:34px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05)}
+  .body p.muted{color:var(--ink2);font-size:15px;line-height:1.5;margin-top:8px}
+  .ver{text-align:center;color:#a79f93;font-size:11px;letter-spacing:.4px;padding:20px 0 6px}
+
+  /* fade in */
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+  .r1{animation-delay:.05s}.r2{animation-delay:.12s}.r3{animation-delay:.19s}.r4{animation-delay:.26s}
+</style>
+</head>
+<body>
+
+  <div class="gallery-head">
+    <span class="overline">Design Gallery · Direction</span>
+    <h1>Atelier — Editorial Bold</h1>
+    <p>Same cream / serif / crimson system — masthead-scale display type, confident asymmetry, crimson with intent.</p>
+    <div class="rule"></div>
+  </div>
+
+  <div class="row">
+
+    <!-- ================= SCREEN 1 — CLOSET ================= -->
+    <div class="framewrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="dots">
+              <span class="sig"><i></i><i></i><i></i><i></i></span>
+              <span style="font-size:11px;font-weight:700;letter-spacing:.5px">5G</span>
+              <span class="bat"><i></i></span>
+            </span>
+          </div>
+
+          <div class="body">
+            <div class="pad rise r1" style="padding-top:8px;display:flex;justify-content:space-between;align-items:flex-end">
+              <div>
+                <div class="overline">Your Closet</div>
+                <div class="display" style="font-size:56px;margin-top:8px">Closet</div>
+              </div>
+              <div class="overline" style="padding-bottom:8px">6 Pieces</div>
+            </div>
+
+            <div class="chiprow rise r2" style="margin-top:22px">
+              <span class="chip on">Tops</span>
+              <span class="chip">Bottoms</span>
+              <span class="chip">Dresses</span>
+              <span class="chip">Outerwear</span>
+              <span class="chip">Shoes</span>
+            </div>
+
+            <div class="segrow rise r2" style="margin-top:16px">
+              <span class="seg on">Ready to wear</span>
+              <span class="seg">In the wash</span>
+              <span class="seg">Set aside</span>
+            </div>
+
+            <div class="grid">
+              <div class="tile rise r3">
+                <div class="well">
+                  <!-- top / blouse -->
+                  <svg class="g" width="112" height="120" viewBox="0 0 112 120" fill="none">
+                    <path d="M40 14 L28 8 L8 26 L20 44 L30 38 L30 108 Q30 114 36 114 L76 114 Q82 114 82 108 L82 38 L92 44 L104 26 L84 8 L72 14 Q56 26 40 14 Z"
+                      fill="#FBFAF8" stroke="#DAD1C4" stroke-width="1.5" stroke-linejoin="round"/>
+                    <path d="M40 14 Q56 26 72 14" fill="none" stroke="#DAD1C4" stroke-width="1.5"/>
+                  </svg>
+                </div>
+                <div class="name">White</div>
+                <div class="state"><span class="dot ready"></span><span class="lbl">Ready to wear</span></div>
+              </div>
+
+              <div class="tile rise r3">
+                <div class="well">
+                  <!-- dress -->
+                  <svg class="g" width="100" height="128" viewBox="0 0 100 128" fill="none">
+                    <path d="M36 10 L28 8 L20 20 L30 30 L34 26 Q34 40 30 52 L14 112 Q13 118 20 118 L80 118 Q87 118 86 112 L70 52 Q66 40 66 26 L70 30 L80 20 L72 8 L64 10 Q50 22 36 10 Z"
+                      fill="#2A2622" stroke="#1c1916" stroke-width="1.5" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <div class="name">Black</div>
+                <div class="state"><span class="dot ready"></span><span class="lbl">Ready to wear</span></div>
+              </div>
+
+              <div class="tile rise r4">
+                <div class="well">
+                  <!-- coat / outerwear -->
+                  <svg class="g" width="108" height="124" viewBox="0 0 108 124" fill="none">
+                    <path d="M40 12 L26 8 L8 28 L20 46 L30 40 L30 112 Q30 116 34 116 L74 116 Q78 116 78 112 L78 40 L88 46 L100 28 L82 8 L68 12 Q54 22 40 12 Z"
+                      fill="#C79A6B" stroke="#A97F53" stroke-width="1.5" stroke-linejoin="round"/>
+                    <path d="M54 14 L54 116" stroke="#A97F53" stroke-width="1.5"/>
+                    <circle cx="47" cy="60" r="2" fill="#8a663f"/>
+                    <circle cx="47" cy="80" r="2" fill="#8a663f"/>
+                  </svg>
+                </div>
+                <div class="name">Camel</div>
+                <div class="state"><span class="dot wash"></span><span class="lbl">In the wash</span></div>
+              </div>
+
+              <div class="tile rise r4">
+                <div class="well">
+                  <!-- rose blouse -->
+                  <svg class="g" width="112" height="118" viewBox="0 0 112 118" fill="none">
+                    <path d="M42 14 L30 10 L10 26 L22 42 L32 36 L32 106 Q32 112 38 112 L74 112 Q80 112 80 106 L80 36 L90 42 L102 26 L82 10 L70 14 Q56 24 42 14 Z"
+                      fill="#E9C4CF" stroke="#D49FB0" stroke-width="1.5" stroke-linejoin="round"/>
+                    <path d="M42 14 Q56 24 70 14" fill="none" stroke="#D49FB0" stroke-width="1.5"/>
+                  </svg>
+                </div>
+                <div class="name">Rose</div>
+                <div class="state"><span class="dot aside"></span><span class="lbl">Set aside</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- tab bar -->
+          <div class="tabbar">
+            <div class="tab on">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16v5H4zM4 9v11h16V9M9 9v11"/></svg>
+              <span>Closet</span>
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+              <span>Today</span>
+            </div>
+            <div class="tabspacer">
+              <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+              <span>Outfits</span>
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+              <span>You</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><span class="no">01</span>Closet</div>
+    </div>
+
+    <!-- ================= SCREEN 2 — TODAY ================= -->
+    <div class="framewrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="dots">
+              <span class="sig"><i></i><i></i><i></i><i></i></span>
+              <span style="font-size:11px;font-weight:700;letter-spacing:.5px">5G</span>
+              <span class="bat"><i></i></span>
+            </span>
+          </div>
+
+          <div class="body">
+            <div class="hero rise r1">
+              <div class="band"></div>
+              <div class="bandglow"></div>
+              <div class="toplabel overline">Today</div>
+
+              <div class="garment rise r2">
+                <svg class="g" width="180" height="230" viewBox="0 0 108 124" fill="none">
+                  <path d="M40 12 L26 8 L8 28 L20 46 L30 40 L30 112 Q30 116 34 116 L74 116 Q78 116 78 112 L78 40 L88 46 L100 28 L82 8 L68 12 Q54 22 40 12 Z"
+                    fill="#C79A6B" stroke="#A97F53" stroke-width="1.4" stroke-linejoin="round"/>
+                  <path d="M54 14 L54 116" stroke="#A97F53" stroke-width="1.4"/>
+                  <circle cx="47" cy="58" r="1.8" fill="#8a663f"/>
+                  <circle cx="47" cy="78" r="1.8" fill="#8a663f"/>
+                  <circle cx="47" cy="98" r="1.8" fill="#8a663f"/>
+                </svg>
+              </div>
+
+              <div class="scrim"></div>
+              <div class="titleblock rise r3">
+                <div class="display" style="font-size:52px">Camel<br>outerwear</div>
+                <div class="sub">with black</div>
+              </div>
+            </div>
+
+            <div class="reveal-actions rise r4">
+              <div class="actline">
+                <div class="actlink">
+                  <span class="k">Why this?</span>
+                  <span class="arrow">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M9 6l6 6-6 6"/></svg>
+                  </span>
+                </div>
+                <div class="actlink">
+                  <span class="k crimson">Wore this today</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- tab bar -->
+          <div class="tabbar">
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16v5H4zM4 9v11h16V9M9 9v11"/></svg>
+              <span>Closet</span>
+            </div>
+            <div class="tab on">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+              <span>Today</span>
+            </div>
+            <div class="tabspacer">
+              <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+              <span>Outfits</span>
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+              <span>You</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><span class="no">02</span>Today</div>
+    </div>
+
+    <!-- ================= SCREEN 3 — YOU ================= -->
+    <div class="framewrap">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar">
+            <span>9:41</span>
+            <span class="dots">
+              <span class="sig"><i></i><i></i><i></i><i></i></span>
+              <span style="font-size:11px;font-weight:700;letter-spacing:.5px">5G</span>
+              <span class="bat"><i></i></span>
+            </span>
+          </div>
+
+          <div class="body">
+            <div class="pad rise r1" style="padding-top:8px">
+              <div class="overline">Your Account</div>
+              <div class="display" style="font-size:56px;margin-top:8px">You</div>
+            </div>
+
+            <div class="acc-section rise r2" style="margin-top:30px">
+              <div class="kv">
+                <div class="k">Signed in as</div>
+                <div class="v">tester@example.com</div>
+              </div>
+              <span class="biglink">Sign out</span>
+            </div>
+
+            <div class="sect-divider"></div>
+
+            <div class="acc-section rise r2">
+              <div class="acc-title">Membership</div>
+              <p class="muted">Premium — every feature is unlocked.</p>
+              <div class="linkgroup">
+                <span class="biglink">Manage subscription</span>
+                <span class="biglink">Restore purchases</span>
+              </div>
+            </div>
+
+            <div class="sect-divider"></div>
+
+            <div class="acc-section rise r3">
+              <div class="acc-title">Your colours</div>
+              <div class="swatches">
+                <span class="sw" style="background:#B7C0B4"></span>
+                <span class="sw" style="background:#D9C3A9"></span>
+                <span class="sw" style="background:#C99AA4"></span>
+                <span class="sw" style="background:#8E9BA6"></span>
+                <span class="sw" style="background:#C9A96A"></span>
+                <span class="sw" style="background:#6E7A6C"></span>
+              </div>
+            </div>
+
+            <div class="sect-divider"></div>
+
+            <div class="acc-section rise r3">
+              <div class="acc-title">Your data</div>
+              <span class="biglink">Export my data</span>
+            </div>
+
+            <div class="sect-divider"></div>
+
+            <div class="acc-section rise r4">
+              <div class="acc-title">Delete my account</div>
+              <span class="biglink crimson">Delete my account</span>
+            </div>
+
+            <div class="ver">closet · version 1.0.0 (24)</div>
+          </div>
+
+          <!-- tab bar -->
+          <div class="tabbar">
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 4h16v5H4zM4 9v11h16V9M9 9v11"/></svg>
+              <span>Closet</span>
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></svg>
+              <span>Today</span>
+            </div>
+            <div class="tabspacer">
+              <div class="fab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg></div>
+            </div>
+            <div class="tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+              <span>Outfits</span>
+            </div>
+            <div class="tab on">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+              <span>You</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption"><span class="no">03</span>You</div>
+    </div>
+
+  </div>
+</body>
+</html>

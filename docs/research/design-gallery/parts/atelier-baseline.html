@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Atelier — Baseline</title>
+<style>
+  :root{
+    --cream:#F6F2EC;
+    --white:#FFFFFF;
+    --well:#EDE6DB;
+    --ink:#221F1B;
+    --ink2:#655F58;
+    --ink3:#6C655C;
+    --crimson:#B62E58;
+    --blush:#E0708F;
+    --dot-ready:#4E8A6A;
+    --dot-wash:#9A7A38;
+    --dot-aside:#847E76;
+    --hair:#E4DCD0;
+    --serif:Georgia,'Times New Roman',serif;
+    --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+    --shadow:0 24px 60px -28px rgba(60,48,36,.45);
+    --shadow-sm:0 12px 30px -18px rgba(60,48,36,.40);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(120% 90% at 50% -10%, #FBF8F3 0%, #EFE8DC 60%, #E7DED0 100%);
+    font-family:var(--sans);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    padding:56px 24px 72px;
+    min-height:100%;
+  }
+  .page-head{
+    text-align:center;
+    margin-bottom:44px;
+  }
+  .page-head .overline{
+    font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);
+  }
+  .page-head h1{
+    font-family:var(--serif);font-weight:400;font-size:34px;color:var(--ink);margin-top:8px;
+    letter-spacing:.3px;
+  }
+  .page-head p{color:var(--ink2);font-size:14px;margin-top:8px;}
+
+  .row{
+    display:flex;gap:56px;justify-content:center;align-items:flex-start;flex-wrap:wrap;
+  }
+  .device{display:flex;flex-direction:column;align-items:center;}
+  .frame{
+    width:390px;height:844px;
+    background:#2c2620;
+    border-radius:52px;
+    padding:9px;
+    box-shadow:var(--shadow), inset 0 0 0 1px rgba(255,255,255,.06);
+    position:relative;
+  }
+  .screen{
+    width:100%;height:100%;
+    background:var(--cream);
+    border-radius:44px;
+    overflow:hidden;
+    position:relative;
+    display:flex;flex-direction:column;
+  }
+  .label{
+    margin-top:20px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);
+  }
+
+  /* status bar */
+  .status{
+    height:52px;flex:0 0 52px;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 30px;font-size:15px;font-weight:600;color:var(--ink);
+  }
+  .status .time{font-variant-numeric:tabular-nums;letter-spacing:.3px;}
+  .status .glyphs{display:flex;align-items:center;gap:6px;}
+  .status .bars{display:flex;align-items:flex-end;gap:2px;height:11px;}
+  .status .bars i{width:3px;background:var(--ink);border-radius:1px;display:block;}
+  .status .bars i:nth-child(1){height:4px;}
+  .status .bars i:nth-child(2){height:6px;}
+  .status .bars i:nth-child(3){height:8px;}
+  .status .bars i:nth-child(4){height:11px;}
+  .status .wifi{width:16px;height:12px;border:2px solid var(--ink);border-bottom:none;border-radius:16px 16px 0 0;position:relative;}
+  .battery{width:24px;height:12px;border:1.5px solid var(--ink);border-radius:3px;position:relative;}
+  .battery::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:6px;background:var(--ink);border-radius:0 2px 2px 0;}
+  .battery i{position:absolute;left:1.5px;top:1.5px;bottom:1.5px;width:70%;background:var(--ink);border-radius:1px;}
+
+  /* content scroller */
+  .content{flex:1 1 auto;overflow:hidden;position:relative;}
+
+  .overline{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);}
+  .display{font-family:var(--serif);font-weight:400;color:var(--ink);letter-spacing:.3px;}
+
+  /* ============ SCREEN 1 — CLOSET ============ */
+  .closet .head{padding:14px 26px 0;}
+  .closet .titleline{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px;}
+  .closet .titleline h2{font-family:var(--serif);font-weight:400;font-size:34px;}
+  .closet .titleline .count{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);}
+
+  .chips{display:flex;gap:8px;padding:20px 26px 0;overflow:hidden;}
+  .chip{
+    flex:0 0 auto;
+    font-size:13px;color:var(--ink2);
+    padding:9px 15px;border-radius:999px;
+    background:var(--white);border:1px solid var(--hair);
+    box-shadow:var(--shadow-sm);
+  }
+  .chip.first{color:var(--ink);}
+
+  .segrow{display:flex;gap:22px;padding:20px 26px 0;}
+  .seg{font-size:13px;color:var(--ink2);position:relative;padding-bottom:8px;}
+  .seg.active{color:var(--ink);font-weight:500;}
+  .seg.active::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--crimson);border-radius:2px;}
+
+  .divider{height:1px;background:var(--hair);margin:16px 26px 0;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:20px 26px 0;}
+  .tile{}
+  .well{
+    background:var(--well);
+    border-radius:6px;
+    height:186px;
+    display:flex;align-items:center;justify-content:center;
+    position:relative;
+    overflow:hidden;
+  }
+  .tile .name{font-family:var(--serif);font-size:19px;color:var(--ink);margin-top:12px;}
+  .tile .state{display:flex;align-items:center;gap:7px;margin-top:5px;}
+  .dot{width:7px;height:7px;border-radius:999px;flex:0 0 auto;}
+  .dot.ready{background:var(--dot-ready);}
+  .dot.wash{background:var(--dot-wash);}
+  .dot.aside{background:var(--dot-aside);}
+  .tile .state span{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink3);}
+
+  /* CSS garment silhouettes */
+  .g{--gc:#CFC4B3;}
+  /* top / tee */
+  .g-top{width:118px;height:120px;position:relative;}
+  .g-top .body{position:absolute;left:24px;right:24px;top:24px;bottom:0;background:var(--gc);border-radius:8px 8px 10px 10px;}
+  .g-top .sleeveL,.g-top .sleeveR{position:absolute;top:20px;width:34px;height:42px;background:var(--gc);}
+  .g-top .sleeveL{left:0;border-radius:14px 4px 0 18px;transform:rotate(-4deg);}
+  .g-top .sleeveR{right:0;border-radius:4px 14px 18px 0;transform:rotate(4deg);}
+  .g-top .neck{position:absolute;left:50%;top:24px;width:34px;height:16px;background:var(--well);border-radius:0 0 18px 18px;transform:translateX(-50%);}
+
+  /* dress */
+  .g-dress{width:104px;height:150px;position:relative;}
+  .g-dress .bodice{position:absolute;left:32px;right:32px;top:22px;height:52px;background:var(--gc);border-radius:6px 6px 0 0;}
+  .g-dress .skirt{position:absolute;left:8px;right:8px;top:70px;bottom:0;background:var(--gc);
+    clip-path:polygon(22% 0,78% 0,100% 100%,0 100%);border-radius:0 0 10px 10px;}
+  .g-dress .sleeveL,.g-dress .sleeveR{position:absolute;top:20px;width:26px;height:34px;background:var(--gc);}
+  .g-dress .sleeveL{left:8px;border-radius:12px 2px 0 14px;transform:rotate(-6deg);}
+  .g-dress .sleeveR{right:8px;border-radius:2px 12px 14px 0;transform:rotate(6deg);}
+  .g-dress .neck{position:absolute;left:50%;top:22px;width:26px;height:12px;background:var(--well);border-radius:0 0 14px 14px;transform:translateX(-50%);}
+
+  /* coat / outerwear */
+  .g-coat{width:120px;height:146px;position:relative;}
+  .g-coat .body{position:absolute;left:26px;right:26px;top:22px;bottom:0;background:var(--gc);border-radius:8px 8px 8px 8px;}
+  .g-coat .lapelL,.g-coat .lapelR{position:absolute;top:22px;width:22px;height:60px;background:var(--well);}
+  .g-coat .lapelL{left:26px;clip-path:polygon(0 0,100% 0,0 100%);}
+  .g-coat .lapelR{right:26px;clip-path:polygon(0 0,100% 0,100% 100%);}
+  .g-coat .placket{position:absolute;left:50%;top:34px;bottom:6px;width:2px;background:var(--well);transform:translateX(-50%);}
+  .g-coat .sleeveL,.g-coat .sleeveR{position:absolute;top:26px;width:26px;height:96px;background:var(--gc);}
+  .g-coat .sleeveL{left:0;border-radius:12px 2px 8px 12px;}
+  .g-coat .sleeveR{right:0;border-radius:2px 12px 12px 8px;}
+  .g-coat .btn{position:absolute;left:50%;width:5px;height:5px;border-radius:999px;background:var(--ink3);transform:translateX(-50%);opacity:.5;}
+
+  /* shoe */
+  .g-shoe{width:134px;height:96px;position:relative;}
+  .g-shoe .foot{position:absolute;left:0;bottom:20px;width:118px;height:44px;background:var(--gc);
+    border-radius:40px 30px 10px 40px;
+    clip-path:polygon(0 0,44% 0,100% 62%,100% 100%,0 100%);}
+  .g-shoe .heel{position:absolute;right:14px;bottom:0;width:12px;height:28px;background:var(--gc);border-radius:0 0 3px 3px;}
+  .g-shoe .sole{position:absolute;left:0;bottom:16px;width:118px;height:6px;background:#BCAF9B;border-radius:6px;}
+
+  /* ============ tab bar ============ */
+  .tabs{
+    flex:0 0 88px;
+    background:var(--white);
+    border-top:1px solid var(--hair);
+    display:flex;align-items:flex-start;justify-content:space-around;
+    padding:12px 14px 0;
+    position:relative;
+  }
+  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;width:56px;padding-top:2px;}
+  .tab .ic{width:22px;height:22px;position:relative;}
+  .tab .tl{font-size:10px;letter-spacing:.6px;color:var(--ink3);}
+  .tab.active .tl{color:var(--ink);}
+  .tab.active .ic{color:var(--ink);}
+  .tab .ic{color:var(--ink3);}
+
+  /* simple line icons via borders */
+  .ic-closet{border:2px solid currentColor;border-radius:3px;}
+  .ic-closet::after{content:"";position:absolute;left:50%;top:2px;bottom:2px;width:2px;background:currentColor;transform:translateX(-50%);}
+  .ic-today{border:2px solid currentColor;border-radius:999px;}
+  .ic-today::after{content:"";position:absolute;left:50%;top:3px;width:2px;height:8px;background:currentColor;transform-origin:bottom;transform:translateX(-50%) rotate(35deg);}
+  .ic-outfits{border:2px solid currentColor;border-radius:3px;}
+  .ic-outfits::before{content:"";position:absolute;left:3px;right:3px;top:6px;height:2px;background:currentColor;}
+  .ic-outfits::after{content:"";position:absolute;left:3px;right:8px;top:12px;height:2px;background:currentColor;}
+  .ic-you{border:2px solid currentColor;border-radius:999px;overflow:hidden;}
+  .ic-you::after{content:"";position:absolute;left:50%;top:4px;width:8px;height:8px;border-radius:999px;background:currentColor;transform:translateX(-50%);}
+
+  .fab-wrap{width:56px;display:flex;justify-content:center;}
+  .fab{
+    width:56px;height:56px;border-radius:999px;background:var(--crimson);
+    display:flex;align-items:center;justify-content:center;
+    margin-top:-18px;
+    box-shadow:0 14px 26px -10px rgba(182,46,88,.6);
+    color:#fff;
+  }
+  .fab::before,.fab::after{content:"";position:absolute;background:#fff;border-radius:2px;}
+  .fab{position:relative;}
+  .fab::before{width:22px;height:2.5px;}
+  .fab::after{width:2.5px;height:22px;}
+
+  .homebar{position:absolute;left:50%;bottom:8px;transform:translateX(-50%);width:134px;height:5px;border-radius:999px;background:var(--ink);opacity:.25;}
+
+  /* ============ SCREEN 2 — TODAY ============ */
+  .today .hero{
+    position:relative;
+    height:512px;flex:0 0 512px;
+    background:linear-gradient(180deg,#F1EBE1 0%,#EDE6DB 55%,#E8E0D3 100%);
+    overflow:hidden;
+  }
+  .today .hero .band{
+    position:absolute;left:0;right:0;top:150px;height:240px;
+    background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,0));
+  }
+  .today .hero .overline{position:absolute;top:22px;left:30px;}
+  .today .hero .g{position:absolute;left:50%;top:158px;transform:translateX(-50%) scale(1.35);--gc:#C6B49A;}
+  .today .hero .caption{position:absolute;left:30px;right:30px;bottom:34px;}
+  .today .hero .caption h2{font-family:var(--serif);font-weight:400;font-size:38px;color:var(--ink);line-height:1.05;}
+  .today .hero .caption .sub{font-size:15px;color:var(--ink2);margin-top:8px;}
+  .today .hero::after{
+    content:"";position:absolute;left:0;right:0;bottom:0;height:180px;
+    background:linear-gradient(180deg,rgba(246,242,236,0),rgba(246,242,236,.85));
+  }
+
+  .today .actions{padding:26px 30px 0;flex:1 1 auto;}
+  .today .actrow{display:flex;align-items:baseline;gap:30px;margin-top:22px;}
+  .today .why{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);}
+  .today .wore{
+    font-size:13px;color:var(--crimson);font-weight:500;
+    border-bottom:2px solid var(--crimson);padding-bottom:5px;
+  }
+
+  /* ============ SCREEN 3 — YOU ============ */
+  .you .body{padding:14px 26px 0;overflow:hidden;flex:1 1 auto;}
+  .you h2.title{font-family:var(--serif);font-weight:400;font-size:34px;margin-top:6px;}
+  .you .sec{padding-top:26px;}
+  .you .lbl{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);}
+  .you .val{font-size:16px;color:var(--ink);margin-top:9px;}
+  .you .val.muted{color:var(--ink2);}
+  .you .link{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-top:12px;}
+  .you .link.crimson{color:var(--crimson);border-bottom:2px solid var(--crimson);display:inline-block;padding-bottom:4px;}
+  .you .link.danger{color:var(--crimson);}
+  .you .sectitle{font-family:var(--serif);font-size:22px;color:var(--ink);}
+  .you .linkgroup{display:flex;gap:26px;margin-top:14px;}
+  .you .divider{margin:24px 0 0;}
+  .swatches{display:flex;gap:12px;margin-top:16px;}
+  .sw{width:38px;height:38px;border-radius:12px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);}
+  .foot{font-size:11px;color:var(--ink3);text-align:center;padding:26px 0 6px;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+
+  <div class="page-head">
+    <div class="overline">Design Gallery</div>
+    <h1>Atelier — Baseline</h1>
+    <p>The current design, rendered faithfully — editorial restraint, one earned crimson action per screen.</p>
+  </div>
+
+  <div class="row">
+
+    <!-- ===================== SCREEN 1 — CLOSET ===================== -->
+    <div class="device">
+      <div class="frame"><div class="screen closet">
+        <div class="status">
+          <span class="time">9:41</span>
+          <span class="glyphs">
+            <span class="bars"><i></i><i></i><i></i><i></i></span>
+            <span class="wifi"></span>
+            <span class="battery"><i></i></span>
+          </span>
+        </div>
+
+        <div class="content">
+          <div class="head">
+            <div class="overline">Your Closet</div>
+            <div class="titleline">
+              <h2>Closet</h2>
+              <span class="count">6 Pieces</span>
+            </div>
+          </div>
+
+          <div class="chips">
+            <div class="chip first">Tops</div>
+            <div class="chip">Bottoms</div>
+            <div class="chip">Dresses</div>
+            <div class="chip">Outerwear</div>
+            <div class="chip">Shoes</div>
+          </div>
+
+          <div class="segrow">
+            <div class="seg active">Ready to wear</div>
+            <div class="seg">In the wash</div>
+            <div class="seg">Set aside</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="grid">
+            <div class="tile">
+              <div class="well">
+                <div class="g g-top">
+                  <div class="sleeveL"></div><div class="sleeveR"></div>
+                  <div class="body"></div><div class="neck"></div>
+                </div>
+              </div>
+              <div class="name">white</div>
+              <div class="state"><span class="dot ready"></span><span>Ready to wear</span></div>
+            </div>
+
+            <div class="tile">
+              <div class="well">
+                <div class="g g-dress" style="--gc:#B7ABA0">
+                  <div class="sleeveL"></div><div class="sleeveR"></div>
+                  <div class="bodice"></div><div class="skirt"></div><div class="neck"></div>
+                </div>
+              </div>
+              <div class="name">black</div>
+              <div class="state"><span class="dot ready"></span><span>Ready to wear</span></div>
+            </div>
+
+            <div class="tile">
+              <div class="well">
+                <div class="g g-coat" style="--gc:#C7B79C">
+                  <div class="sleeveL"></div><div class="sleeveR"></div>
+                  <div class="body"></div>
+                  <div class="lapelL"></div><div class="lapelR"></div>
+                  <div class="placket"></div>
+                  <div class="btn" style="top:70px"></div>
+                  <div class="btn" style="top:92px"></div>
+                  <div class="btn" style="top:114px"></div>
+                </div>
+              </div>
+              <div class="name">camel</div>
+              <div class="state"><span class="dot ready"></span><span>Ready to wear</span></div>
+            </div>
+
+            <div class="tile">
+              <div class="well">
+                <div class="g g-shoe" style="--gc:#CDB6BE">
+                  <div class="foot"></div><div class="heel"></div><div class="sole"></div>
+                </div>
+              </div>
+              <div class="name">rose</div>
+              <div class="state"><span class="dot ready"></span><span>Ready to wear</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab active"><span class="ic ic-closet"></span><span class="tl">Closet</span></div>
+          <div class="tab"><span class="ic ic-today"></span><span class="tl">Today</span></div>
+          <div class="fab-wrap"><div class="fab"></div></div>
+          <div class="tab"><span class="ic ic-outfits"></span><span class="tl">Outfits</span></div>
+          <div class="tab"><span class="ic ic-you"></span><span class="tl">You</span></div>
+          <div class="homebar"></div>
+        </div>
+      </div></div>
+      <div class="label">Closet</div>
+    </div>
+
+    <!-- ===================== SCREEN 2 — TODAY ===================== -->
+    <div class="device">
+      <div class="frame"><div class="screen today">
+        <div class="status">
+          <span class="time">9:41</span>
+          <span class="glyphs">
+            <span class="bars"><i></i><i></i><i></i><i></i></span>
+            <span class="wifi"></span>
+            <span class="battery"><i></i></span>
+          </span>
+        </div>
+
+        <div class="content" style="display:flex;flex-direction:column;">
+          <div class="hero">
+            <div class="band"></div>
+            <div class="overline">Today</div>
+            <div class="g g-coat">
+              <div class="sleeveL"></div><div class="sleeveR"></div>
+              <div class="body"></div>
+              <div class="lapelL"></div><div class="lapelR"></div>
+              <div class="placket"></div>
+              <div class="btn" style="top:70px"></div>
+              <div class="btn" style="top:92px"></div>
+              <div class="btn" style="top:114px"></div>
+            </div>
+            <div class="caption">
+              <h2>Camel outerwear</h2>
+              <div class="sub">with black</div>
+            </div>
+          </div>
+
+          <div class="divider" style="margin:0 30px;"></div>
+
+          <div class="actions">
+            <div class="actrow">
+              <span class="why">Why this?</span>
+              <span class="wore">Wore this today</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab"><span class="ic ic-closet"></span><span class="tl">Closet</span></div>
+          <div class="tab active"><span class="ic ic-today"></span><span class="tl">Today</span></div>
+          <div class="fab-wrap"><div class="fab"></div></div>
+          <div class="tab"><span class="ic ic-outfits"></span><span class="tl">Outfits</span></div>
+          <div class="tab"><span class="ic ic-you"></span><span class="tl">You</span></div>
+          <div class="homebar"></div>
+        </div>
+      </div></div>
+      <div class="label">Today</div>
+    </div>
+
+    <!-- ===================== SCREEN 3 — YOU ===================== -->
+    <div class="device">
+      <div class="frame"><div class="screen you">
+        <div class="status">
+          <span class="time">9:41</span>
+          <span class="glyphs">
+            <span class="bars"><i></i><i></i><i></i><i></i></span>
+            <span class="wifi"></span>
+            <span class="battery"><i></i></span>
+          </span>
+        </div>
+
+        <div class="body">
+          <div class="overline">Your Account</div>
+          <h2 class="title">You</h2>
+
+          <div class="sec">
+            <div class="lbl">Signed in as</div>
+            <div class="val">tester@example.com</div>
+            <div class="link">Sign out</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="sec">
+            <div class="sectitle">Membership</div>
+            <div class="val muted">Premium — every feature is unlocked.</div>
+            <div class="linkgroup">
+              <span class="link">Manage subscription</span>
+              <span class="link">Restore purchases</span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="sec">
+            <div class="lbl">Your colours</div>
+            <div class="swatches">
+              <span class="sw" style="background:#C9B7A0"></span>
+              <span class="sw" style="background:#8E9A8C"></span>
+              <span class="sw" style="background:#B08A93"></span>
+              <span class="sw" style="background:#6E7683"></span>
+              <span class="sw" style="background:#D8C7B0"></span>
+              <span class="sw" style="background:#A88C6E"></span>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="sec">
+            <div class="lbl">Your data</div>
+            <div class="link">Export my data</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="sec">
+            <div class="sectitle">Delete my account</div>
+            <div class="link crimson">Delete my account</div>
+          </div>
+
+          <div class="foot">Atelier · Version 1.0.0 (100)</div>
+        </div>
+
+        <div class="tabs">
+          <div class="tab"><span class="ic ic-closet"></span><span class="tl">Closet</span></div>
+          <div class="tab"><span class="ic ic-today"></span><span class="tl">Today</span></div>
+          <div class="fab-wrap"><div class="fab"></div></div>
+          <div class="tab"><span class="ic ic-outfits"></span><span class="tl">Outfits</span></div>
+          <div class="tab active"><span class="ic ic-you"></span><span class="tl">You</span></div>
+          <div class="homebar"></div>
+        </div>
+      </div></div>
+      <div class="label">You</div>
+    </div>
+
+  </div>
+</body>
+</html>
