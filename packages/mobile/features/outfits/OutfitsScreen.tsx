@@ -201,9 +201,15 @@ export function OutfitsScreen(): React.JSX.Element {
     );
   }
 
-  const rowSpacing: ViewStyle = { marginBottom: tokens.spacing.lg };
-  const renderItem: ListRenderItem<OutfitSummary> = ({ item }) => (
-    <OutfitCard outfit={item} uris={uris} onOpen={onOpen} style={rowSpacing} />
+  // Memoized so it is a STABLE object reference across renders. OutfitCard is React.memo'd, and
+  // a fresh `{ marginBottom }` literal every render made its `style` prop compare-unequal every
+  // time — silently defeating the memo, so every visible card re-rendered on any parent state
+  // change (delete/rename pending, openId). `uris` and `onOpen` are already stable, so memoizing
+  // this restores the bail-out.
+  const rowSpacing = React.useMemo<ViewStyle>(() => ({ marginBottom: tokens.spacing.lg }), [tokens]);
+  const renderItem = React.useCallback<ListRenderItem<OutfitSummary>>(
+    ({ item }) => <OutfitCard outfit={item} uris={uris} onOpen={onOpen} style={rowSpacing} />,
+    [uris, onOpen, rowSpacing],
   );
   return (
     <Screen padding="lg">

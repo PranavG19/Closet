@@ -34,15 +34,28 @@ export function parsePhash(x: unknown): Phash {
   return (BigInt(decimal) & PHASH_MASK) as Phash;
 }
 
-// popcount over the fixed 64-bit width.
+// SWAR (SIMD-within-a-register) popcount over a 32-bit NUMBER — constant-time (no loop), pure
+// `number` bit ops. The classic parallel bit-count: sum bits in 2s, then 4s, then bytes.
+function popcount32(n: number): number {
+  n = n - ((n >>> 1) & 0x55555555);
+  n = (n & 0x33333333) + ((n >>> 2) & 0x33333333);
+  n = (n + (n >>> 4)) & 0x0f0f0f0f;
+  // The high byte of the 8-bit-lane sums is the total; multiply-shift folds them in one step.
+  return (n * 0x01010101) >>> 24;
+}
+
+// popcount over the fixed 64-bit width. Split into two 32-bit halves and count each with the
+// constant-time SWAR routine — this replaced a bit-by-bit BigInt loop (up to 64 iterations of
+// slow BigInt arithmetic per call), which was the hot path in findDuplicatePairs' O(n²) scan
+// on the wardrobe's first paint. BigInt shifts/masks are ~10-50× slower than number ops; here
+// each half converts to an unsigned 32-bit number ONCE (the `| 0`-free `Number()` on a masked
+// bigint is exact for ≤32 bits) and the rest is pure integer math.
 function popcount64(value: bigint): number {
-  let bits = value & PHASH_MASK;
-  let count = 0;
-  while (bits > 0n) {
-    count += Number(bits & 1n);
-    bits >>= 1n;
-  }
-  return count;
+  const bits = value & PHASH_MASK;
+  const low = Number(bits & 0xffffffffn); // low 32 bits, 0..2^32-1
+  const high = Number((bits >> 32n) & 0xffffffffn); // high 32 bits
+  // `>>> 0` reinterprets as unsigned so the SWAR math operates on the full 32-bit pattern.
+  return popcount32(low >>> 0) + popcount32(high >>> 0);
 }
 
 // Pure. Symmetric and d(x,x)=0 by construction (XOR is symmetric; x^x=0). Range 0..64.

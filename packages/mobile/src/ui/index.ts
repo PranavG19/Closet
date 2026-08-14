@@ -10,3 +10,4 @@ export * from './Grid.js';
 export * from './Divider.js';
 export * from './SectionHeader.js';
 export * from './SelectMark.js';
+export * from './Entrance.js';

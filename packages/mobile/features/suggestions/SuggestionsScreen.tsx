@@ -18,7 +18,7 @@ import { useTokens } from '../../src/tokens/index.js';
 import { useWardrobe, useLogWear, usePalette, useRecentWears } from '../../src/api/index.js';
 import { useCutoutUris } from '../../src/storage/index.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
-import { Screen, Hero, Text, Button, Divider, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
+import { Screen, Hero, Text, Button, Divider, Entrance, LoadingState, EmptyState, ErrorState } from '../../src/ui/index.js';
 
 // Weather is a ROADMAP feature — there is no WeatherPort implementation and no server seam
 // for it (docs/06 §9 records the deliberate absence). suggestItems requires a temperature,
@@ -206,23 +206,29 @@ export function SuggestionsScreen(): React.JSX.Element {
 
   return (
     <Screen scroll padding="none">
-      {/* The reveal: the garment fills a full-bleed hero, its name in serif over a scrim. */}
-      <Hero
-        height={452}
-        eyebrow="Today"
-        title={heroTitle}
-        {...(withLine !== undefined ? { subtitle: withLine } : {})}
-      >
-        {heroUri !== undefined ? (
-          <Image source={{ uri: heroUri }} style={heroCutout} accessible={false} />
-        ) : (
-          // Awaiting its cutout: a quiet branded hanger glyph, never a category word (brief law 1).
-          <Ionicons name="shirt-outline" size={72} color={tokens.color.text.tertiary} accessible={false} />
-        )}
-      </Hero>
+      {/* THE REVEAL is the app's one earned cinematic beat (tokens.motion "slow"): the hero
+          arrives with a fade+rise rather than hard-cutting in. The body settles a stagger-beat
+          later, so the day's look composes itself top-down. Entrance is native-driver + reduce-
+          motion-aware, so this is free on the main thread and disabled for that a11y setting. */}
+      <Entrance translateY={tokens.spacing.lg}>
+        {/* The garment fills a full-bleed hero, its name in serif over a scrim. */}
+        <Hero
+          height={452}
+          eyebrow="Today"
+          title={heroTitle}
+          {...(withLine !== undefined ? { subtitle: withLine } : {})}
+        >
+          {heroUri !== undefined ? (
+            <Image source={{ uri: heroUri }} style={heroCutout} accessible={false} />
+          ) : (
+            // Awaiting its cutout: a quiet branded hanger glyph, never a category word (brief law 1).
+            <Ionicons name="shirt-outline" size={72} color={tokens.color.text.tertiary} accessible={false} />
+          )}
+        </Hero>
+      </Entrance>
 
       {/* The body floats on the canvas, divided by a hairline — not boxed in a card (law 2). */}
-      <View style={{ paddingHorizontal: tokens.spacing.xl, paddingTop: tokens.spacing.lg, gap: tokens.spacing.md }}>
+      <Entrance delay={tokens.motion.stagger} style={{ paddingHorizontal: tokens.spacing.xl, paddingTop: tokens.spacing.lg, gap: tokens.spacing.md }}>
         {note !== null && (
           <Text variant="note" tone="secondary">
             {note}
@@ -267,7 +273,7 @@ export function SuggestionsScreen(): React.JSX.Element {
           onPress={() => void logWholeLook()}
           style={{ marginTop: tokens.spacing.sm }}
         />
-      </View>
+      </Entrance>
     </Screen>
   );
 }

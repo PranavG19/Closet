@@ -180,12 +180,41 @@ export interface TypographyTokens {
   readonly note: TypographyScaleEntry;
 }
 
+// Motion tokens — the app's one coherent set of timings + easing curves, so every
+// animation feels like the same hand. Kept as PLAIN DATA (ms numbers, cubic-bezier
+// number[4]) on purpose: tokens.ts is imported by contrast.test.ts in the Node unit
+// lane, and pulling in react-native's `Easing` here would break that lane exactly like
+// a `react-native` import does (see the serifFamily note above). A component turns
+// `easing.standard` into `Easing.bezier(...easing.standard)` at the call site — the
+// token stays a bare 4-tuple that Node can import.
+export interface MotionTokens {
+  readonly duration: {
+    // Micro-feedback (a press dim, a small settle) — barely perceptible.
+    readonly fast: number;
+    // The default for entrances / most transitions.
+    readonly base: number;
+    // The one cinematic beat (the Today reveal) — slow enough to read as deliberate.
+    readonly slow: number;
+  };
+  readonly easing: {
+    // The "expensive" ease-out: quick to leave, long gentle settle. The default for
+    // content entering (fade + rise). A decelerate curve reads as considered, not springy.
+    readonly standard: readonly [number, number, number, number];
+    // A softer ease-in-out for state that moves both ways (a value settling in place).
+    readonly gentle: readonly [number, number, number, number];
+  };
+  // Per-item delay when staggering a list/grid entrance, in ms. Small — the stagger
+  // should whisper (items arriving in sequence), never make the user wait.
+  readonly stagger: number;
+}
+
 export interface Tokens {
   readonly color: ColorTokens;
   readonly spacing: SpacingTokens;
   readonly radius: RadiusTokens;
   readonly shadow: ShadowToken;
   readonly typography: TypographyTokens;
+  readonly motion: MotionTokens;
 }
 
 // ---------------------------------------------------------------------------
@@ -298,5 +327,21 @@ export const lightTokens: Tokens = {
     // Serif italic advisory line (the "why this" note, privacy promise, untitled-look names).
     // family swap to serifFamily happens in Text, same as display.
     note: { fontSize: 16, lineHeight: 23, fontWeight: '400', fontStyle: 'italic' },
+  },
+  motion: {
+    duration: {
+      fast: 140, // press dim / small settle — perceived as instant-but-soft
+      base: 320, // entrances and most transitions
+      slow: 560, // the single cinematic beat (Today reveal)
+    },
+    easing: {
+      // cubic-bezier(0.16, 1, 0.3, 1) — a strong decelerate ("ease-out-expo"-ish): the
+      // content is already most of the way there by the time the eye lands, then settles.
+      // This is the curve that reads "expensive" rather than linear/mechanical.
+      standard: [0.16, 1, 0.3, 1],
+      // cubic-bezier(0.4, 0, 0.2, 1) — the Material "standard" ease-in-out for two-way settles.
+      gentle: [0.4, 0, 0.2, 1],
+    },
+    stagger: 60, // per-item entrance delay — a whisper of sequence, never a wait
   },
 };
