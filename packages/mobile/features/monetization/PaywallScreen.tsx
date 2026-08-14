@@ -20,11 +20,11 @@
 // and lets the server be the truth. That is why `purchased` refetches rather than
 // optimistically flipping to the member state.
 import React from 'react';
-import { View, type ViewStyle } from 'react-native';
+import { View } from 'react-native';
 import { subscriptionDisclosure } from '@closet/shared';
 import { useTokens } from '../../src/tokens/index.js';
 import { useEntitlement } from '../../src/api/index.js';
-import { Screen, Card, Text, Button, LoadingState, ErrorState } from '../../src/ui/index.js';
+import { Screen, Card, Text, Button, Divider, Entrance, LoadingState, ErrorState } from '../../src/ui/index.js';
 import { useOffer, usePurchase, useRestore } from './hooks.js';
 import { useScreenLoad } from '../../src/metrics/index.js';
 
@@ -74,30 +74,21 @@ export function PaywallScreen(): React.JSX.Element {
     );
   }
 
-  const point: ViewStyle = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: tokens.spacing.sm,
-  };
-  const dot: ViewStyle = {
-    width: tokens.spacing.sm,
-    height: tokens.spacing.sm,
-    borderRadius: tokens.radius.pill,
-    backgroundColor: tokens.color.accentDecorative.pink,
-    marginRight: tokens.spacing.sm,
-  };
-
-  const valueCard = (
-    <>
-      {VALUE_POINTS.map((text) => (
-        <View key={text} style={point}>
-          <View style={dot} />
-          <Text variant="body" tone="primary">
+  // The value proposition as an editorial LIST — hairline-separated lines, not coloured-dot
+  // bullets. The old accentDecorative.pink dots were the single most generic/"template" moment
+  // in the app (craft review); this matches the rest of the app's language (hairline dividers
+  // replace ornament, brief law 2) and lets the ONE crimson accent stay reserved for the CTA.
+  const valueList = (
+    <View>
+      {VALUE_POINTS.map((text, i) => (
+        <View key={text}>
+          {i > 0 && <Divider />}
+          <Text variant="body" tone="primary" style={{ paddingVertical: tokens.spacing.md }}>
             {text}
           </Text>
         </View>
       ))}
-    </>
+    </View>
   );
 
   // NO OFFER FROM THE STORE — products not yet approved, or unavailable in this
@@ -108,12 +99,15 @@ export function PaywallScreen(): React.JSX.Element {
   if (offer.isError || offer.data === null) {
     return (
       <Screen scroll padding="lg">
-        <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.sm }}>
-          Your whole closet, waiting
-        </Text>
-        <Card variant="surface" padding="lg">
-          {valueCard}
-          <Text variant="body" tone="secondary" style={{ marginTop: tokens.spacing.lg }}>
+        <Entrance>
+          <Text variant="overline" style={{ marginBottom: tokens.spacing.sm }}>
+            Membership
+          </Text>
+          <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.xl }}>
+            Your whole closet, waiting
+          </Text>
+          {valueList}
+          <Text variant="body" tone="secondary" style={{ marginTop: tokens.spacing.xl }}>
             Membership isn&apos;t available right now. Please try again later.
           </Text>
           <Button
@@ -154,7 +148,7 @@ export function PaywallScreen(): React.JSX.Element {
               {notice}
             </Text>
           )}
-        </Card>
+        </Entrance>
       </Screen>
     );
   }
@@ -164,19 +158,31 @@ export function PaywallScreen(): React.JSX.Element {
 
   return (
     <Screen scroll padding="lg">
-      <Text variant="display" tone="primary" style={{ marginBottom: tokens.spacing.sm }}>
-        Go premium
-      </Text>
-      <Text variant="body" tone="secondary" style={{ marginBottom: tokens.spacing.lg }}>
-        Your wardrobe, styled every day. Cancel anytime.
-      </Text>
-      <Card variant="surface" padding="lg">
-        {valueCard}
+      {/* The offer floats on the canvas, sectioned by hairlines — NOT boxed in a white Card.
+          Every other primary surface (Today, Wardrobe, Outfits) dropped the card for
+          float-on-canvas + hairline (brief law 2); the money screen must read like the rest of
+          the app, not the one bordered box. Entrance gives it the same arrival motion. */}
+      <Entrance>
+        {/* Eyebrow + a single-line promise. The one `display` on this screen is the PRICE below
+            (the number she's deciding on), so the header is `title` weight — the price wins the
+            optical hierarchy, which is the whole point of a paywall. */}
+        <Text variant="overline" style={{ marginBottom: tokens.spacing.sm }}>
+          Membership
+        </Text>
+        <Text variant="title" tone="primary" style={{ marginBottom: tokens.spacing.xs }}>
+          Go premium
+        </Text>
+        <Text variant="body" tone="secondary" style={{ marginBottom: tokens.spacing.xl }}>
+          Your wardrobe, styled every day. Cancel anytime.
+        </Text>
 
-        {/* THE PRICE. Guideline 3.1.2 requires it adjacent to the purchase control, so it
-            sits directly above the button and is `title` weight — the one number she needs
-            before deciding, never a caption she can miss. */}
-        <Text variant="title" tone="primary" style={{ marginTop: tokens.spacing.lg }}>
+        {valueList}
+
+        {/* THE PRICE is the hero of this screen — promoted to `display` (serif 28) with generous
+            air above, so the one number she needs to decide carries the most optical weight.
+            Guideline 3.1.2 requires it adjacent to the purchase control; it sits directly above
+            the button. */}
+        <Text variant="display" tone="primary" style={{ marginTop: tokens.spacing.xl }}>
           {disclosure.headline}
         </Text>
 
@@ -268,7 +274,7 @@ export function PaywallScreen(): React.JSX.Element {
             {notice}
           </Text>
         )}
-      </Card>
+      </Entrance>
     </Screen>
   );
 }
