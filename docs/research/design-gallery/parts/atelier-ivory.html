@@ -319,6 +319,125 @@
     position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
     width:128px;height:5px;border-radius:3px;background:rgba(34,31,27,.28);
   }
+
+  /* ============ MICRO-INTERACTIONS — CSS only, faithful = whisper-quiet ============ */
+  /* short 200–450ms editorial eases, 3–8px travel, nothing bouncy */
+
+  @keyframes rise{ from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes riseTile{ from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
+  @keyframes underlineGrow{ from{transform:scaleX(0)} to{transform:scaleX(1)} }
+  @keyframes dotSettle{ from{opacity:0;transform:scale(.4)} to{opacity:1;transform:scale(1)} }
+  @keyframes heroFloat{ 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+  @keyframes glowBreathe{
+    0%,100%{opacity:.45;transform:translateX(-50%) scale(1)}
+    50%{opacity:.8;transform:translateX(-50%) scale(1.06)}
+  }
+
+  /* -- Closet: header + filter rows drift up in sequence -- */
+  .closet-head,.chips,.subrow{opacity:0;animation:rise .5s cubic-bezier(.22,.61,.36,1) both}
+  .closet-head{animation-delay:.05s}
+  .chips{animation-delay:.12s}
+  .subrow{animation-delay:.18s}
+
+  /* -- Closet grid: staggered fade + rise, each tile a touch later -- */
+  .grid .tile{opacity:0;animation:riseTile .55s cubic-bezier(.22,.61,.36,1) both}
+  .grid .tile:nth-child(1){animation-delay:.24s}
+  .grid .tile:nth-child(2){animation-delay:.31s}
+  .grid .tile:nth-child(3){animation-delay:.38s}
+  .grid .tile:nth-child(4){animation-delay:.45s}
+
+  /* press-scale + shadow lift on the inner well (kept off .tile so entrance transform never clashes) */
+  .tile .well{transition:transform .28s cubic-bezier(.22,.61,.36,1), box-shadow .28s ease}
+  .tile:hover .well{
+    transform:translateY(-3px);
+    box-shadow:inset 0 1px 3px rgba(90,75,55,.07), inset 0 0 0 1px rgba(90,75,55,.03), 0 12px 22px -12px rgba(70,55,40,.32);
+  }
+  .tile:active .well{transform:translateY(-1px) scale(.99);transition-duration:.12s}
+  .tile .silh{transition:filter .28s ease}
+  .tile:hover .silh{filter:drop-shadow(0 8px 12px rgba(70,55,40,.20))}
+
+  /* state dots settle in after their tile lands */
+  .tile .state .dot{animation:dotSettle .4s ease both}
+  .grid .tile:nth-child(1) .dot{animation-delay:.50s}
+  .grid .tile:nth-child(2) .dot{animation-delay:.57s}
+  .grid .tile:nth-child(3) .dot{animation-delay:.64s}
+  .grid .tile:nth-child(4) .dot{animation-delay:.71s}
+
+  /* quiet hover on non-selected filters */
+  .chips span{transition:color .2s ease;cursor:default}
+  .chips span:not(.active):hover{color:var(--ink)}
+  .subrow span{transition:color .2s ease;cursor:default}
+  .subrow span:not(.sel):hover{color:var(--ink-2)}
+
+  /* selected sub-filter underline grows in from the left */
+  .subrow .sel::after{transform-origin:left center;animation:underlineGrow .45s cubic-bezier(.22,.61,.36,1) .30s both}
+
+  /* -- Today: soft focal glow breathes, cutout floats, title settles up -- */
+  .today-hero::before{
+    content:"";position:absolute;left:50%;top:200px;width:320px;height:320px;
+    transform:translateX(-50%);
+    background:radial-gradient(circle at center, rgba(255,252,246,.9) 0%, rgba(255,250,242,0) 62%);
+    animation:glowBreathe 6.5s ease-in-out infinite;
+    pointer-events:none;
+  }
+  .today-hero .hero-garment .garment{animation:heroFloat 6.5s ease-in-out infinite}
+  .today-hero .overline{opacity:0;animation:rise .5s ease .1s both}
+  .today-hero .titleblock{opacity:0;animation:rise .6s cubic-bezier(.22,.61,.36,1) .3s both}
+  .today-actions .divider,.today-actions .why{opacity:0;animation:rise .5s ease .45s both}
+  .today-actions .wore{opacity:0;animation:rise .5s ease .55s both}
+  .today-actions .wore::after{transform-origin:left center;animation:underlineGrow .45s cubic-bezier(.22,.61,.36,1) .8s both}
+
+  /* crimson action: quiet emphasis on hover (deepen + soft glow) */
+  .today-actions .wore,.section .link,.tab{cursor:default}
+  .today-actions .wore{transition:color .25s ease}
+  .today-actions .wore:hover{color:#9E244B;text-shadow:0 0 12px rgba(182,46,88,.26)}
+  .today-actions .wore::after{transition:box-shadow .25s ease}
+  .today-actions .wore:hover::after{box-shadow:0 0 8px rgba(182,46,88,.42)}
+  .today-actions .why{transition:color .2s ease}
+  .today-actions .why:hover{color:var(--ink-2)}
+
+  /* -- You: head + each section drift up, staggered -- */
+  .you-head{opacity:0;animation:rise .5s ease .05s both}
+  .section{opacity:0;animation:rise .55s cubic-bezier(.22,.61,.36,1) both}
+  .section:nth-child(2){animation-delay:.12s}
+  .section:nth-child(4){animation-delay:.19s}
+  .section:nth-child(6){animation-delay:.26s}
+  .section:nth-child(8){animation-delay:.33s}
+  .section:nth-child(10){animation-delay:.40s}
+
+  /* text links deepen toward crimson on hover */
+  .section .link{transition:color .2s ease}
+  .section .link:not(.accent):hover{color:var(--ink)}
+  .section .link.accent:hover{color:#9E244B}
+
+  /* colour swatches fade + settle in sequence, gentle lift on hover */
+  .swatches .sw{opacity:0;animation:fadeIn .5s ease both;transition:transform .25s cubic-bezier(.22,.61,.36,1), box-shadow .25s ease}
+  .swatches .sw:nth-child(1){animation-delay:.30s}
+  .swatches .sw:nth-child(2){animation-delay:.36s}
+  .swatches .sw:nth-child(3){animation-delay:.42s}
+  .swatches .sw:nth-child(4){animation-delay:.48s}
+  .swatches .sw:nth-child(5){animation-delay:.54s}
+  .swatches .sw:nth-child(6){animation-delay:.60s}
+  .swatches .sw:hover{transform:translateY(-2px) scale(1.06);box-shadow:inset 0 0 0 1px rgba(90,75,55,.12),0 6px 12px -4px rgba(90,75,55,.28)}
+
+  /* -- FAB + tabs press feedback -- */
+  .fab{transition:transform .25s cubic-bezier(.22,.61,.36,1), box-shadow .25s ease;cursor:pointer}
+  .fab:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 12px 26px -6px rgba(182,46,88,.6),0 3px 6px rgba(182,46,88,.35)}
+  .fab:active{transform:scale(.95);transition-duration:.1s}
+  .tab{transition:color .2s ease}
+  .tab:not(.active):hover{color:var(--ink-2)}
+
+  /* -- Respect reduced-motion: no entrances, no loops, everything at rest -- */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important}
+    .grid .tile,.closet-head,.chips,.subrow,.section,.you-head,
+    .today-hero .overline,.today-hero .titleblock,.today-actions .divider,
+    .today-actions .why,.today-actions .wore,.swatches .sw,.tile .state .dot{
+      opacity:1 !important;transform:none !important;
+    }
+    .subrow .sel::after,.today-actions .wore::after{transform:scaleX(1) !important}
+  }
 </style>
 </head>
 <body>

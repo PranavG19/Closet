@@ -357,6 +357,184 @@
   .version{margin-top:26px;text-align:center;font-size:11px;letter-spacing:1px;color:var(--ink-3);}
 
   @media (max-width:1360px){ .row{gap:40px;} }
+
+  /* ========================================================
+     MICRO-INTERACTIONS — one-step distance: a touch more
+     expressive than whisper-quiet, but never bouncy. All CSS.
+     ======================================================== */
+
+  /* --- entrance primitives (backwards fill so hover transforms
+         are handed back to the base rule after the intro) --- */
+  @keyframes riseIn{
+    from{opacity:0;transform:translateY(12px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  @keyframes fadeIn{
+    from{opacity:0;}
+    to{opacity:1;}
+  }
+  @keyframes settleIn{
+    0%{opacity:0;transform:scale(0.6);}
+    70%{transform:scale(1.06);}
+    100%{opacity:1;transform:scale(1);}
+  }
+  @keyframes underlineGrow{
+    from{transform:scaleX(0);}
+    to{transform:scaleX(1);}
+  }
+
+  /* --- Closet: staggered fade+rise on the grid tiles --- */
+  .lookgrid .looktile{
+    animation:riseIn 520ms cubic-bezier(.22,.61,.36,1) backwards;
+    transition:transform 260ms cubic-bezier(.22,.61,.36,1),
+               box-shadow 260ms ease, z-index 0s;
+    will-change:transform;
+  }
+  .lookgrid .looktile:nth-child(1){animation-delay:120ms;}
+  .lookgrid .looktile:nth-child(2){animation-delay:190ms;}
+  .lookgrid .looktile:nth-child(3){animation-delay:260ms;}
+  .lookgrid .looktile:nth-child(4){animation-delay:330ms;}
+  .lookgrid .looktile:hover{
+    transform:translateY(-3px);
+    box-shadow:0 22px 40px -22px rgba(58,44,30,0.45);
+    z-index:2;
+  }
+  .lookgrid .looktile:active{transform:scale(0.985);}
+  /* garment lifts a hair more than its tile on hover */
+  .looktile .garment{transition:transform 320ms cubic-bezier(.22,.61,.36,1);}
+  .looktile:hover .garment{transform:translateY(-4px) scale(1.03);}
+
+  /* header + filter rows ease in above the grid */
+  .s1-head{animation:riseIn 480ms ease backwards 40ms;}
+  .chips{animation:riseIn 480ms ease backwards 90ms;}
+  .segs{animation:riseIn 480ms ease backwards 130ms;}
+
+  /* --- chips: press + quiet emphasis --- */
+  .chip{
+    cursor:pointer;
+    transition:transform 200ms ease, background 240ms ease,
+               border-color 240ms ease, box-shadow 240ms ease;
+  }
+  .chip:hover{border-color:var(--ink-3);}
+  .chip:active{transform:scale(0.95);}
+  .chip.on{box-shadow:0 6px 14px -8px rgba(34,31,27,0.5);}
+
+  /* --- selected sub-filter underline grows in from the left --- */
+  .seg{cursor:pointer;transition:color 240ms ease;}
+  .seg:hover{color:var(--ink);}
+  .seg.on::after{
+    transform-origin:left center;
+    animation:underlineGrow 420ms cubic-bezier(.22,.61,.36,1) backwards 320ms;
+  }
+
+  /* --- state dots settle in softly --- */
+  .looktile .caption .dot{
+    animation:settleIn 420ms cubic-bezier(.34,1.4,.64,1) backwards;
+  }
+  .lookgrid .looktile:nth-child(1) .dot{animation-delay:420ms;}
+  .lookgrid .looktile:nth-child(2) .dot{animation-delay:490ms;}
+  .lookgrid .looktile:nth-child(3) .dot{animation-delay:560ms;}
+  .lookgrid .looktile:nth-child(4) .dot{animation-delay:630ms;}
+
+  /* --- Today: hero cutout slow float + spotlight breathe --- */
+  @keyframes heroFloat{
+    0%,100%{transform:translate(-50%,-50%) scale(1.85);}
+    50%{transform:translate(-50%,calc(-50% - 9px)) scale(1.865);}
+  }
+  @keyframes glowBreathe{
+    0%,100%{opacity:0.78;transform:translate(-50%,-50%) scale(1);}
+    50%{opacity:1;transform:translate(-50%,-50%) scale(1.06);}
+  }
+  .cover .hero-garment{
+    animation:heroFloat 7.5s ease-in-out infinite;
+    will-change:transform;
+  }
+  .cover .spotlight{
+    animation:glowBreathe 6.5s ease-in-out infinite;
+    will-change:opacity,transform;
+  }
+  .cover .coverline{animation:riseIn 640ms cubic-bezier(.22,.61,.36,1) backwards 220ms;}
+  .cover .actions{animation:riseIn 620ms cubic-bezier(.22,.61,.36,1) backwards 380ms;}
+
+  /* --- Today crimson action: quiet emphasis on hover --- */
+  .cover .actions .wore{
+    cursor:pointer;
+    transition:letter-spacing 260ms ease, text-shadow 260ms ease,
+               border-color 260ms ease;
+  }
+  .cover .actions .wore:hover{
+    letter-spacing:2.6px;
+    text-shadow:0 0 14px rgba(182,46,88,0.4);
+    border-color:var(--blush);
+  }
+  .cover .actions .why{cursor:pointer;transition:color 240ms ease;}
+  .cover .actions .why:hover{color:var(--ink-2);}
+
+  /* --- FAB: press-scale + shadow lift --- */
+  .fab{
+    cursor:pointer;
+    transition:transform 220ms cubic-bezier(.34,1.35,.6,1), box-shadow 240ms ease;
+  }
+  .fab:hover{
+    transform:translateY(-2px) scale(1.05);
+    box-shadow:0 16px 30px -8px rgba(182,46,88,0.6), 0 0 0 4px rgba(255,255,255,0.9);
+  }
+  .fab:active{transform:scale(0.94);}
+
+  /* --- tabs: soft press --- */
+  .tab{cursor:pointer;transition:transform 200ms ease, color 240ms ease;}
+  .tab:hover{color:var(--ink-2);}
+  .tab:active{transform:scale(0.92);}
+  .tab.active:hover{color:var(--ink);}
+
+  /* --- You: section blocks stagger in; swatches settle --- */
+  .s3 .block{animation:riseIn 520ms cubic-bezier(.22,.61,.36,1) backwards;}
+  .s3 .block:nth-of-type(2){animation-delay:120ms;}
+  .s3 .block:nth-of-type(3){animation-delay:200ms;}
+  .s3 .block:nth-of-type(4){animation-delay:280ms;}
+  .s3 .block:nth-of-type(5){animation-delay:360ms;}
+  .s3 .block:nth-of-type(6){animation-delay:440ms;}
+  .s3 h1{animation:riseIn 480ms ease backwards 60ms;}
+
+  .swatch{
+    cursor:pointer;
+    animation:settleIn 460ms cubic-bezier(.34,1.4,.64,1) backwards;
+    transition:transform 220ms cubic-bezier(.34,1.35,.6,1), box-shadow 220ms ease;
+  }
+  .swatches .swatch:nth-child(1){animation-delay:360ms;}
+  .swatches .swatch:nth-child(2){animation-delay:410ms;}
+  .swatches .swatch:nth-child(3){animation-delay:460ms;}
+  .swatches .swatch:nth-child(4){animation-delay:510ms;}
+  .swatches .swatch:nth-child(5){animation-delay:560ms;}
+  .swatches .swatch:nth-child(6){animation-delay:610ms;}
+  .swatch:hover{
+    transform:translateY(-3px) scale(1.08);
+    box-shadow:0 10px 18px -8px rgba(58,44,30,0.5),0 0 0 1px rgba(0,0,0,0.05) inset;
+  }
+
+  /* --- links: press + underline reveal on the crimson ones --- */
+  .link{cursor:pointer;transition:opacity 220ms ease, transform 200ms ease;}
+  .link:active{transform:scale(0.96);}
+  .link.plain:hover{opacity:0.65;}
+  .link:not(.plain){position:relative;}
+  .link:not(.plain)::after{
+    content:"";position:absolute;left:0;right:0;bottom:-4px;height:1px;
+    background:currentColor;transform:scaleX(0);transform-origin:left center;
+    transition:transform 260ms cubic-bezier(.22,.61,.36,1);
+  }
+  .link:not(.plain):hover::after{transform:scaleX(1);}
+
+  /* ---- honor reduced-motion: kill all of the above ---- */
+  @media (prefers-reduced-motion: reduce){
+    *,
+    *::before,
+    *::after{
+      animation:none !important;
+      transition:none !important;
+    }
+    .seg.on::after{transform:scaleX(1);}
+    .link:not(.plain)::after{transform:scaleX(0);}
+  }
 </style>
 </head>
 <body>

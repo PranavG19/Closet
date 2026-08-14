@@ -244,6 +244,126 @@
   .txtlink.danger{ color:var(--accent); }
 
   .version{ font-size:11px; color:var(--ink-3); letter-spacing:0.4px; margin-top:34px; padding-bottom:8px; text-align:center; }
+
+  /* =========================================================
+     MICRO-INTERACTIONS — whisper-quiet, editorial (faithful)
+     Short 200–400ms eases, 6–8px travel, nothing bouncy.
+     ========================================================= */
+  :root{ --ease: cubic-bezier(.22,.61,.36,1); }
+
+  @keyframes riseIn{
+    from{ opacity:0; transform:translateY(8px); }
+    to  { opacity:1; transform:translateY(0); }
+  }
+  @keyframes heroFloat{
+    0%,100%{ transform:translateY(0); }
+    50%    { transform:translateY(-6px); }
+  }
+  @keyframes glowBreathe{
+    0%,100%{ opacity:.78; transform:translate(-50%,-50%) scale(1); }
+    50%    { opacity:1;   transform:translate(-50%,-50%) scale(1.05); }
+  }
+  @keyframes underlineGrow{
+    from{ transform:scaleX(0); }
+    to  { transform:scaleX(1); }
+  }
+  @keyframes dotSettle{
+    from{ opacity:0; transform:scale(.55); }
+    to  { opacity:1; transform:scale(1); }
+  }
+
+  /* --- CLOSET: staggered entrance on chips, subfilters, grid tiles --- */
+  .s1 .chip{ animation:riseIn 340ms var(--ease) both; }
+  .s1 .chip:nth-child(1){ animation-delay:40ms; }
+  .s1 .chip:nth-child(2){ animation-delay:80ms; }
+  .s1 .chip:nth-child(3){ animation-delay:120ms; }
+  .s1 .chip:nth-child(4){ animation-delay:160ms; }
+  .s1 .chip:nth-child(5){ animation-delay:200ms; }
+  .s1 .subfilters{ animation:riseIn 340ms var(--ease) both; animation-delay:220ms; }
+  .s1 .grid .tile{ animation:riseIn 420ms var(--ease) both; }
+  .s1 .grid .tile:nth-child(1){ animation-delay:280ms; }
+  .s1 .grid .tile:nth-child(2){ animation-delay:350ms; }
+  .s1 .grid .tile:nth-child(3){ animation-delay:420ms; }
+  .s1 .grid .tile:nth-child(4){ animation-delay:490ms; }
+
+  /* selected sub-filter underline grows in from the left */
+  .sf.sel::after{ transform-origin:left center; animation:underlineGrow 420ms var(--ease) both; animation-delay:520ms; }
+
+  /* state dots settle softly, in step with their tile */
+  .s1 .grid .tile .dot{ animation:dotSettle 300ms var(--ease) both; }
+  .s1 .grid .tile:nth-child(1) .dot{ animation-delay:520ms; }
+  .s1 .grid .tile:nth-child(2) .dot{ animation-delay:590ms; }
+  .s1 .grid .tile:nth-child(3) .dot{ animation-delay:660ms; }
+  .s1 .grid .tile:nth-child(4) .dot{ animation-delay:730ms; }
+
+  /* --- TODAY: hero cutout floats; pedestal glow breathes --- */
+  .hero .garment{ animation:heroFloat 6.5s ease-in-out infinite; will-change:transform; }
+  .hero .pedestal{ animation:glowBreathe 6.5s ease-in-out infinite; }
+  .s2 .today-actions{ animation:riseIn 420ms var(--ease) both; animation-delay:260ms; }
+  .s2 .hero .caption{ animation:riseIn 460ms var(--ease) both; animation-delay:120ms; }
+
+  /* --- YOU: sections rise in, one after another --- */
+  .s3 .section{ animation:riseIn 380ms var(--ease) both; }
+  .s3 .section:nth-of-type(1){ animation-delay:60ms; }
+  .s3 .section:nth-of-type(2){ animation-delay:130ms; }
+  .s3 .section:nth-of-type(3){ animation-delay:200ms; }
+  .s3 .section:nth-of-type(4){ animation-delay:270ms; }
+  .s3 .section:nth-of-type(5){ animation-delay:340ms; }
+  .s3 .swatch{ animation:dotSettle 320ms var(--ease) both; }
+  .s3 .swatch:nth-child(1){ animation-delay:220ms; }
+  .s3 .swatch:nth-child(2){ animation-delay:260ms; }
+  .s3 .swatch:nth-child(3){ animation-delay:300ms; }
+  .s3 .swatch:nth-child(4){ animation-delay:340ms; }
+  .s3 .swatch:nth-child(5){ animation-delay:380ms; }
+  .s3 .swatch:nth-child(6){ animation-delay:420ms; }
+
+  /* --- press-scale + shadow-lift on tappable things --- */
+  .tile{ cursor:pointer; }
+  .tile .well{ transition:transform 240ms var(--ease), box-shadow 240ms var(--ease); }
+  .tile:hover .well{
+    transform:translateY(-4px);
+    box-shadow: inset 0 2px 10px rgba(120,86,52,0.10), inset 0 0 0 1px rgba(120,86,52,0.05), 0 16px 30px -18px rgba(120,86,52,0.34);
+  }
+  .tile:active .well{ transform:translateY(-1px) scale(.985); }
+  .tile .garment{ transition:transform 240ms var(--ease); }
+  .tile:hover .garment{ transform:scale(1.03); }
+
+  .chip{ cursor:pointer; transition:transform 220ms var(--ease), box-shadow 220ms var(--ease), background 220ms var(--ease); }
+  .chip:hover{ transform:translateY(-2px); box-shadow:0 12px 22px -14px rgba(120,86,52,0.34); }
+  .chip:active{ transform:translateY(0) scale(.97); }
+
+  .sf{ cursor:pointer; transition:color 220ms var(--ease); }
+  .sf:not(.sel):hover{ color:var(--ink-2); }
+
+  .fab{ cursor:pointer; transition:transform 220ms var(--ease), box-shadow 220ms var(--ease); }
+  .fab:hover{ transform:translateY(-2px) scale(1.04); box-shadow:0 18px 34px -12px rgba(182,46,88,0.75), 0 3px 8px rgba(182,46,88,0.4); }
+  .fab:active{ transform:translateY(0) scale(.96); }
+
+  .txtlink, .action-link{ cursor:pointer; transition:color 220ms var(--ease), opacity 220ms var(--ease); }
+  .txtlink:hover, .action-link:hover{ opacity:.72; }
+
+  /* crimson actions: a quiet deepening on hover */
+  .action-link.primary{ transition:color 240ms var(--ease), border-color 240ms var(--ease), text-shadow 240ms var(--ease); }
+  .action-link.primary:hover{ color:#9E2149; border-color:#9E2149; text-shadow:0 0 14px rgba(182,46,88,0.28); opacity:1; }
+  .txtlink:not(.muted):not(.danger){ transition:color 240ms var(--ease), text-shadow 240ms var(--ease); }
+  .txtlink:not(.muted):not(.danger):hover{ color:#9E2149; text-shadow:0 0 12px rgba(182,46,88,0.22); opacity:1; }
+  .txtlink.danger:hover{ color:#9E2149; text-shadow:0 0 12px rgba(182,46,88,0.22); opacity:1; }
+
+  .swatch{ cursor:pointer; transition:transform 220ms var(--ease), box-shadow 220ms var(--ease); }
+  .swatch:hover{ transform:translateY(-3px); box-shadow: inset 0 0 0 1px rgba(120,86,52,0.12), 0 12px 22px -14px rgba(120,86,52,0.4); }
+
+  .tab{ cursor:pointer; }
+  .tab .ti{ transition:transform 220ms var(--ease), opacity 220ms var(--ease); }
+  .tab:not(.active):hover .ti{ opacity:1; transform:translateY(-2px); }
+
+  /* --- respect reduced-motion: no entrances, no ambient loops --- */
+  @media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+      animation: none !important;
+      transition: none !important;
+    }
+    .sf.sel::after{ transform:none; }
+  }
 </style>
 </head>
 <body>

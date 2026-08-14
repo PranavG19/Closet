@@ -299,6 +299,148 @@
   .swatches{display:flex;gap:12px;margin-top:16px;}
   .sw{width:34px;height:34px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08), 0 2px 5px rgba(60,48,36,.14);}
   .foot{font-size:11px;color:var(--ink3);text-align:center;padding:24px 0 10px;letter-spacing:.5px;}
+
+  /* ============================================================= */
+  /* MICRO-INTERACTIONS — CSS-only. One-step distance:              */
+  /* a touch more expressive than whisper-quiet, never bouncy.      */
+  /* Short eases, 4–8px travel, slow ambient breathes.              */
+  /* ============================================================= */
+
+  /* --- shared entrance: a quiet fade + rise --- */
+  @keyframes riseIn{
+    from{opacity:0;transform:translateY(8px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  /* soft settle for small round marks (dots, swatches) */
+  @keyframes settleIn{
+    0%{opacity:0;transform:scale(.4);}
+    60%{opacity:1;transform:scale(1.12);}
+    100%{opacity:1;transform:scale(1);}
+  }
+  /* an underline that grows from its leading edge */
+  @keyframes underGrow{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+
+  /* --- CLOSET: header, chips, sub-filter, grid --- */
+  .closet .head .overline{animation:riseIn .5s cubic-bezier(.22,.61,.36,1) both;}
+  .closet .titleline{animation:riseIn .5s cubic-bezier(.22,.61,.36,1) .04s both;}
+
+  .chips .chip{animation:riseIn .5s cubic-bezier(.22,.61,.36,1) both;}
+  .chips .chip:nth-child(1){animation-delay:.06s;}
+  .chips .chip:nth-child(2){animation-delay:.10s;}
+  .chips .chip:nth-child(3){animation-delay:.14s;}
+  .chips .chip:nth-child(4){animation-delay:.18s;}
+  .chips .chip:nth-child(5){animation-delay:.22s;}
+
+  .segrow .seg{animation:riseIn .5s cubic-bezier(.22,.61,.36,1) both;}
+  .segrow .seg:nth-child(1){animation-delay:.14s;}
+  .segrow .seg:nth-child(2){animation-delay:.18s;}
+  .segrow .seg:nth-child(3){animation-delay:.22s;}
+  /* selected sub-filter underline slides in after the row settles */
+  .seg.active::after{transform-origin:left center;animation:underGrow .5s cubic-bezier(.22,.61,.36,1) .42s both;}
+
+  /* staggered fade+rise on the garment tiles */
+  .grid .tile{animation:riseIn .55s cubic-bezier(.22,.61,.36,1) both;}
+  .grid .tile:nth-child(1){animation-delay:.10s;}
+  .grid .tile:nth-child(2){animation-delay:.17s;}
+  .grid .tile:nth-child(3){animation-delay:.24s;}
+  .grid .tile:nth-child(4){animation-delay:.31s;}
+  /* state dots settle in once their tile has arrived */
+  .grid .tile .dot{animation:settleIn .45s cubic-bezier(.22,.61,.36,1) .5s both;}
+
+  /* --- press feedback: lift on hover, sink on active --- */
+  .tile{cursor:pointer;transition:transform .28s cubic-bezier(.2,.7,.3,1), box-shadow .28s cubic-bezier(.2,.7,.3,1);}
+  .tile:hover{transform:translateY(-4px);box-shadow:var(--shadow-card-hi);}
+  .tile:active{transform:translateY(-1px) scale(.994);}
+
+  .chip{cursor:pointer;transition:transform .2s cubic-bezier(.2,.7,.3,1), box-shadow .2s, color .2s;}
+  .chip:not(.first):hover{transform:translateY(-1px);color:var(--ink);box-shadow:var(--shadow-card);}
+  .chip.first:hover{transform:translateY(-1px);box-shadow:0 3px 5px rgba(60,48,36,.18), 0 14px 26px -8px rgba(34,31,27,.55);}
+  .chip:active{transform:translateY(0) scale(.97);}
+
+  .seg{cursor:pointer;transition:color .2s ease;}
+  .seg:not(.active):hover{color:var(--ink);}
+
+  /* --- CLOSET / all screens: the crimson FAB — deepen its quiet glow --- */
+  @keyframes fabBreathe{
+    0%,100%{box-shadow:0 14px 26px -10px rgba(182,46,88,.55);}
+    50%{box-shadow:0 16px 34px -8px rgba(182,46,88,.78);}
+  }
+  .fab{cursor:pointer;
+    transition:transform .25s cubic-bezier(.2,.7,.3,1), box-shadow .25s cubic-bezier(.2,.7,.3,1);
+    animation:fabBreathe 4.5s ease-in-out infinite;}
+  .fab:hover{transform:scale(1.06);box-shadow:0 20px 40px -10px rgba(182,46,88,.85);}
+  .fab:active{transform:scale(.96);box-shadow:0 10px 20px -8px rgba(182,46,88,.7);}
+
+  /* tab items give a small tactile acknowledgement */
+  .tab{cursor:pointer;transition:transform .2s cubic-bezier(.2,.7,.3,1);}
+  .tab .ic,.tab .tl{transition:color .2s ease;}
+  .tab:not(.active):hover .ic,.tab:not(.active):hover .tl{color:var(--ink2);}
+  .tab:active{transform:translateY(1px) scale(.96);}
+
+  /* --- TODAY: hero float, pedestal breathe, entrance --- */
+  .today .hero .overline{animation:riseIn .5s cubic-bezier(.22,.61,.36,1) .08s both;}
+  .today .hero .caption{animation:riseIn .6s cubic-bezier(.22,.61,.36,1) .22s both;}
+  .today .actcard{animation:riseIn .6s cubic-bezier(.22,.61,.36,1) .32s both;}
+
+  /* the garment slowly floats above its plinth */
+  @keyframes heroFloat{
+    0%,100%{transform:translateX(-50%) scale(1.38) translateY(0);}
+    50%{transform:translateX(-50%) scale(1.38) translateY(-5px);}
+  }
+  .today .hero .g{animation:heroFloat 7s ease-in-out infinite;}
+
+  /* the pedestal breathes a soft focal glow, counter-phased shadow */
+  @keyframes pedestalBreathe{
+    0%,100%{transform:translateX(-50%) scale(1);box-shadow:var(--shadow-card-hi), inset 0 2px 0 rgba(255,255,255,.8);}
+    50%{transform:translateX(-50%) scale(1.012);box-shadow:var(--shadow-card-hi), inset 0 2px 0 rgba(255,255,255,.95), 0 0 44px rgba(255,251,244,.7);}
+  }
+  .today .hero .pedestal{animation:pedestalBreathe 7s ease-in-out infinite;}
+  @keyframes groundBreathe{
+    0%,100%{opacity:1;transform:translateX(-50%) scale(1);}
+    50%{opacity:.72;transform:translateX(-50%) scale(.9);}
+  }
+  .today .hero .ground{animation:groundBreathe 7s ease-in-out infinite;}
+
+  .today .actcard{transition:transform .28s cubic-bezier(.2,.7,.3,1), box-shadow .28s;}
+  .today .actcard:hover{transform:translateY(-3px);box-shadow:var(--shadow-card-hi);}
+  .today .why{cursor:pointer;}
+  .today .wore{cursor:pointer;transition:color .2s ease, transform .2s cubic-bezier(.2,.7,.3,1), border-color .2s;}
+  .today .wore:hover{color:#9E2650;border-color:#9E2650;transform:translateX(1px);}
+  .today .wore:active{transform:translateX(0) scale(.98);}
+
+  /* --- YOU: staggered section cards, swatch settle, link emphasis --- */
+  .you .overline{animation:riseIn .5s cubic-bezier(.22,.61,.36,1) both;}
+  .you h2.title{animation:riseIn .5s cubic-bezier(.22,.61,.36,1) .04s both;}
+  .you .card{animation:riseIn .55s cubic-bezier(.22,.61,.36,1) both;
+    transition:transform .28s cubic-bezier(.2,.7,.3,1), box-shadow .28s;}
+  .you .card:nth-child(3){animation-delay:.10s;}
+  .you .card:nth-child(4){animation-delay:.17s;}
+  .you .card:nth-child(5){animation-delay:.24s;}
+  .you .card:nth-child(6){animation-delay:.31s;}
+  .you .card:nth-child(7){animation-delay:.38s;}
+  .you .card:hover{transform:translateY(-2px);box-shadow:var(--shadow-card-hi);}
+
+  .swatches .sw{animation:settleIn .5s cubic-bezier(.22,.61,.36,1) both;
+    transition:transform .2s cubic-bezier(.2,.7,.3,1);}
+  .swatches .sw:nth-child(1){animation-delay:.34s;}
+  .swatches .sw:nth-child(2){animation-delay:.40s;}
+  .swatches .sw:nth-child(3){animation-delay:.46s;}
+  .swatches .sw:nth-child(4){animation-delay:.52s;}
+  .swatches .sw:nth-child(5){animation-delay:.58s;}
+  .swatches .sw:nth-child(6){animation-delay:.64s;}
+  .swatches .sw:hover{transform:translateY(-3px) scale(1.06);}
+
+  .you .link{cursor:pointer;transition:color .2s ease, transform .2s cubic-bezier(.2,.7,.3,1);}
+  .you .link:not(.crimson):hover{color:var(--ink);transform:translateX(1px);}
+  .you .link.crimson{transition:color .2s ease, border-color .2s ease, transform .2s cubic-bezier(.2,.7,.3,1);}
+  .you .link.crimson:hover{color:#9E2650;border-color:#9E2650;transform:translateX(1px);}
+  .you .link.danger:hover{color:#9E2650;}
+
+  /* --- accessibility: honour reduced-motion --- */
+  @media (prefers-reduced-motion: reduce){
+    *{animation:none !important;transition:none !important;}
+    .seg.active::after{transform:none;}
+  }
 </style>
 </head>
 <body>

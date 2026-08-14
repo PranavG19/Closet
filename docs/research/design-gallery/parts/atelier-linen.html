@@ -252,6 +252,186 @@
   .swatches{display:flex;gap:12px;margin-top:16px;}
   .sw{width:34px;height:34px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08), 0 2px 5px rgba(58,54,36,.14);}
   .foot{font-size:11px;color:var(--ink3);text-align:center;padding:26px 0 6px;letter-spacing:.5px;}
+
+  /* ==========================================================================
+     MICRO-INTERACTIONS  (CSS-only; one-step distance = a touch more expressive
+     than whisper-quiet, but still editorial: short eases, small travel, no bounce)
+     ========================================================================== */
+
+  /* ---- entrance: a gentle staggered fade + rise ---- */
+  @keyframes rise{
+    from{opacity:0;transform:translateY(9px);}
+    to{opacity:1;transform:translateY(0);}
+  }
+  @keyframes riseTile{
+    from{opacity:0;transform:translateY(10px) scale(.985);}
+    to{opacity:1;transform:translateY(0) scale(1);}
+  }
+  @keyframes settle{
+    from{opacity:0;transform:scale(.4);}
+    to{opacity:1;transform:scale(1);}
+  }
+  @keyframes underlineGrow{
+    from{transform:scaleX(0);}
+    to{transform:scaleX(1);}
+  }
+
+  /* section blocks: closet header + filters, today caption/actions, you sections */
+  .closet .head,
+  .closet .chips,
+  .closet .segrow,
+  .closet .grid > .divider,
+  .today .hero .overline,
+  .today .hero .caption,
+  .today .actions,
+  .you .sec,
+  .you .body > .divider,
+  .you .foot{
+    animation:rise .5s cubic-bezier(.22,.61,.36,1) both;
+  }
+  .closet .head{animation-delay:.04s;}
+  .closet .chips{animation-delay:.10s;}
+  .closet .segrow{animation-delay:.16s;}
+
+  /* chips cascade in */
+  .chips .chip{animation:rise .45s cubic-bezier(.22,.61,.36,1) both;}
+  .chips .chip:nth-child(1){animation-delay:.14s;}
+  .chips .chip:nth-child(2){animation-delay:.19s;}
+  .chips .chip:nth-child(3){animation-delay:.24s;}
+  .chips .chip:nth-child(4){animation-delay:.29s;}
+  .chips .chip:nth-child(5){animation-delay:.34s;}
+
+  /* grid tiles: each delayed a touch more than the last */
+  .grid .tile{animation:riseTile .55s cubic-bezier(.22,.61,.36,1) both;}
+  .grid .tile:nth-child(1){animation-delay:.24s;}
+  .grid .tile:nth-child(2){animation-delay:.32s;}
+  .grid .tile:nth-child(3){animation-delay:.40s;}
+  .grid .tile:nth-child(4){animation-delay:.48s;}
+
+  /* state dots settle in softly, just after their tile lands */
+  .grid .tile .dot{animation:settle .4s cubic-bezier(.34,1.2,.64,1) both;}
+  .grid .tile:nth-child(1) .dot{animation-delay:.42s;}
+  .grid .tile:nth-child(2) .dot{animation-delay:.50s;}
+  .grid .tile:nth-child(3) .dot{animation-delay:.58s;}
+  .grid .tile:nth-child(4) .dot{animation-delay:.66s;}
+
+  /* you: stagger the account sections */
+  .you .sec:nth-of-type(1){animation-delay:.06s;}
+  .you .body > .divider:nth-of-type(1){animation-delay:.10s;}
+  .you .sec:nth-of-type(2){animation-delay:.14s;}
+  .you .sec:nth-of-type(3){animation-delay:.22s;}
+  .you .sec:nth-of-type(4){animation-delay:.30s;}
+  .you .sec:nth-of-type(5){animation-delay:.38s;}
+  .you .foot{animation-delay:.46s;}
+
+  /* swatches settle in one after another */
+  .swatches .sw{animation:settle .42s cubic-bezier(.34,1.2,.64,1) both;}
+  .swatches .sw:nth-child(1){animation-delay:.30s;}
+  .swatches .sw:nth-child(2){animation-delay:.36s;}
+  .swatches .sw:nth-child(3){animation-delay:.42s;}
+  .swatches .sw:nth-child(4){animation-delay:.48s;}
+  .swatches .sw:nth-child(5){animation-delay:.54s;}
+  .swatches .sw:nth-child(6){animation-delay:.60s;}
+
+  /* today caption + actions arrive a beat after the hero settles */
+  .today .hero .caption{animation-delay:.30s;}
+  .today .actions{animation-delay:.42s;}
+
+  /* ---- selected sub-filter underline grows in from the left ---- */
+  .seg.active::after{
+    transform-origin:left center;
+    animation:underlineGrow .5s cubic-bezier(.22,.61,.36,1) both;
+    animation-delay:.30s;
+  }
+
+  /* ---- press feedback: tappable things lift on hover, sink on press ---- */
+  .well,.chip,.seg,.fab,.wore,.link,.sw,.tab{
+    transition:transform .22s cubic-bezier(.22,.61,.36,1),
+               box-shadow .22s ease,
+               color .22s ease,
+               border-color .22s ease;
+  }
+  /* garment tiles */
+  .tile .well{cursor:pointer;}
+  .tile .well:hover{transform:translateY(-3px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -10px 22px rgba(52,50,26,.05), 0 16px 30px -18px rgba(58,54,36,.4);}
+  .tile .well:active{transform:translateY(0) scale(.98);}
+  /* category chips */
+  .chip{cursor:pointer;}
+  .chip:hover{transform:translateY(-2px);border-color:#D8CFBB;
+    box-shadow:0 12px 24px -14px rgba(58,54,36,.42);}
+  .chip:active{transform:translateY(0) scale(.97);}
+  /* sub-filters */
+  .seg{cursor:pointer;}
+  .seg:not(.active):hover{color:var(--ink);}
+  .seg:active{transform:scale(.98);}
+
+  /* ---- FAB: the one earned action; press-scale + shadow lift ---- */
+  .fab{cursor:pointer;}
+  .fab:hover{transform:translateY(-2px) scale(1.05);
+    box-shadow:0 20px 34px -10px rgba(110,125,91,.72);}
+  .fab:active{transform:translateY(0) scale(.95);
+    box-shadow:0 10px 20px -10px rgba(110,125,91,.6);}
+
+  /* ---- sage action: a quiet emphasis (deepen + firm the underline) ---- */
+  .wore{cursor:pointer;}
+  .wore:hover,.link.sage:hover{color:#5C6A4B;}
+  .wore:hover{border-bottom-color:#5C6A4B;padding-bottom:6px;
+    text-shadow:0 0 12px rgba(110,125,91,.28);}
+  .link{cursor:pointer;}
+  .link.sage{cursor:pointer;transition:transform .22s ease,color .22s ease;}
+  .link:not(.sage):hover{color:var(--ink);}
+  .link.danger:hover{color:#8F4632;}
+  .link:active{transform:scale(.98);}
+
+  /* ---- swatch hover: a soft lift ---- */
+  .sw{cursor:pointer;}
+  .sw:hover{transform:translateY(-2px) scale(1.08);
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.08), 0 8px 16px rgba(58,54,36,.24);}
+
+  /* tab bar items */
+  .tab{cursor:pointer;}
+  .tab:not(.active):hover .ic,.tab:not(.active):hover .tl{color:var(--ink2);}
+  .tab:active{transform:scale(.94);}
+
+  /* ---- TODAY hero: the cutout floats slowly; the ground shadow breathes ---- */
+  @keyframes heroFloat{
+    0%,100%{transform:translateX(-50%) scale(1.42) translateY(0);}
+    50%{transform:translateX(-50%) scale(1.42) translateY(-7px);}
+  }
+  @keyframes groundBreathe{
+    0%,100%{opacity:.85;transform:translateX(-50%) scaleX(1);}
+    50%{opacity:1;transform:translateX(-50%) scaleX(1.06);}
+  }
+  .today .hero .g{
+    animation:heroFloat 7s ease-in-out infinite;
+    transform-origin:center bottom;
+  }
+  .today .hero .ground{
+    animation:groundBreathe 7s ease-in-out infinite;
+    transform-origin:center center;
+  }
+
+  /* ==========================================================================
+     RESPECT prefers-reduced-motion: no entrance, no float, no hover travel.
+     Restore final resting state so nothing stays hidden or mid-transform.
+     ========================================================================== */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation:none !important;
+      transition:none !important;
+    }
+    .closet .head,.closet .chips,.closet .segrow,.closet .grid > .divider,
+    .chips .chip,.grid .tile,.grid .tile .dot,
+    .today .hero .overline,.today .hero .caption,.today .actions,
+    .you .sec,.you .body > .divider,.you .foot,.swatches .sw{
+      opacity:1 !important;
+      transform:none !important;
+    }
+    .seg.active::after{transform:scaleX(1) !important;}
+    .today .hero .g{transform:translateX(-50%) scale(1.42) !important;}
+    .today .hero .ground{opacity:1 !important;transform:translateX(-50%) !important;}
+  }
 </style>
 </head>
 <body>

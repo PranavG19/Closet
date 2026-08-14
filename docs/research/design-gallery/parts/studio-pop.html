@@ -327,6 +327,97 @@
   .fab::before,.fab::after{content:"";position:absolute;background:#fff;border-radius:2px;}
   .fab::before{width:22px;height:3px;}
   .fab::after{width:3px;height:22px;}
+
+  /* =========================================================
+     MICRO-INTERACTIONS — distance: wild (the most expressive
+     of the three, but still premium: quick eases, small
+     travel, one confident settle — never bouncy noise).
+     ========================================================= */
+  @keyframes rise{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes settle{from{opacity:0;transform:scale(.55);}to{opacity:1;transform:scale(1);}}
+  @keyframes grow-underline{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+  @keyframes breathe{0%,100%{opacity:.38;transform:scale(1);}50%{opacity:.72;transform:scale(1.09);}}
+  @keyframes heroFloat{0%,100%{transform:scale(1.35) translateY(0);}50%{transform:scale(1.37) translateY(-9px);}}
+
+  /* --- CLOSET: staggered section + tile entrance --- */
+  .closet .head{animation:rise .5s cubic-bezier(.2,.7,.2,1) both;}
+  .closet .chips-wrap{animation:rise .5s .06s cubic-bezier(.2,.7,.2,1) both;}
+  .closet .subchips{animation:rise .5s .12s cubic-bezier(.2,.7,.2,1) both;}
+  .tile{animation:rise .55s cubic-bezier(.2,.7,.2,1) both;}
+  .tile:nth-child(1){animation-delay:.18s;}
+  .tile:nth-child(2){animation-delay:.26s;}
+  .tile:nth-child(3){animation-delay:.34s;}
+  .tile:nth-child(4){animation-delay:.42s;}
+
+  /* tile press-lift: well floats + shadow deepens, cutout eases up */
+  .tile .well{transition:transform .28s cubic-bezier(.2,.7,.2,1),box-shadow .28s ease;cursor:pointer;}
+  .tile .gm{transition:transform .3s cubic-bezier(.2,.7,.2,1);}
+  .tile:hover .well{transform:translateY(-5px);
+    box-shadow:0 18px 30px -14px rgba(22,18,21,0.4),inset 0 1px 0 rgba(255,255,255,0.5);}
+  .tile:hover .gm{transform:translateY(-2px) scale(1.035);}
+  .tile:active .well{transform:translateY(-1px) scale(.985);}
+  .tile .state .dot{animation:settle .4s .5s cubic-bezier(.2,.9,.3,1.2) both;}
+
+  /* chips + sub-filter */
+  .chip{transition:transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .2s ease;cursor:pointer;}
+  .chip:hover{transform:translateY(-2px);}
+  .chip:active{transform:translateY(0) scale(.95);}
+  .chip.on:hover{box-shadow:0 10px 20px -6px rgba(91,43,224,0.8);}
+  .subchip{cursor:pointer;transition:color .2s ease;}
+  .subchip:hover{color:var(--ink);}
+  .subchip.sel::after{transform-origin:left center;animation:grow-underline .45s .34s cubic-bezier(.2,.7,.2,1) both;}
+
+  /* --- TODAY: hero cutout float + focal-glow breathe --- */
+  .today .band .gm-coat{animation:heroFloat 7s ease-in-out infinite;}
+  .today .band::before{content:"";position:absolute;inset:-18%;border-radius:50%;z-index:-1;
+    background:radial-gradient(circle,rgba(255,255,255,0.4),rgba(255,255,255,0) 62%);
+    animation:breathe 6s ease-in-out infinite;}
+  .today .actions .why{animation:rise .5s .1s cubic-bezier(.2,.7,.2,1) both;}
+  .today .actions .hint{animation:rise .5s .18s cubic-bezier(.2,.7,.2,1) both;}
+  .today .actions .wore{cursor:pointer;transition:color .25s ease;}
+  .today .actions .wore::after{transform-origin:left center;transition:height .25s ease,box-shadow .25s ease;
+    animation:grow-underline .5s .3s cubic-bezier(.2,.7,.2,1) both;}
+  .today .actions .wore:hover::after{height:3px;box-shadow:0 4px 12px -2px rgba(255,90,43,0.6);}
+
+  /* --- YOU: staggered card/section entrance + swatch settle --- */
+  .you .scroll > *{animation:rise .5s cubic-bezier(.2,.7,.2,1) both;}
+  .you .scroll > *:nth-child(1){animation-delay:.04s;}
+  .you .scroll > *:nth-child(2){animation-delay:.09s;}
+  .you .scroll > *:nth-child(3){animation-delay:.16s;}
+  .you .scroll > *:nth-child(4){animation-delay:.23s;}
+  .you .scroll > *:nth-child(5){animation-delay:.3s;}
+  .you .scroll > *:nth-child(6){animation-delay:.37s;}
+  .you .scroll > *:nth-child(7){animation-delay:.44s;}
+  .you .scroll > *:nth-child(8){animation-delay:.51s;}
+  .you .card{transition:transform .28s cubic-bezier(.2,.7,.2,1),box-shadow .28s ease;}
+  .you .card:hover{transform:translateY(-3px);box-shadow:0 16px 30px -16px rgba(22,18,21,0.35);}
+  .you .swatches .sw{animation:settle .45s cubic-bezier(.2,.9,.3,1.2) both;transition:transform .22s cubic-bezier(.2,.7,.2,1);cursor:pointer;}
+  .you .swatches .sw:nth-child(1){animation-delay:.4s;}
+  .you .swatches .sw:nth-child(2){animation-delay:.46s;}
+  .you .swatches .sw:nth-child(3){animation-delay:.52s;}
+  .you .swatches .sw:nth-child(4){animation-delay:.58s;}
+  .you .swatches .sw:nth-child(5){animation-delay:.64s;}
+  .you .swatches .sw:nth-child(6){animation-delay:.7s;}
+  .you .swatches .sw:hover{transform:translateY(-4px) scale(1.07);}
+  .you .clink,.you .link{cursor:pointer;transition:opacity .2s ease,transform .2s ease;}
+  .you .clink:hover,.you .link:hover{opacity:.68;transform:translateY(-1px);}
+  .you .link-danger{transition:transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .25s ease;cursor:pointer;}
+  .you .link-danger:hover{transform:translateY(-2px);box-shadow:0 12px 22px -8px rgba(255,90,43,0.7);}
+  .you .link-danger:active{transform:translateY(0) scale(.97);}
+
+  /* --- shared tappables: FAB + tabs --- */
+  .fab{transition:transform .25s cubic-bezier(.2,.7,.2,1),box-shadow .25s ease;cursor:pointer;}
+  .fab:hover{transform:translateY(-2px) scale(1.08);box-shadow:0 18px 32px -8px rgba(235,63,121,0.9);}
+  .fab:active{transform:scale(.93);}
+  .tab{cursor:pointer;transition:transform .2s ease;}
+  .tab:hover{transform:translateY(-1px);}
+  .tab:hover .tl{color:var(--ink);}
+
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{animation:none !important;transition:none !important;}
+    .tile,.you .scroll > *,.you .swatches .sw{opacity:1 !important;transform:none !important;}
+    .subchip.sel::after,.today .actions .wore::after{transform:scaleX(1) !important;}
+  }
 </style>
 </head>
 <body>

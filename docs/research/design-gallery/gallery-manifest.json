@@ -1,5 +1,5 @@
 {
-  "iteration": 2,
+  "iteration": 3,
   "updated": "2026-08-14",
   "themes": [
     { "slug": "atelier-baseline", "title": "Atelier — Baseline", "distance": "faithful", "description": "The current Atelier design at its best — editorial restraint with warm cream canvas, sunken garment wells, serif display headings, hairline dividers, and a single earned crimson action per screen.", "signatureMove": "Every garment is a clean CSS-drawn silhouette on a 6px sunken well, tinted per-piece via one custom property so the shapes read as white/black/camel/rose — no images, fully consistent." },

@@ -210,10 +210,104 @@
   .body p.muted{color:var(--ink2);font-size:15px;line-height:1.5;margin-top:8px}
   .ver{text-align:center;color:#a79f93;font-size:11px;letter-spacing:.4px;padding:18px 0 6px}
 
+  /* ===== Micro-interactions (faithful = whisper-quiet editorial restraint) ===== */
+
   /* fade in */
-  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
   .rise{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
   .r1{animation-delay:.05s}.r2{animation-delay:.12s}.r3{animation-delay:.19s}.r4{animation-delay:.26s}
+
+  /* staggered garment-grid entrance — gentle diagonal cascade */
+  .grid .tile:nth-child(1){animation-delay:.22s}
+  .grid .tile:nth-child(2){animation-delay:.30s}
+  .grid .tile:nth-child(3){animation-delay:.38s}
+  .grid .tile:nth-child(4){animation-delay:.46s}
+
+  /* tappable garment tiles — press-scale + shadow-lift, cutout floats a touch */
+  .tile{cursor:pointer}
+  .tile .well{transition:transform .28s cubic-bezier(.2,.7,.2,1), box-shadow .28s ease}
+  .tile .well .g{transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+  .tile:hover .well{transform:translateY(-4px);box-shadow:0 18px 30px -20px rgba(60,45,30,.34)}
+  .tile:hover .well .g{transform:translateY(-3px) scale(1.03)}
+  .tile:active .well{transform:translateY(-1px) scale(.985)}
+
+  /* chips — quiet hover lift + press */
+  .chip{cursor:pointer;transition:transform .2s ease, box-shadow .2s ease, background .25s ease, color .25s ease, border-color .25s ease}
+  .chip:hover{transform:translateY(-1px);box-shadow:0 7px 15px -9px rgba(60,45,30,.32)}
+  .chip:active{transform:translateY(0) scale(.97)}
+
+  /* sub-filter segments — selected underline grows in from the left */
+  .seg{cursor:pointer;transition:color .2s ease}
+  .seg:hover{color:var(--ink)}
+  @keyframes underline-grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+  .seg.on::after{transform-origin:left center;animation:underline-grow .5s .48s cubic-bezier(.2,.7,.2,1) both}
+
+  /* FAB — soft rise + deepened crimson shadow on hover, crisp press */
+  .fab{cursor:pointer;transition:transform .25s cubic-bezier(.2,.7,.2,1), box-shadow .25s ease}
+  .fab:hover{transform:translateY(-2px) scale(1.05);box-shadow:0 18px 30px -8px rgba(182,46,88,.78)}
+  .fab:active{transform:translateY(0) scale(.95)}
+
+  /* tab items */
+  .tab{cursor:pointer;transition:color .2s ease, transform .18s ease}
+  .tab:hover{color:var(--ink)}
+  .tab:active{transform:scale(.94)}
+
+  /* Today hero — cutout enters centered then floats slowly; focal glow breathes */
+  @keyframes garment-in{
+    from{opacity:0;transform:translate(-50%,calc(-50% + 10px))}
+    to{opacity:1;transform:translate(-50%,-50%)}
+  }
+  @keyframes garment-float{
+    0%,100%{transform:translate(-50%,-50%)}
+    50%{transform:translate(-50%,calc(-50% - 7px))}
+  }
+  .hero .garment{
+    animation:garment-in .8s .3s cubic-bezier(.2,.7,.2,1) both,
+              garment-float 6.5s 1.1s ease-in-out infinite;
+  }
+  @keyframes glow-breathe{
+    0%,100%{opacity:.85;transform:translate(-50%,-50%) scale(1)}
+    50%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}
+  }
+  .hero .bandglow{animation:glow-breathe 7s ease-in-out infinite}
+
+  /* reveal actions — row hover, crimson action gets a quiet glow */
+  .actlink{cursor:pointer}
+  .actlink .k{transition:color .2s ease}
+  .actlink .arrow{transition:transform .25s cubic-bezier(.2,.7,.2,1)}
+  .actlink:hover .k{color:var(--ink)}
+  .actlink:hover .arrow{transform:translateX(3px)}
+  .actlink .k.crimson{transition:color .2s ease, text-shadow .3s ease}
+  .actlink:hover .k.crimson{color:#9E2249;text-shadow:0 0 18px rgba(182,46,88,.32)}
+
+  /* account links — nudge on hover; crimson delete deepens */
+  .biglink{cursor:pointer;transition:color .2s ease, transform .2s ease}
+  .biglink:hover{transform:translateX(2px)}
+  .biglink.crimson:hover{color:#9E2249}
+
+  /* state dots + swatches — soft settle into place */
+  @keyframes settle{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+  .dot{animation:settle .42s .6s cubic-bezier(.2,.7,.2,1) both}
+  .sw{cursor:pointer;transition:transform .2s ease, box-shadow .2s ease;animation:settle .45s cubic-bezier(.2,.7,.2,1) both}
+  .sw:hover{transform:translateY(-2px) scale(1.07);box-shadow:0 8px 16px -8px rgba(60,45,30,.32), inset 0 0 0 1px rgba(0,0,0,.06)}
+  .swatches .sw:nth-child(1){animation-delay:.50s}
+  .swatches .sw:nth-child(2){animation-delay:.56s}
+  .swatches .sw:nth-child(3){animation-delay:.62s}
+  .swatches .sw:nth-child(4){animation-delay:.68s}
+  .swatches .sw:nth-child(5){animation-delay:.74s}
+  .swatches .sw:nth-child(6){animation-delay:.80s}
+
+  /* Respect reduced-motion — disable all motion, keep final resting states */
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+      animation-duration:.001ms !important;
+      animation-iteration-count:1 !important;
+      animation-delay:0s !important;
+      transition-duration:.001ms !important;
+    }
+    .hero .garment{transform:translate(-50%,-50%) !important}
+    .hero .bandglow{opacity:.85 !important;transform:translate(-50%,-50%) !important}
+  }
 </style>
 </head>
 <body>
@@ -367,7 +461,7 @@
               <div class="bandglow"></div>
               <div class="toplabel overline">Today</div>
 
-              <div class="garment rise r2">
+              <div class="garment">
                 <svg class="g" width="172" height="196" viewBox="0 0 116 132" fill="none">
                   <path d="M58 12 L42 16 L26 10 L8 30 L18 54 L30 48 L30 116 Q30 122 36 122 L80 122 Q86 122 86 116 L86 48 L98 54 L108 30 L90 10 L74 16 Z"
                     fill="#C99B6A" stroke="#A87C4E" stroke-width="2" stroke-linejoin="round"/>
