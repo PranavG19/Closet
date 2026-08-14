@@ -121,9 +121,10 @@
   /* Common label styles */
   .overline{
     font-family:var(--serif);
-    text-transform:uppercase;
-    letter-spacing:2px;
-    font-size:11px;
+    font-style:italic;
+    text-transform:none;
+    letter-spacing:.2px;
+    font-size:16px;
     color:var(--ink-3);
   }
   .display{
@@ -148,11 +149,12 @@
   .closet-title-row .display{font-size:40px;}
   .pieces{
     font-family:var(--serif);
-    text-transform:uppercase;
-    letter-spacing:2px;
-    font-size:11px;
+    font-style:italic;
+    text-transform:none;
+    letter-spacing:.2px;
+    font-size:15px;
     color:var(--ink-3);
-    padding-bottom:6px;
+    padding-bottom:8px;
   }
 
   .chips{
@@ -210,14 +212,16 @@
     margin:12px 0 6px;
     font-style:italic;
   }
-  .state{display:flex;align-items:center;gap:8px;}
+  .state{display:flex;align-items:center;gap:9px;}
   .dot{width:7px;height:7px;border-radius:50%;flex:0 0 7px;}
   .state .lbl{
     font-family:var(--serif);
-    text-transform:uppercase;
-    letter-spacing:1.6px;
-    font-size:9.5px;
-    color:var(--ink-3);
+    font-style:italic;
+    text-transform:none;
+    letter-spacing:.2px;
+    font-size:18px;
+    line-height:1.1;
+    color:var(--ink-2);
   }
 
   /* Bottom tab bar */
@@ -226,22 +230,29 @@
     border-top:1px solid var(--hair);
     background:rgba(255,255,255,.72);
     backdrop-filter:blur(8px);
-    display:flex;align-items:flex-start;justify-content:space-between;
-    padding:14px 26px 0;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:0 30px;
     position:relative;
   }
   .tab{
-    display:flex;flex-direction:column;align-items:center;gap:7px;
-    width:52px;
+    display:flex;align-items:center;justify-content:center;
     font-family:var(--serif);
-    font-size:11px;
+    font-style:italic;
+    font-size:17px;
     color:var(--ink-3);
-    letter-spacing:.3px;
+    letter-spacing:.2px;
+    line-height:1;
   }
-  .tab.active{color:var(--ink);}
-  .tab.active .ic{color:var(--ink);}
-  .tab .ic{color:var(--ink-3);height:24px;display:flex;align-items:center;}
-  .fab-wrap{width:52px;display:flex;justify-content:center;}
+  .tab.active{
+    color:var(--ink);
+    position:relative;
+  }
+  .tab.active::after{
+    content:"";position:absolute;left:0;right:0;bottom:-8px;height:2px;
+    background:var(--crimson);border-radius:2px;
+    transform-origin:left center;
+  }
+  .fab-wrap{display:flex;justify-content:center;}
   .fab{
     width:58px;height:58px;border-radius:50%;
     background:var(--crimson);
@@ -277,9 +288,21 @@
     position:absolute;left:28px;right:28px;bottom:36px;z-index:3;
   }
   .hero-caption .display{font-size:34px;}
+  /* Editorial drop-cap on the Today title — the display move baseline can't have */
+  .hero-caption .display .dropcap{
+    float:left;
+    font-family:var(--serif);
+    font-style:italic;
+    font-weight:400;
+    font-size:104px;
+    line-height:.72;
+    padding:6px 12px 0 0;
+    margin-top:4px;
+    color:var(--crimson);
+  }
   .hero-caption .sub{
     font-family:var(--serif);font-style:italic;
-    color:var(--ink-2);font-size:17px;margin-top:8px;
+    color:var(--ink-2);font-size:34px;line-height:1.1;margin-top:10px;
   }
   .today-actions{
     margin:24px 28px 0;
@@ -291,12 +314,12 @@
     display:flex;align-items:center;justify-content:space-between;
   }
   .today-link .k{
-    font-family:var(--serif);text-transform:uppercase;letter-spacing:2px;font-size:11.5px;
-    color:var(--ink-3);
+    font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:.2px;font-size:19px;
+    color:var(--ink-2);
   }
   .today-link .worn{
     color:var(--ink);font-style:italic;
-    text-transform:uppercase;letter-spacing:2px;font-size:11.5px;
+    text-transform:none;letter-spacing:.2px;font-size:19px;
     position:relative;padding-bottom:6px;
   }
   .today-link .worn::after{
@@ -313,12 +336,12 @@
     font-family:var(--serif);font-size:22px;color:var(--ink);margin:0 0 14px;font-weight:400;
   }
   .kv .k{
-    font-family:var(--serif);text-transform:uppercase;letter-spacing:2px;font-size:10.5px;color:var(--ink-3);
+    font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:.2px;font-size:15px;color:var(--ink-3);
   }
-  .kv .v{font-family:var(--serif);font-size:17px;color:var(--ink);margin-top:6px;font-style:italic;}
+  .kv .v{font-family:var(--serif);font-size:22px;color:var(--ink);margin-top:6px;font-style:italic;}
   .row-links{display:flex;gap:26px;margin-top:16px;}
   .txt-link{
-    font-family:var(--serif);text-transform:uppercase;letter-spacing:1.8px;font-size:11px;color:var(--ink-2);
+    font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:.2px;font-size:16px;color:var(--ink-2);
   }
   .body-copy{font-family:var(--serif);font-size:16px;line-height:1.55;color:var(--ink-2);margin:2px 0 0;}
   .swatches{display:flex;gap:14px;margin-top:16px;}
@@ -327,7 +350,7 @@
     box-shadow:inset 0 0 0 1px rgba(70,58,42,.14), inset 0 1px 2px rgba(70,58,42,.18);
   }
   .danger-link{
-    font-family:var(--serif);text-transform:uppercase;letter-spacing:1.8px;font-size:11px;color:var(--crimson);
+    font-family:var(--serif);font-style:italic;text-transform:none;letter-spacing:.2px;font-size:16px;color:var(--crimson);
   }
   .version{
     font-family:var(--serif);font-style:italic;font-size:12.5px;color:var(--ink-3);
@@ -539,22 +562,18 @@
           <!-- tab bar -->
           <div class="tabbar">
             <div class="tab active">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 8.5 12 4l8 4.5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-10Z" stroke="currentColor" stroke-width="1.5"/><path d="M12 4v15.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
               Closet
             </div>
             <div class="tab">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
               Today
             </div>
             <div class="fab-wrap">
               <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></div>
             </div>
             <div class="tab">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
               Outfits
             </div>
             <div class="tab">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="currentColor" stroke-width="1.5"/></svg></span>
               You
             </div>
           </div>
@@ -592,7 +611,7 @@
                 </svg>
               </div>
               <div class="hero-caption">
-                <div class="display">Camel outerwear</div>
+                <div class="display"><span class="dropcap">C</span>amel outerwear</div>
                 <div class="sub">with black</div>
               </div>
             </div>
@@ -611,22 +630,18 @@
 
           <div class="tabbar">
             <div class="tab">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 8.5 12 4l8 4.5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-10Z" stroke="currentColor" stroke-width="1.5"/><path d="M12 4v15.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
               Closet
             </div>
             <div class="tab active">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
               Today
             </div>
             <div class="fab-wrap">
               <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></div>
             </div>
             <div class="tab">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
               Outfits
             </div>
             <div class="tab">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="currentColor" stroke-width="1.5"/></svg></span>
               You
             </div>
           </div>
@@ -699,22 +714,18 @@
 
           <div class="tabbar">
             <div class="tab">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M4 8.5 12 4l8 4.5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-10Z" stroke="currentColor" stroke-width="1.5"/><path d="M12 4v15.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
               Closet
             </div>
             <div class="tab">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.5"/><path d="M12 8v4l3 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
               Today
             </div>
             <div class="fab-wrap">
               <div class="fab"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg></div>
             </div>
             <div class="tab">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg></span>
               Outfits
             </div>
             <div class="tab active">
-              <span class="ic"><svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.4" stroke="currentColor" stroke-width="1.5"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" stroke="currentColor" stroke-width="1.5"/></svg></span>
               You
             </div>
           </div>

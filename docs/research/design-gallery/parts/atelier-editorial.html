@@ -19,8 +19,12 @@
     --aside:#847E76;
     --hair:#E4DCD0;
     --serif:Georgia,'Times New Roman',serif;
+    /* high-contrast Didone masthead face — hairline serifs, fat stems (system Didot/Bodoni, Georgia fallback) */
+    --didone:'Didot','Bodoni 72','Bodoni 72 Smallcaps','Bodoni MT','Hoefler Text',Georgia,'Times New Roman',serif;
     --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
     --shadow:0 24px 60px -28px rgba(52,40,30,.42);
+    --edge:18px;   /* hard flush-left margin the mastheads hang to */
+    --col2:44px;   /* indented second column for body + cards */
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%}
@@ -41,8 +45,8 @@
     display:inline-block;margin-bottom:14px;
   }
   .gallery-head h1{
-    font-family:var(--serif);font-weight:400;color:var(--ink);
-    font-size:52px;line-height:1;letter-spacing:-.02em;
+    font-family:var(--didone);font-weight:400;color:var(--ink);
+    font-size:58px;line-height:1;letter-spacing:-.01em;
   }
   .gallery-head p{color:var(--ink2);font-size:15px;margin-top:14px}
   .gallery-head .rule{width:52px;height:2px;background:var(--crimson);margin:22px auto 0}
@@ -98,9 +102,21 @@
     font-size:11px;letter-spacing:2.4px;text-transform:uppercase;color:var(--ink3);
     font-weight:600;
   }
-  .display{
-    font-family:var(--serif);font-weight:400;color:var(--ink);
-    letter-spacing:-.025em;line-height:.92;
+  /* masthead — Didone display at 64–72px, hung to the hard flush-left edge,
+     forced to a tight 2-line stack so 'Closet'/'You' dwarf the 16px body */
+  .masthead{
+    font-family:var(--didone);font-weight:400;color:var(--ink);
+    font-size:70px;line-height:.84;letter-spacing:-.015em;
+    margin-left:var(--edge);
+  }
+  .masthead.two{font-size:64px}
+  /* kicker hung to the same hard-left edge, with an OFFSET hairline rule beneath it */
+  .kicker{
+    margin-left:var(--edge);
+    position:relative;padding-bottom:12px;margin-bottom:6px;display:inline-block;
+  }
+  .kicker::after{
+    content:"";position:absolute;left:34px;right:-60px;bottom:0;height:1px;background:var(--ink);
   }
 
   /* ---- chips ---- */
@@ -176,16 +192,17 @@
     width:280px;height:280px;border-radius:999px;
     background:radial-gradient(circle, rgba(255,255,255,.68), transparent 68%);
   }
-  .hero .toplabel{position:absolute;top:20px;left:24px}
-  .hero .garment{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:2}
-  .hero .titleblock{position:absolute;left:24px;bottom:28px;right:24px;z-index:3}
-  .hero .titleblock .sub{color:var(--ink2);font-size:16px;margin-top:10px;font-family:var(--serif);font-style:italic}
+  .hero .toplabel{position:absolute;top:22px;left:var(--edge);z-index:3}
+  .hero .garment{position:absolute;left:60%;top:40%;transform:translate(-50%,-50%);z-index:2}
+  .hero .titleblock{position:absolute;left:0;bottom:26px;right:24px;z-index:3}
+  .hero .titleblock .masthead{margin-left:var(--edge)}
+  .hero .titleblock .sub{color:var(--ink2);font-size:16px;margin-top:12px;margin-left:var(--col2);font-family:var(--serif);font-style:italic}
   .hero .scrim{
     position:absolute;left:0;right:0;bottom:0;height:210px;z-index:1;
     background:linear-gradient(180deg,transparent, rgba(246,242,236,.9) 76%, var(--cream));
   }
 
-  .reveal-actions{padding:24px 24px 0}
+  .reveal-actions{padding:26px 24px 0 var(--col2)}
   .actline{display:flex;flex-direction:column;gap:20px}
   .actlink{display:flex;align-items:center;justify-content:space-between}
   .actlink .k{font-size:12px;letter-spacing:2.2px;text-transform:uppercase;color:var(--ink3);font-weight:600}
@@ -196,7 +213,7 @@
   .why-divider{height:1px;background:var(--hair);margin:22px 24px 0}
 
   /* ---- Screen 3 account ---- */
-  .acc-section{padding:0 24px}
+  .acc-section{padding:0 24px 0 var(--col2)}
   .acc-title{font-family:var(--serif);font-size:23px;color:var(--ink);letter-spacing:-.01em}
   .kv{margin-top:10px}
   .kv .k{font-size:10.5px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);font-weight:600}
@@ -204,7 +221,7 @@
   .biglink{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--ink);font-weight:600;margin-top:12px;display:inline-block}
   .biglink.crimson{color:var(--crimson)}
   .linkgroup{display:flex;gap:24px;margin-top:14px}
-  .sect-divider{height:1px;background:var(--hair);margin:16px 24px}
+  .sect-divider{height:1px;background:var(--hair);margin:16px 24px 16px var(--col2)}
   .swatches{display:flex;gap:10px;margin-top:14px}
   .sw{width:34px;height:34px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
   .body p.muted{color:var(--ink2);font-size:15px;line-height:1.5;margin-top:8px}
@@ -315,7 +332,7 @@
   <div class="gallery-head">
     <span class="overline">Design Gallery · Direction</span>
     <h1>Atelier — Editorial Bold</h1>
-    <p>Same cream / serif / crimson system — masthead-scale display type, confident asymmetry, crimson with intent.</p>
+    <p>Same cream / crimson system — but a 70px Didone masthead hung hard-left over an indented body column: fashion-magazine cover, loud and asymmetric.</p>
     <div class="rule"></div>
   </div>
 
@@ -335,15 +352,13 @@
           </div>
 
           <div class="body">
-            <div class="pad rise r1" style="padding-top:8px;display:flex;justify-content:space-between;align-items:flex-end">
-              <div>
-                <div class="overline">Your Closet</div>
-                <div class="display" style="font-size:56px;margin-top:8px">Closet</div>
-              </div>
-              <div class="overline" style="padding-bottom:8px">6 Pieces</div>
+            <div class="rise r1" style="padding-top:12px">
+              <div class="overline kicker">Your Closet</div>
+              <div class="masthead two" style="margin-top:2px">The<br>Closet</div>
+              <div class="overline" style="margin-left:var(--col2);margin-top:14px">6 Pieces</div>
             </div>
 
-            <div class="chiprow rise r2" style="margin-top:22px">
+            <div class="chiprow rise r2" style="margin-top:22px;padding-left:var(--col2)">
               <span class="chip on">Tops</span>
               <span class="chip">Bottoms</span>
               <span class="chip">Dresses</span>
@@ -351,13 +366,13 @@
               <span class="chip">Shoes</span>
             </div>
 
-            <div class="segrow rise r2" style="margin-top:16px">
+            <div class="segrow rise r2" style="margin-top:16px;padding-left:var(--col2)">
               <span class="seg on">Ready to wear</span>
               <span class="seg">In the wash</span>
               <span class="seg">Set aside</span>
             </div>
 
-            <div class="grid">
+            <div class="grid" style="padding-left:var(--col2)">
               <div class="tile rise r3">
                 <div class="well">
                   <!-- white top / blouse -->
@@ -459,7 +474,7 @@
             <div class="hero rise r1">
               <div class="band"></div>
               <div class="bandglow"></div>
-              <div class="toplabel overline">Today</div>
+              <div class="toplabel overline kicker">Today · Tue</div>
 
               <div class="garment">
                 <svg class="g" width="172" height="196" viewBox="0 0 116 132" fill="none">
@@ -475,7 +490,7 @@
 
               <div class="scrim"></div>
               <div class="titleblock rise r3">
-                <div class="display" style="font-size:52px">Camel<br>outerwear</div>
+                <div class="masthead two">Camel<br>outerwear</div>
                 <div class="sub">with black</div>
               </div>
             </div>
@@ -536,12 +551,12 @@
           </div>
 
           <div class="body">
-            <div class="pad rise r1" style="padding-top:8px">
-              <div class="overline">Your Account</div>
-              <div class="display" style="font-size:56px;margin-top:8px">You</div>
+            <div class="rise r1" style="padding-top:12px">
+              <div class="overline kicker">Your Account</div>
+              <div class="masthead two" style="margin-top:2px">About<br>You</div>
             </div>
 
-            <div class="acc-section rise r2" style="margin-top:26px">
+            <div class="acc-section rise r2" style="margin-top:28px">
               <div class="kv">
                 <div class="k">Signed in as</div>
                 <div class="v">tester@example.com</div>

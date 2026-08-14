@@ -6,20 +6,23 @@
 <title>Atelier — Linen &amp; Sage</title>
 <style>
   :root{
-    /* ── one-step palette shift: crimson → sage, cream → linen ── */
-    --linen:#F3ECDD;          /* canvas, warmed toward flax/linen */
-    --white:#FEFCF7;          /* surfaces, a hair warmer than pure white */
-    --well:#E9E1D1;           /* sunken wells, warm greige */
+    /* ── full-throated identity: botanical sage across the UI, canvas warmed to oatmeal linen ── */
+    --linen:#EBE1C8;          /* canvas, pushed several shades warmer — flax / oatmeal linen */
+    --white:#F6EFDD;          /* surfaces, warm-taupe card tint (not white) */
+    --well:#E1D7C0;           /* sunken wells, warm greige */
     --ink:#221F1B;
     --ink2:#655F58;
     --ink3:#6C655C;
     --sage:#6E7D5B;           /* THE action — muted sage-green */
     --sage-soft:#95A17C;      /* lighter sage for tints */
-    --clay:#A6543E;           /* destructive-only earthy clay (never the "earned" action) */
-    --dot-ready:#5F8A63;      /* re-tuned to sit with sage: fresh leaf, distinct from accent */
+    --sage-deep:#566349;      /* readable sage ink for active tab / chip text */
+    --sage-pale:#DFE6D0;      /* pale-sage tint fill for the active category chip */
+    --sage-wash:#D4DDC2;      /* large-surface sage wash behind the Today hero */
+    --clay:#C25B36;           /* destructive-only TERRACOTTA — warm & orange, far from crimson */
+    --dot-ready:#7C8B60;      /* pulled into the sage family so the whole screen reads botanical */
     --dot-wash:#B4923F;       /* dried-wheat ochre */
     --dot-aside:#928B7E;      /* warm stone */
-    --hair:#E4DBC9;
+    --hair:#DDD3BC;
     --serif:Georgia,'Times New Roman',serif;
     --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
     --shadow:0 24px 60px -28px rgba(58,54,36,.45);
@@ -31,7 +34,7 @@
   html,body{height:100%;}
   body{
     background:
-      radial-gradient(120% 90% at 50% -10%, #F8F3E9 0%, #EEE7D7 60%, #E5DCC8 100%);
+      radial-gradient(120% 90% at 50% -10%, #F1E8D3 0%, #E6DCC2 60%, #DACEB0 100%);
     font-family:var(--sans);
     color:var(--ink);
     -webkit-font-smoothing:antialiased;
@@ -104,18 +107,18 @@
     box-shadow:var(--shadow-sm);
     white-space:nowrap;
   }
-  .chip.first{color:var(--ink);border-color:#D8CFBB;}
+  .chip.first{color:var(--sage-deep);font-weight:500;background:var(--sage-pale);border-color:#BFCBA6;}
 
   .segrow{display:flex;gap:20px;padding:24px var(--gut) 0;}
   .seg{font-size:13px;color:var(--ink2);position:relative;padding-bottom:8px;}
-  .seg.active{color:var(--ink);font-weight:500;}
+  .seg.active{color:var(--sage-deep);font-weight:600;}
   .seg.active::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--sage);border-radius:2px;}
 
   .divider{height:1px;background:var(--hair);margin:16px var(--gut) 0;}
 
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:24px var(--gut) 0;}
   .well{
-    background:linear-gradient(180deg,#ECE5D6,#E5DCCB);
+    background:linear-gradient(180deg,#E7DCC3,#DED3B9);
     border-radius:8px;
     height:170px;
     display:flex;align-items:center;justify-content:center;
@@ -209,8 +212,9 @@
   .today .hero{
     position:relative;
     height:500px;flex:0 0 500px;
+    /* large soft sage wash owns the top of the hero, dissolving into warm linen below */
     background:
-      radial-gradient(120% 80% at 50% 30%, #F1EBDD 0%, #E9E1D0 60%, #E1D8C5 100%);
+      radial-gradient(96% 66% at 50% 26%, var(--sage-wash) 0%, #DBDDC1 42%, #E4DAC4 72%, var(--linen) 100%);
     overflow:hidden;
   }
   .today .hero .overline{position:absolute;top:24px;left:var(--gut);}
@@ -222,10 +226,11 @@
   .today .hero .g{position:absolute;left:50%;top:120px;transform:translateX(-50%) scale(1.42);--gc:#C6B99A;}
   .today .hero .caption{position:absolute;left:var(--gut);right:var(--gut);bottom:32px;}
   .today .hero .caption h2{font-family:var(--serif);font-weight:400;font-size:38px;color:var(--ink);line-height:1.04;}
+  .today .hero .caption h2::after{content:"";display:block;width:56px;height:3px;border-radius:3px;background:var(--sage);margin-top:14px;}
   .today .hero .caption .sub{font-size:15px;color:var(--ink2);margin-top:8px;}
   .today .hero::after{
     content:"";position:absolute;left:0;right:0;bottom:0;height:200px;
-    background:linear-gradient(180deg,rgba(243,236,221,0),rgba(243,236,221,.9));
+    background:linear-gradient(180deg,rgba(235,225,200,0),rgba(235,225,200,.92));
   }
 
   .today .actions{padding:24px var(--gut) 0;flex:1 1 auto;}
@@ -381,7 +386,7 @@
   .link{cursor:pointer;}
   .link.sage{cursor:pointer;transition:transform .22s ease,color .22s ease;}
   .link:not(.sage):hover{color:var(--ink);}
-  .link.danger:hover{color:#8F4632;}
+  .link.danger:hover{color:#A84A2A;}
   .link:active{transform:scale(.98);}
 
   /* ---- swatch hover: a soft lift ---- */
@@ -439,7 +444,7 @@
   <div class="page-head">
     <div class="overline">Design Gallery</div>
     <h1>Atelier — Linen &amp; Sage</h1>
-    <p>One-step palette shift: the same editorial Atelier system, its single earned action re-voiced from crimson to a calm, botanical sage-green over a linen-warmed canvas.</p>
+    <p>Botanical Atelier: a warm oatmeal-linen canvas, sage carried across chips, tabs and status dots (not just one button), a soft sage wash behind the hero, and destruction quarantined to a warm terracotta.</p>
   </div>
 
   <div class="row">

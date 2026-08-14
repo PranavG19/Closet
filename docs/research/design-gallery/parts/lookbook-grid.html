@@ -194,29 +194,37 @@
   .looktile.tone-camel{background:radial-gradient(120% 100% at 50% 34%, #F4ECDC 0%, #E7D6BB 100%);}
   .looktile.tone-rose{background:radial-gradient(120% 100% at 50% 34%, #F8EEEC 0%, #ECD8D7 100%);}
 
+  /* dark editorial scrim over the lower third — type sits ON the garment */
   .looktile .grad{
     position:absolute;inset:0;z-index:2;
-    background:linear-gradient(to top, rgba(246,242,236,0.9) 0%, rgba(246,242,236,0) 44%);
+    background:linear-gradient(to top,
+      rgba(24,20,16,0.78) 0%,
+      rgba(24,20,16,0.52) 18%,
+      rgba(24,20,16,0) 46%);
   }
   .looktile .caption{
-    position:absolute;left:16px;right:16px;bottom:14px;z-index:3;
+    position:absolute;left:16px;right:16px;bottom:15px;z-index:3;
     display:flex;align-items:flex-end;justify-content:space-between;
   }
   .looktile .caption .nm{
-    font-family:var(--serif);font-size:21px;color:var(--ink);
+    font-family:var(--serif);font-size:25px;color:#FBF7F1;
     text-transform:lowercase;letter-spacing:0.2px;line-height:1;
+    text-shadow:0 1px 10px rgba(0,0,0,0.35);
   }
   .looktile .caption .state{
     display:flex;align-items:center;gap:5px;
-    font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-2);
+    font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(251,247,241,0.86);
   }
-  .looktile .caption .dot{width:7px;height:7px;border-radius:50%;background:var(--dot-ready);}
+  .looktile .caption .dot{width:7px;height:7px;border-radius:50%;background:var(--dot-ready);
+    box-shadow:0 0 0 2px rgba(24,20,16,0.35);}
   .dot.wash{background:var(--dot-wash);}
   .dot.set{background:var(--dot-set);}
-  /* number tag magazine-style */
+  /* number tag — oversized magazine numeral that survives a thumbnail */
   .looktile .no{
-    position:absolute;left:16px;top:14px;z-index:3;
-    font-family:var(--serif);font-size:12px;color:var(--ink-3);letter-spacing:1px;
+    position:absolute;left:15px;top:11px;z-index:3;
+    font-family:var(--serif);font-size:34px;font-weight:400;line-height:1;
+    color:var(--ink);letter-spacing:-1px;
+    text-shadow:0 1px 2px rgba(255,255,255,0.7);
   }
 
   /* ---------- CSS garments (consistent soft warm ground-shadow) ---------- */
@@ -293,34 +301,44 @@
       radial-gradient(90% 60% at 50% 30%, #F4EDE0 0%, #E9DFCE 58%, #DBCEB6 100%);
   }
   .cover .spotlight{
-    position:absolute;left:50%;top:34%;width:340px;height:340px;transform:translate(-50%,-50%);
+    position:absolute;left:50%;top:40%;width:420px;height:420px;transform:translate(-50%,-50%);
     background:radial-gradient(closest-side, rgba(255,255,255,0.55), rgba(255,255,255,0) 72%);
     z-index:1;
   }
   .cover .hero-garment{
-    position:absolute;left:50%;top:34%;transform:translate(-50%,-50%) scale(1.85);
+    position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) scale(3);
     z-index:2;
   }
   .cover .vignette{
     position:absolute;inset:0;z-index:3;pointer-events:none;
     background:linear-gradient(to top, rgba(210,196,172,0.35) 0%, rgba(210,196,172,0) 34%);
   }
+  /* soft cream scrim so the black serif reads over the full-bleed garment */
+  .cover .cover-scrim{
+    position:absolute;left:0;right:0;bottom:0;height:66%;z-index:4;pointer-events:none;
+    background:linear-gradient(to top,
+      rgba(246,242,236,0.95) 0%,
+      rgba(246,242,236,0.86) 24%,
+      rgba(246,242,236,0.42) 56%,
+      rgba(246,242,236,0) 100%);
+  }
   .cover .top-meta{
     position:absolute;left:var(--gutter);top:60px;z-index:6;
   }
-  /* magazine cover line */
+  /* magazine cover line — headline set directly over the imagery */
   .cover .coverline{
-    position:absolute;left:var(--gutter);right:var(--gutter);bottom:200px;z-index:6;
+    position:absolute;left:var(--gutter);right:var(--gutter);bottom:180px;z-index:6;
   }
   .cover .coverline .kick{
-    font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;
+    font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-3);margin-bottom:14px;
   }
   .cover .coverline h1{
-    font-family:var(--serif);font-weight:400;font-size:52px;line-height:0.94;
-    letter-spacing:-1px;color:var(--ink);
+    font-family:var(--serif);font-weight:400;font-size:74px;line-height:0.9;
+    letter-spacing:-2px;color:var(--ink);
+    text-shadow:0 1px 22px rgba(246,242,236,0.9);
   }
   .cover .coverline .sub{
-    font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink-2);margin-top:10px;
+    font-family:var(--serif);font-style:italic;font-size:26px;color:var(--ink-2);margin-top:14px;
   }
   .cover .actions{
     position:absolute;left:var(--gutter);right:var(--gutter);bottom:116px;z-index:6;
@@ -334,12 +352,33 @@
   }
 
   /* ================= SCREEN 3 — YOU ================= */
-  .s3{position:absolute;inset:0;overflow:hidden;}
-  .s3-scroll{padding:6px var(--gutter) 120px;}
-  .s3 h1{font-family:var(--serif);font-weight:400;font-size:36px;letter-spacing:-0.5px;margin-top:6px;}
-  .s3 .block{padding:22px 0;border-bottom:1px solid var(--hair);}
+  .s3{position:absolute;inset:0;overflow:hidden;background:var(--cream);}
+  /* full-bleed editorial header band — clears the status bar cleanly */
+  .s3-hero{
+    position:relative;padding:70px var(--gutter) 26px;
+    background:linear-gradient(160deg,#2B2620 0%, #201C17 100%);
+    color:#F6F2EC;overflow:hidden;
+  }
+  .s3-hero .overline{color:rgba(246,242,236,0.62);}
+  .s3-hero h1{
+    font-family:var(--serif);font-weight:400;font-size:58px;line-height:0.94;
+    letter-spacing:-1.5px;color:#F6F2EC;margin-top:10px;
+  }
+  .s3-hero .bignum{
+    position:absolute;right:6px;top:34px;z-index:0;
+    font-family:var(--serif);font-size:190px;line-height:1;
+    color:rgba(246,242,236,0.06);letter-spacing:-6px;pointer-events:none;
+  }
+  .s3-scroll{padding:0 var(--gutter) 120px;overflow:hidden;}
+  .s3 .block{padding:22px 0;border-bottom:1px solid var(--hair);position:relative;}
+  .s3 .block:first-child{padding-top:24px;}
   .s3 .block:last-child{border-bottom:none;}
-  .s3 .block h2{font-family:var(--serif);font-weight:400;font-size:21px;margin-bottom:10px;}
+  /* oversized editorial section number */
+  .s3 .block .secnum{
+    font-family:var(--serif);font-size:13px;letter-spacing:2px;color:var(--crimson);
+    display:block;margin-bottom:6px;
+  }
+  .s3 .block h2{font-family:var(--serif);font-weight:400;font-size:23px;margin-bottom:10px;letter-spacing:-0.3px;}
   .s3 .row-line{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-top:8px;}
   .s3 .val{font-size:15px;color:var(--ink);}
   .s3 .muted{font-size:14px;color:var(--ink-2);line-height:1.5;}
@@ -438,8 +477,8 @@
 
   /* --- Today: hero cutout slow float + spotlight breathe --- */
   @keyframes heroFloat{
-    0%,100%{transform:translate(-50%,-50%) scale(1.85);}
-    50%{transform:translate(-50%,calc(-50% - 9px)) scale(1.865);}
+    0%,100%{transform:translate(-50%,-50%) scale(3);}
+    50%{transform:translate(-50%,calc(-50% - 10px)) scale(3.02);}
   }
   @keyframes glowBreathe{
     0%,100%{opacity:0.78;transform:translate(-50%,-50%) scale(1);}
@@ -671,6 +710,7 @@
             </div>
           </div>
           <div class="vignette"></div>
+          <div class="cover-scrim"></div>
 
           <div class="statusbar" style="position:absolute;left:0;right:0;top:0;">
             <span class="time">9:41</span>
@@ -711,20 +751,24 @@
     <!-- ================= SCREEN 3 — YOU ================= -->
     <div class="frameblock">
       <div class="phone"><div class="screen">
-        <div class="statusbar">
-          <span class="time">9:41</span>
-          <span class="icons">
-            <span class="bars"><i></i><i></i><i></i><i></i></span>
-            <span class="batt"><i></i></span>
-          </span>
-        </div>
+        <div class="s3">
+          <div class="s3-hero">
+            <div class="statusbar" style="position:absolute;left:0;right:0;top:0;color:#F6F2EC;">
+              <span class="time">9:41</span>
+              <span class="icons">
+                <span class="bars"><i></i><i></i><i></i><i></i></span>
+                <span class="batt"><i></i></span>
+              </span>
+            </div>
+            <span class="bignum">You</span>
+            <div class="overline">Your Account</div>
+            <h1>You</h1>
+          </div>
 
-        <div class="s3"><div class="s3-scroll">
-          <div class="overline">Your Account</div>
-          <h1>You</h1>
+          <div class="s3-scroll">
 
           <div class="block">
-            <div class="overline">Signed in as</div>
+            <span class="secnum">01 — Signed in as</span>
             <div class="row-line">
               <span class="val">tester@example.com</span>
               <span class="link plain">Sign out</span>
@@ -732,8 +776,9 @@
           </div>
 
           <div class="block">
-            <h2>Membership</h2>
-            <p class="muted">Premium — every feature is unlocked.</p>
+            <span class="secnum">02 — Membership</span>
+            <h2>Premium</h2>
+            <p class="muted">Every feature is unlocked.</p>
             <div class="links-row">
               <span class="link">Manage subscription</span>
               <span class="link plain">Restore purchases</span>
@@ -741,7 +786,7 @@
           </div>
 
           <div class="block">
-            <h2>Your colours</h2>
+            <span class="secnum">03 — Your colours</span>
             <div class="swatches">
               <span class="swatch sw1"></span>
               <span class="swatch sw2"></span>
@@ -753,15 +798,16 @@
           </div>
 
           <div class="block">
-            <h2>Your data</h2>
+            <span class="secnum">04 — Your data</span>
+            <h2>A private copy</h2>
             <div class="row-line">
-              <span class="muted">A private copy of your wardrobe.</span>
+              <span class="muted">Your wardrobe, exported.</span>
               <span class="link plain">Export my data</span>
             </div>
           </div>
 
           <div class="block">
-            <h2>Delete my account</h2>
+            <span class="secnum">05 — Delete my account</span>
             <div class="row-line">
               <span class="muted">This cannot be undone.</span>
               <span class="link danger">Delete my account</span>

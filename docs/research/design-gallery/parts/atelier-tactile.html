@@ -20,15 +20,17 @@
     --hair:#E4DCD0;
     --serif:Georgia,'Times New Roman',serif;
     --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
-    --shadow:0 24px 60px -28px rgba(60,48,36,.45);
+    --shadow:0 30px 76px -30px rgba(48,36,24,.55);
     --shadow-sm:0 10px 24px -16px rgba(60,48,36,.34);
-    /* Tactile Cards: layered, warmer, more pronounced elevation — paper on a table */
-    --shadow-card:0 1px 2px rgba(60,48,36,.05), 0 6px 14px -6px rgba(60,48,36,.20), 0 22px 40px -22px rgba(60,48,36,.34);
-    --shadow-card-hi:0 2px 4px rgba(60,48,36,.06), 0 10px 22px -8px rgba(60,48,36,.26), 0 30px 54px -26px rgba(60,48,36,.40);
-    --shadow-chip:0 1px 1px rgba(60,48,36,.05), 0 5px 12px -6px rgba(60,48,36,.26);
-    /* slightly larger radii than baseline: well 12 (was 6-8), card 22 (was 18) */
-    --r-well:12px;
-    --r-card:22px;
+    /* Tactile Cards: deep, long, soft elevation — white slabs floating above a warm greige table */
+    --shadow-card:0 2px 4px rgba(48,36,24,.07), 0 14px 30px -10px rgba(48,36,24,.26), 0 44px 84px -34px rgba(48,36,24,.46);
+    --shadow-card-hi:0 4px 9px rgba(48,36,24,.10), 0 22px 46px -12px rgba(48,36,24,.32), 0 66px 108px -40px rgba(48,36,24,.54);
+    --shadow-chip:0 1px 2px rgba(48,36,24,.06), 0 8px 18px -6px rgba(48,36,24,.30);
+    /* the Today plinth: a strong contact drop + rounded-edge insets so the disk reads as a raised platform */
+    --ped-shadow:0 48px 72px -22px rgba(46,34,22,.52), 0 22px 46px -12px rgba(48,36,24,.34), inset 0 -22px 38px rgba(58,44,30,.13), inset 0 3px 0 rgba(255,255,255,.88);
+    /* bolder, crisper card radii so slabs read as separate physical objects */
+    --r-well:14px;
+    --r-card:20px;
     /* 8px vertical rhythm; 24px screen gutter */
     --gut:24px;
   }
@@ -36,7 +38,7 @@
   html,body{height:100%;}
   body{
     background:
-      radial-gradient(120% 90% at 50% -10%, #FBF8F3 0%, #EFE8DC 60%, #E7DED0 100%);
+      radial-gradient(120% 90% at 50% -10%, #E9E0D2 0%, #DED3C1 58%, #D3C7B2 100%);
     font-family:var(--sans);
     color:var(--ink);
     -webkit-font-smoothing:antialiased;
@@ -62,8 +64,8 @@
   }
   .screen{
     width:100%;height:100%;
-    /* a hair warmer/deeper table surface so raised cards read as objects on it */
-    background:linear-gradient(180deg,#F4EFE7 0%, #EFE7DA 100%);
+    /* warm greige table surface — pushed 1-2 shades darker so the white cards read as floating slabs */
+    background:linear-gradient(180deg,#E6DCCC 0%, #DED3C0 100%);
     border-radius:44px;
     overflow:hidden;
     position:relative;
@@ -124,14 +126,14 @@
 
   .divider{height:1px;background:var(--hair);margin:16px var(--gut) 0;}
 
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:20px var(--gut) 0;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:24px var(--gut) 8px;}
   /* the tile is now an elevated paper card holding well + name + state */
   .tile{
     background:var(--white);
     border-radius:var(--r-card);
     padding:14px 14px 16px;
     box-shadow:var(--shadow-card);
-    border:1px solid rgba(255,255,255,.7);
+    border:1px solid rgba(255,255,255,.8);
   }
   .well{
     background:linear-gradient(180deg,#EFE9DF,#E7DFD2);
@@ -233,22 +235,31 @@
     position:relative;
     height:494px;flex:0 0 494px;
     background:
-      radial-gradient(120% 80% at 50% 30%, #F3EDE3 0%, #ECE4D8 60%, #E4DBCD 100%);
+      radial-gradient(120% 80% at 50% 30%, #E7DDCD 0%, #DCD1BE 58%, #D2C6B1 100%);
     overflow:hidden;
   }
   .today .hero .overline{position:absolute;top:24px;left:var(--gut);z-index:3;}
-  /* a raised circular pedestal card the garment rests on — tactile object on a plinth */
+  /* a bold raised platform the garment rests on — a wide disk set on a visible plinth */
   .today .hero .pedestal{
-    position:absolute;left:50%;top:150px;transform:translateX(-50%);
-    width:262px;height:262px;border-radius:50%;
-    background:radial-gradient(120% 120% at 50% 22%, #FFFFFF 0%, #F5EFE6 70%, #EFE7DA 100%);
-    box-shadow:var(--shadow-card-hi), inset 0 2px 0 rgba(255,255,255,.8);
-    border:1px solid rgba(255,255,255,.7);
+    position:absolute;left:50%;top:132px;transform:translateX(-50%);
+    width:296px;height:296px;border-radius:50%;
+    background:radial-gradient(120% 120% at 50% 20%, #FFFFFF 0%, #F6F0E7 66%, #ECE3D4 100%);
+    box-shadow:var(--ped-shadow);
+    border:1px solid rgba(255,255,255,.8);
+    z-index:1;
+  }
+  /* the plinth: a shorter, darker slab visible beneath the disk that grounds it as a platform */
+  .today .hero .pedestal::before{
+    content:"";position:absolute;left:50%;top:60%;transform:translateX(-50%);
+    width:236px;height:150px;border-radius:0 0 118px 118px / 0 0 44px 44px;
+    background:linear-gradient(180deg,#E3D8C6 0%, #D6C9B4 100%);
+    box-shadow:0 40px 60px -20px rgba(46,34,22,.5), inset 0 -10px 20px rgba(58,44,30,.16);
+    z-index:-1;
   }
   .today .hero .ground{
-    position:absolute;left:50%;bottom:150px;width:180px;height:26px;transform:translateX(-50%);
-    background:radial-gradient(ellipse at center, rgba(58,44,30,.16), rgba(58,44,30,0) 70%);
-    filter:blur(2px);z-index:2;
+    position:absolute;left:50%;bottom:132px;width:224px;height:34px;transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(46,34,22,.30), rgba(46,34,22,0) 72%);
+    filter:blur(3px);z-index:2;
   }
   .today .hero .g{position:absolute;left:50%;top:118px;transform:translateX(-50%) scale(1.38);--gc:#C6B49A;z-index:2;
     filter:drop-shadow(0 18px 20px rgba(60,48,36,.26));}
@@ -257,7 +268,7 @@
   .today .hero .caption .sub{font-size:15px;color:var(--ink2);margin-top:8px;}
   .today .hero::after{
     content:"";position:absolute;left:0;right:0;bottom:0;height:200px;z-index:1;
-    background:linear-gradient(180deg,rgba(244,239,231,0),rgba(244,239,231,.92));
+    background:linear-gradient(180deg,rgba(222,211,192,0),rgba(222,211,192,.92));
   }
 
   /* the action row lifts into its own tactile card below the hero */
@@ -391,8 +402,8 @@
 
   /* the pedestal breathes a soft focal glow, counter-phased shadow */
   @keyframes pedestalBreathe{
-    0%,100%{transform:translateX(-50%) scale(1);box-shadow:var(--shadow-card-hi), inset 0 2px 0 rgba(255,255,255,.8);}
-    50%{transform:translateX(-50%) scale(1.012);box-shadow:var(--shadow-card-hi), inset 0 2px 0 rgba(255,255,255,.95), 0 0 44px rgba(255,251,244,.7);}
+    0%,100%{transform:translateX(-50%) scale(1);box-shadow:var(--ped-shadow);}
+    50%{transform:translateX(-50%) scale(1.012);box-shadow:var(--ped-shadow), 0 0 56px rgba(255,251,244,.75);}
   }
   .today .hero .pedestal{animation:pedestalBreathe 7s ease-in-out infinite;}
   @keyframes groundBreathe{
