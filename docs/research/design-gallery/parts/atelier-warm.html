@@ -6,7 +6,7 @@
 <title>Atelier — Warm · closet-app</title>
 <style>
   :root{
-    /* Deepened cream + warmed surfaces */
+    /* Deepened cream + warmed surfaces (the "warm" variant, fully committed) */
     --canvas:#F1EADF;
     --surface:#FFFFFF;
     --well:#E9E0D2;
@@ -14,7 +14,6 @@
     --ink-2:#655F58;
     --ink-3:#8C847A;
     --accent:#B62E58;
-    --blush:#E0708F;
     --dot-ready:#4E8A6A;
     --dot-wash:#9A7A38;
     --dot-aside:#847E76;
@@ -25,6 +24,8 @@
     --shadow-sm: 0 10px 24px -14px rgba(120,86,52,0.28);
     --serif: Georgia, 'Times New Roman', serif;
     --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+    /* Spacing rhythm — 4px base; use these, not ad-hoc numbers */
+    --gut:28px;   /* screen gutter */
   }
 
   *{ box-sizing:border-box; margin:0; padding:0; }
@@ -40,10 +41,7 @@
     -webkit-font-smoothing:antialiased;
   }
 
-  .gallery-head{
-    text-align:center;
-    margin-bottom:52px;
-  }
+  .gallery-head{ text-align:center; margin-bottom:52px; }
   .gallery-head .overline{
     font-size:11px; letter-spacing:2px; text-transform:uppercase;
     color:var(--ink-3); font-weight:600;
@@ -56,38 +54,25 @@
   .gallery-head p{ color:var(--ink-2); font-size:14px; margin-top:8px; }
 
   .row{
-    display:flex;
-    gap:56px;
-    justify-content:center;
-    align-items:flex-start;
-    flex-wrap:wrap;
+    display:flex; gap:56px; justify-content:center;
+    align-items:flex-start; flex-wrap:wrap;
   }
 
   .frame-wrap{ display:flex; flex-direction:column; align-items:center; gap:18px; }
 
   .phone{
-    width:390px;
-    height:844px;
-    border-radius:52px;
-    background:#000;
-    padding:9px;
+    width:390px; height:844px; border-radius:52px;
+    background:#000; padding:9px;
     box-shadow: var(--shadow), 0 0 0 1px rgba(80,58,36,0.12);
     position:relative;
   }
   .screen{
-    width:100%; height:100%;
-    border-radius:44px;
-    background:var(--canvas);
-    overflow:hidden;
-    position:relative;
-    display:flex; flex-direction:column;
+    width:100%; height:100%; border-radius:44px;
+    background:var(--canvas); overflow:hidden;
+    position:relative; display:flex; flex-direction:column;
   }
 
-  .frame-label{
-    font-family:var(--serif);
-    font-size:16px; color:var(--ink);
-    letter-spacing:0.3px;
-  }
+  .frame-label{ font-family:var(--serif); font-size:16px; color:var(--ink); letter-spacing:0.3px; }
   .frame-label span{
     display:block; text-align:center;
     font-family:var(--sans); font-size:10.5px; letter-spacing:2px;
@@ -96,10 +81,9 @@
 
   /* ---------- status bar ---------- */
   .statusbar{
-    height:52px; padding:0 30px;
+    height:52px; padding:0 var(--gut);
     display:flex; align-items:center; justify-content:space-between;
-    font-size:14px; font-weight:600; color:var(--ink);
-    flex:0 0 auto;
+    font-size:14px; font-weight:600; color:var(--ink); flex:0 0 auto;
   }
   .statusbar .right{ display:flex; align-items:center; gap:7px; }
   .sb-ico{ display:inline-block; }
@@ -132,9 +116,7 @@
 
   /* ---------- tab bar ---------- */
   .tabbar{
-    flex:0 0 auto;
-    height:92px;
-    padding:12px 26px 30px;
+    flex:0 0 auto; height:92px; padding:12px 24px 30px;
     background:linear-gradient(180deg, rgba(241,234,223,0) 0%, var(--canvas) 34%);
     border-top:1px solid var(--hair-soft);
     display:flex; align-items:flex-start; justify-content:space-between;
@@ -155,39 +137,36 @@
     background:radial-gradient(120% 120% at 30% 25%, #C63C66 0%, var(--accent) 55%, #A32750 100%);
     box-shadow: 0 12px 26px -10px rgba(182,46,88,0.65), 0 2px 6px rgba(182,46,88,0.35);
     display:flex; align-items:center; justify-content:center;
-    margin-top:-14px;
-    position:relative;
+    margin-top:-14px; position:relative; flex:0 0 auto;
   }
   .fab::before, .fab::after{
     content:""; position:absolute; background:#fff; border-radius:2px;
   }
-  .fab::before{ width:22px; height:2.4px; }
-  .fab::after{ width:2.4px; height:22px; }
+  .fab::before{ width:21px; height:2.3px; }
+  .fab::after{ width:2.3px; height:21px; }
+
+  /* CSS-drawn garment silhouettes — consistent 1.4 stroke, round joins */
+  .garment{ filter: drop-shadow(0 10px 14px rgba(120,86,52,0.16)); }
+  .garment svg{ display:block; }
+  .garment svg *{ stroke-linejoin:round; stroke-linecap:round; }
 
   /* =========================================================
      SCREEN 1 — CLOSET
      ========================================================= */
-  .s1 .head{ padding:6px 30px 0; }
-  .s1 .titlerow{ display:flex; align-items:baseline; justify-content:space-between; margin-top:9px; }
+  .s1 .head{ padding:8px var(--gut) 0; }
+  .s1 .titlerow{ display:flex; align-items:baseline; justify-content:space-between; margin-top:10px; }
   .s1 .titlerow .display{ font-size:39px; }
   .s1 .count{ font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-3); font-weight:600; }
 
-  .chips{
-    display:flex; gap:9px; padding:24px 30px 0; overflow:hidden;
-  }
+  .chips{ display:flex; gap:9px; padding:22px var(--gut) 0; overflow:hidden; }
   .chip{
-    flex:0 0 auto;
-    padding:9px 16px; border-radius:999px;
-    background:var(--surface);
-    border:1px solid var(--hair);
-    font-size:13px; color:var(--ink-2);
-    box-shadow: var(--shadow-sm);
+    flex:0 0 auto; padding:9px 16px; border-radius:999px;
+    background:var(--surface); border:1px solid var(--hair);
+    font-size:13px; color:var(--ink-2); box-shadow: var(--shadow-sm);
   }
   .chip.on{ background:var(--ink); color:#F5EFE6; border-color:var(--ink); }
 
-  .subfilters{
-    display:flex; gap:22px; padding:20px 30px 0; align-items:center;
-  }
+  .subfilters{ display:flex; gap:22px; padding:18px var(--gut) 0; align-items:center; }
   .sf{ font-size:13px; color:var(--ink-3); padding-bottom:6px; position:relative; }
   .sf.sel{ color:var(--ink); font-weight:600; }
   .sf.sel::after{
@@ -195,22 +174,14 @@
     background:var(--accent); border-radius:2px;
   }
 
-  .grid{
-    display:grid; grid-template-columns:1fr 1fr; gap:20px;
-    padding:26px 30px 20px;
-  }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:24px var(--gut) 20px; }
   .tile .well{
-    background:var(--well);
-    border-radius:6px;
-    height:196px;
+    background:var(--well); border-radius:6px; height:190px;
     display:flex; align-items:center; justify-content:center;
     box-shadow: inset 0 2px 10px rgba(120,86,52,0.10), inset 0 0 0 1px rgba(120,86,52,0.05);
     position:relative;
   }
-  .tile .name{
-    font-family:var(--serif); font-size:18px; color:var(--ink);
-    margin-top:12px;
-  }
+  .tile .name{ font-family:var(--serif); font-size:18px; color:var(--ink); margin-top:12px; }
   .tile .state{ display:flex; align-items:center; gap:7px; margin-top:6px; }
   .dot{ width:7px; height:7px; border-radius:999px; flex:0 0 auto; }
   .dot.ready{ background:var(--dot-ready); }
@@ -218,60 +189,45 @@
   .dot.aside{ background:var(--dot-aside); }
   .state .lbl{ font-size:9.5px; letter-spacing:1.6px; text-transform:uppercase; color:var(--ink-3); }
 
-  /* CSS garment silhouettes */
-  .garment{ filter: drop-shadow(0 10px 14px rgba(120,86,52,0.16)); }
-  .garment svg{ display:block; }
-
   /* =========================================================
      SCREEN 2 — TODAY
      ========================================================= */
   .s2 .content{ display:flex; flex-direction:column; }
   .hero{
-    flex:0 0 58%;
-    position:relative;
+    flex:0 0 58%; position:relative;
     background:
-      radial-gradient(150% 90% at 50% 18%, #F8F3EB 0%, #EFE6D8 62%, #E9DFD0 100%);
-    overflow:hidden;
-    display:flex; align-items:center; justify-content:center;
+      radial-gradient(140% 82% at 50% 20%, #FAF5EE 0%, #EFE6D8 60%, #E7DDCD 100%);
+    overflow:hidden; display:flex; align-items:center; justify-content:center;
   }
-  .hero .band{
-    position:absolute; left:0; right:0; top:44%; height:130px;
-    background:linear-gradient(180deg, rgba(233,224,210,0) 0%, rgba(214,201,181,0.55) 45%, rgba(233,224,210,0) 100%);
-    transform:translateY(-50%);
-  }
-  .hero .overline{
-    position:absolute; top:22px; left:30px; z-index:3;
+  .hero .overline{ position:absolute; top:22px; left:var(--gut); z-index:3; }
+  /* grounding pedestal — makes the garment feel placed, not pasted */
+  .hero .pedestal{
+    position:absolute; left:50%; top:63%; transform:translate(-50%,-50%);
+    width:230px; height:34px; z-index:1;
+    background:radial-gradient(ellipse at center, rgba(120,86,52,0.22) 0%, rgba(120,86,52,0.10) 42%, rgba(120,86,52,0) 72%);
+    filter:blur(2px);
   }
   .hero .garment{
-    position:relative; z-index:2; margin-top:-24px;
-    filter: drop-shadow(0 26px 30px rgba(120,86,52,0.22));
+    position:relative; z-index:2; margin-top:-18px;
+    filter: drop-shadow(0 24px 26px rgba(120,86,52,0.20));
   }
-  .hero .caption{
-    position:absolute; left:30px; right:30px; bottom:26px; z-index:3;
-  }
+  .hero .caption{ position:absolute; left:var(--gut); right:var(--gut); bottom:28px; z-index:3; }
   .hero .caption .display{ font-size:36px; }
   .hero .caption .sub{ font-size:15px; color:var(--ink-2); margin-top:6px; }
 
-  .today-actions{
-    flex:1 1 auto;
-    padding:30px 30px 0;
-  }
+  .today-actions{ flex:1 1 auto; padding:30px var(--gut) 0; }
   .hr{ height:1px; background:var(--hair); }
   .action-row{ display:flex; align-items:center; justify-content:space-between; padding:26px 2px 0; }
   .action-link{ font-size:11px; letter-spacing:2px; text-transform:uppercase; color:var(--ink-2); font-weight:600; }
-  .action-link.primary{
-    color:var(--accent);
-    padding-bottom:5px;
-    border-bottom:2px solid var(--accent);
-  }
+  .action-link.primary{ color:var(--accent); padding-bottom:5px; border-bottom:2px solid var(--accent); }
 
   /* =========================================================
      SCREEN 3 — YOU
      ========================================================= */
-  .s3 .content{ padding:6px 30px 0; overflow-y:auto; }
-  .s3 .titlerow .display{ font-size:39px; margin-top:9px; }
-  .section{ margin-top:34px; }
-  .section .sec-title{ font-family:var(--serif); font-size:21px; color:var(--ink); margin-bottom:14px; }
+  .s3 .content{ padding:8px var(--gut) 0; overflow-y:auto; }
+  .s3 .titlerow .display{ font-size:39px; margin-top:10px; }
+  .section{ margin-top:28px; }
+  .section .sec-title{ font-family:var(--serif); font-size:21px; color:var(--ink); margin-bottom:12px; }
   .kv .overline{ display:block; }
   .kv .val{ font-size:16px; color:var(--ink); margin-top:5px; }
   .rowlinks{ display:flex; gap:26px; margin-top:14px; }
@@ -281,14 +237,13 @@
   .body b{ color:var(--ink); font-weight:600; }
 
   .swatches{ display:flex; gap:12px; margin-top:4px; }
-  .swatch{ width:42px; height:42px; border-radius:12px; box-shadow: inset 0 0 0 1px rgba(120,86,52,0.10), var(--shadow-sm); }
+  .swatch{ width:40px; height:40px; border-radius:6px; box-shadow: inset 0 0 0 1px rgba(120,86,52,0.12), var(--shadow-sm); }
 
-  .sec-divide{ height:1px; background:var(--hair); margin-top:34px; }
-
+  .sec-divide{ height:1px; background:var(--hair); margin-top:28px; }
   .danger .sec-title{ color:var(--ink); }
   .txtlink.danger{ color:var(--accent); }
 
-  .version{ font-size:11px; color:var(--ink-3); letter-spacing:0.4px; margin-top:40px; padding-bottom:8px; text-align:center; }
+  .version{ font-size:11px; color:var(--ink-3); letter-spacing:0.4px; margin-top:34px; padding-bottom:8px; text-align:center; }
 </style>
 </head>
 <body>
@@ -338,14 +293,15 @@
           </div>
 
           <div class="grid">
-            <!-- tile 1: top / blouse -->
+            <!-- tile 1: blouse / top -->
             <div class="tile">
               <div class="well">
                 <div class="garment">
-                  <svg width="118" height="150" viewBox="0 0 118 150">
-                    <path d="M40 20 Q59 34 78 20 L104 40 L92 62 L84 56 L84 130 Q59 138 34 130 L34 56 L26 62 L14 40 Z"
-                          fill="#FBFAF7" stroke="#D9CFBF" stroke-width="1.4"/>
-                    <path d="M40 20 Q59 40 78 20" fill="none" stroke="#D9CFBF" stroke-width="1.4"/>
+                  <svg width="112" height="146" viewBox="0 0 120 150" fill="none">
+                    <path d="M48 28 Q60 38 72 28 L86 34 L102 48 L94 62 L84 57 L84 132 Q60 139 36 132 L36 57 L26 62 L18 48 L34 34 Z"
+                          fill="#FBFAF7" stroke="#D7CCBA" stroke-width="1.4"/>
+                    <path d="M48 28 Q60 41 72 28" stroke="#D7CCBA" stroke-width="1.4"/>
+                    <path d="M60 41 L60 60" stroke="#E4DAC9" stroke-width="1.2"/>
                   </svg>
                 </div>
               </div>
@@ -357,10 +313,11 @@
             <div class="tile">
               <div class="well">
                 <div class="garment">
-                  <svg width="106" height="152" viewBox="0 0 106 152">
-                    <path d="M36 16 Q53 28 70 16 L86 34 L76 52 L70 46 Q76 90 92 138 Q53 150 14 138 Q30 90 36 46 L30 52 L20 34 Z"
-                          fill="#2B2823" stroke="#1c1a16" stroke-width="1"/>
-                    <path d="M36 16 Q53 34 70 16" fill="none" stroke="#4a463f" stroke-width="1.2"/>
+                  <svg width="108" height="150" viewBox="0 0 120 155" fill="none">
+                    <path d="M46 24 Q60 33 74 24 L79 33 L74 70 Q90 108 86 142 Q60 150 34 142 Q30 108 46 70 L41 33 Z"
+                          fill="#26231E" stroke="#3A362F" stroke-width="1.4"/>
+                    <path d="M46 24 Q60 34 74 24" stroke="#4A453C" stroke-width="1.3"/>
+                    <path d="M47 70 Q60 75 73 70" stroke="#3A362F" stroke-width="1.2"/>
                   </svg>
                 </div>
               </div>
@@ -372,13 +329,15 @@
             <div class="tile">
               <div class="well">
                 <div class="garment">
-                  <svg width="118" height="152" viewBox="0 0 118 152">
-                    <path d="M42 16 L59 26 L76 16 L100 34 L90 58 L82 52 L82 138 L59 138 L59 40 L59 138 L36 138 L36 52 L28 58 L18 34 Z"
-                          fill="#C6A277" stroke="#a8875c" stroke-width="1.3"/>
-                    <line x1="59" y1="34" x2="59" y2="132" stroke="#a8875c" stroke-width="1.2"/>
-                    <circle cx="53" cy="66" r="1.6" fill="#7d6340"/>
-                    <circle cx="53" cy="90" r="1.6" fill="#7d6340"/>
-                    <circle cx="53" cy="114" r="1.6" fill="#7d6340"/>
+                  <svg width="112" height="150" viewBox="0 0 120 155" fill="none">
+                    <path d="M40 24 L54 32 L60 26 L66 32 L80 24 L98 40 L89 60 L81 53 L81 136 L39 136 L39 53 L31 60 L22 40 Z"
+                          fill="#C6A277" stroke="#A6855A" stroke-width="1.4"/>
+                    <path d="M54 32 L49 60" stroke="#A6855A" stroke-width="1.3"/>
+                    <path d="M66 32 L71 60" stroke="#A6855A" stroke-width="1.3"/>
+                    <path d="M60 60 L60 132" stroke="#A6855A" stroke-width="1.2"/>
+                    <circle cx="60" cy="78" r="1.7" fill="#7D6340"/>
+                    <circle cx="60" cy="98" r="1.7" fill="#7D6340"/>
+                    <circle cx="60" cy="118" r="1.7" fill="#7D6340"/>
                   </svg>
                 </div>
               </div>
@@ -386,15 +345,15 @@
               <div class="state"><span class="dot wash"></span><span class="lbl">In the wash</span></div>
             </div>
 
-            <!-- tile 4: shoe -->
+            <!-- tile 4: shoe (pump) -->
             <div class="tile">
               <div class="well">
                 <div class="garment">
-                  <svg width="130" height="150" viewBox="0 0 130 150">
-                    <path d="M26 96 Q34 60 46 44 Q54 34 60 44 Q66 58 78 70 Q96 76 108 84 Q118 90 116 100 L114 108 Q112 116 100 116 L34 116 Q24 116 24 106 Z"
-                          fill="#D98BA4" stroke="#c06d88" stroke-width="1.3"/>
-                    <path d="M60 116 L60 130 Q70 134 78 130 L74 116 Z" fill="#c06d88"/>
-                    <path d="M26 96 Q34 62 46 46" fill="none" stroke="#c06d88" stroke-width="1.2"/>
+                  <svg width="132" height="132" viewBox="0 0 130 130" fill="none">
+                    <path d="M26 58 Q30 50 44 49 Q60 47 70 60 Q92 52 116 86 Q122 92 114 94 L46 94 Q30 94 28 84 Z"
+                          fill="#D98BA4" stroke="#BE6E88" stroke-width="1.4"/>
+                    <path d="M34 94 L31 120 L27 120 L30 94 Z" fill="#BE6E88" stroke="#BE6E88" stroke-width="1.4"/>
+                    <path d="M30 60 Q30 51 44 49" stroke="#C77C94" stroke-width="1.2"/>
                   </svg>
                 </div>
               </div>
@@ -445,15 +404,17 @@
         <div class="content">
           <div class="hero">
             <div class="overline">Today</div>
-            <div class="band"></div>
+            <div class="pedestal"></div>
             <div class="garment">
-              <svg width="188" height="248" viewBox="0 0 118 152">
-                <path d="M42 16 L59 26 L76 16 L100 34 L90 58 L82 52 L82 138 L59 138 L59 40 L59 138 L36 138 L36 52 L28 58 L18 34 Z"
-                      fill="#C6A277" stroke="#a8875c" stroke-width="1.1"/>
-                <line x1="59" y1="34" x2="59" y2="132" stroke="#a8875c" stroke-width="1"/>
-                <circle cx="53" cy="66" r="1.6" fill="#7d6340"/>
-                <circle cx="53" cy="90" r="1.6" fill="#7d6340"/>
-                <circle cx="53" cy="114" r="1.6" fill="#7d6340"/>
+              <svg width="176" height="227" viewBox="0 0 120 155" fill="none">
+                <path d="M40 24 L54 32 L60 26 L66 32 L80 24 L98 40 L89 60 L81 53 L81 136 L39 136 L39 53 L31 60 L22 40 Z"
+                      fill="#C6A277" stroke="#A6855A" stroke-width="1.1"/>
+                <path d="M54 32 L49 60" stroke="#A6855A" stroke-width="1"/>
+                <path d="M66 32 L71 60" stroke="#A6855A" stroke-width="1"/>
+                <path d="M60 60 L60 132" stroke="#A6855A" stroke-width="0.9"/>
+                <circle cx="60" cy="78" r="1.6" fill="#7D6340"/>
+                <circle cx="60" cy="98" r="1.6" fill="#7D6340"/>
+                <circle cx="60" cy="118" r="1.6" fill="#7D6340"/>
               </svg>
             </div>
             <div class="caption">
@@ -537,12 +498,12 @@
           <div class="section">
             <div class="sec-title">Your colours</div>
             <div class="swatches">
-              <div class="swatch" style="background:#B8493F;"></div>
-              <div class="swatch" style="background:#C68A5E;"></div>
-              <div class="swatch" style="background:#E0C58A;"></div>
-              <div class="swatch" style="background:#7C8C6A;"></div>
-              <div class="swatch" style="background:#5E7488;"></div>
-              <div class="swatch" style="background:#9A6B84;"></div>
+              <div class="swatch" style="background:#B0675A;"></div>
+              <div class="swatch" style="background:#C69A6E;"></div>
+              <div class="swatch" style="background:#D9C08C;"></div>
+              <div class="swatch" style="background:#8A9A7C;"></div>
+              <div class="swatch" style="background:#7C8CA0;"></div>
+              <div class="swatch" style="background:#9C7C90;"></div>
             </div>
           </div>
 

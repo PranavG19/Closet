@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Atelier — Baseline</title>
+<title>Atelier — Tactile Cards</title>
 <style>
   :root{
     --cream:#F6F2EC;
@@ -22,6 +22,13 @@
     --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
     --shadow:0 24px 60px -28px rgba(60,48,36,.45);
     --shadow-sm:0 10px 24px -16px rgba(60,48,36,.34);
+    /* Tactile Cards: layered, warmer, more pronounced elevation — paper on a table */
+    --shadow-card:0 1px 2px rgba(60,48,36,.05), 0 6px 14px -6px rgba(60,48,36,.20), 0 22px 40px -22px rgba(60,48,36,.34);
+    --shadow-card-hi:0 2px 4px rgba(60,48,36,.06), 0 10px 22px -8px rgba(60,48,36,.26), 0 30px 54px -26px rgba(60,48,36,.40);
+    --shadow-chip:0 1px 1px rgba(60,48,36,.05), 0 5px 12px -6px rgba(60,48,36,.26);
+    /* slightly larger radii than baseline: well 12 (was 6-8), card 22 (was 18) */
+    --r-well:12px;
+    --r-card:22px;
     /* 8px vertical rhythm; 24px screen gutter */
     --gut:24px;
   }
@@ -55,7 +62,8 @@
   }
   .screen{
     width:100%;height:100%;
-    background:var(--cream);
+    /* a hair warmer/deeper table surface so raised cards read as objects on it */
+    background:linear-gradient(180deg,#F4EFE7 0%, #EFE7DA 100%);
     border-radius:44px;
     overflow:hidden;
     position:relative;
@@ -93,36 +101,50 @@
   .closet .titleline h2{font-family:var(--serif);font-weight:400;font-size:34px;}
   .closet .titleline .count{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);}
 
-  .chips{display:flex;gap:8px;padding:24px 0 0 var(--gut);overflow:hidden;}
+  .chips{display:flex;gap:8px;padding:24px 0 4px var(--gut);overflow:hidden;}
   .chip{
     flex:0 0 auto;
     font-size:13px;color:var(--ink2);
     padding:9px 16px;border-radius:999px;
-    background:var(--white);border:1px solid var(--hair);
-    box-shadow:var(--shadow-sm);
+    background:var(--white);border:1px solid rgba(228,220,208,.6);
+    box-shadow:var(--shadow-chip);
     white-space:nowrap;
   }
-  .chip.first{color:var(--ink);border-color:#D9CFC0;}
+  /* selected category reads as a raised, pressed-solid pill */
+  .chip.first{
+    color:#fff;border-color:transparent;
+    background:linear-gradient(180deg,#2b2723,#221F1B);
+    box-shadow:0 2px 3px rgba(60,48,36,.14), 0 10px 20px -8px rgba(34,31,27,.5);
+  }
 
-  .segrow{display:flex;gap:20px;padding:24px var(--gut) 0;}
+  .segrow{display:flex;gap:20px;padding:22px var(--gut) 0;}
   .seg{font-size:13px;color:var(--ink2);position:relative;padding-bottom:8px;}
   .seg.active{color:var(--ink);font-weight:500;}
   .seg.active::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--crimson);border-radius:2px;}
 
   .divider{height:1px;background:var(--hair);margin:16px var(--gut) 0;}
 
-  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:24px var(--gut) 0;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:20px var(--gut) 0;}
+  /* the tile is now an elevated paper card holding well + name + state */
+  .tile{
+    background:var(--white);
+    border-radius:var(--r-card);
+    padding:14px 14px 16px;
+    box-shadow:var(--shadow-card);
+    border:1px solid rgba(255,255,255,.7);
+  }
   .well{
-    background:linear-gradient(180deg,#EFE9DF,#E8E0D3);
-    border-radius:8px;
-    height:170px;
+    background:linear-gradient(180deg,#EFE9DF,#E7DFD2);
+    border-radius:var(--r-well);
+    height:150px;
     display:flex;align-items:center;justify-content:center;
     position:relative;
     overflow:hidden;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.5), inset 0 -10px 22px rgba(58,44,30,.05);
+    /* deeper inset so the well reads as a recessed tray inside the raised card */
+    box-shadow:inset 0 2px 3px rgba(58,44,30,.10), inset 0 -12px 26px rgba(58,44,30,.07), inset 0 1px 0 rgba(255,255,255,.55);
   }
-  .tile .name{font-family:var(--serif);font-size:19px;color:var(--ink);margin-top:12px;}
-  .tile .state{display:flex;align-items:center;gap:7px;margin-top:5px;}
+  .tile .name{font-family:var(--serif);font-size:19px;color:var(--ink);margin-top:13px;}
+  .tile .state{display:flex;align-items:center;gap:7px;margin-top:6px;}
   .dot{width:7px;height:7px;border-radius:999px;flex:0 0 auto;}
   .dot.ready{background:var(--dot-ready);}
   .dot.wash{background:var(--dot-wash);}
@@ -130,23 +152,24 @@
   .tile .state span{font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink3);}
 
   /* ===== CSS garment silhouettes — single clip-path outline + cut detail ===== */
-  .g{--gc:#CBBFAD;position:relative;filter:drop-shadow(0 9px 12px rgba(60,48,36,.16));}
+  /* deeper drop-shadow so garments feel like objects resting in the tray */
+  .g{--gc:#CBBFAD;position:relative;filter:drop-shadow(0 12px 14px rgba(60,48,36,.22));}
   .g .shape{position:absolute;inset:0;background:var(--gc);
     box-shadow:inset 0 7px 14px rgba(255,255,255,.28), inset 0 -14px 22px rgba(58,44,30,.07);}
   .g .cut{position:absolute;background:var(--well);}
   .g .seam{position:absolute;background:rgba(58,44,30,.10);}
 
   /* top / tee */
-  .g-top{width:118px;height:122px;}
+  .g-top{width:112px;height:116px;}
   .g-top .shape{clip-path:polygon(0% 26%,20% 5%,36% 5%,42% 15%,58% 15%,64% 5%,80% 5%,100% 26%,100% 44%,78% 34%,80% 100%,20% 100%,22% 34%,0% 44%);}
 
   /* dress */
-  .g-dress{width:104px;height:152px;}
+  .g-dress{width:100px;height:146px;}
   .g-dress .shape{clip-path:polygon(0% 24%,18% 5%,34% 5%,41% 15%,59% 15%,66% 5%,82% 5%,100% 24%,100% 37%,80% 30%,68% 46%,98% 100%,2% 100%,32% 46%,20% 30%,0% 37%);}
   .g-dress .seam{left:50%;top:46%;bottom:2%;width:1.5px;transform:translateX(-50%);opacity:.6;}
 
   /* coat / outerwear */
-  .g-coat{width:120px;height:148px;}
+  .g-coat{width:114px;height:142px;}
   .g-coat .shape{clip-path:polygon(5% 9%,25% 1%,75% 1%,95% 9%,100% 100%,0% 100%);}
   .g-coat .collar{position:absolute;left:50%;top:1%;width:40px;height:30px;background:var(--well);
     clip-path:polygon(0 0,100% 0,50% 100%);transform:translateX(-50%);}
@@ -156,7 +179,7 @@
   .g-coat .btn{position:absolute;left:50%;width:5px;height:5px;border-radius:999px;background:rgba(58,44,30,.42);transform:translateX(-50%);}
 
   /* shoe — pointed pump, side profile (toe left, heel right) */
-  .g-shoe{width:132px;height:96px;}
+  .g-shoe{width:126px;height:92px;}
   .g-shoe .shape{clip-path:polygon(2% 66%,26% 58%,50% 55%,60% 34%,70% 32%,74% 55%,80% 62%,80% 70%,2% 70%);}
   .g-shoe .heel{position:absolute;right:20%;top:66%;width:13px;height:26px;background:var(--gc);
     clip-path:polygon(0 0,100% 0,66% 100%,20% 100%);filter:drop-shadow(0 3px 3px rgba(60,48,36,.14));}
@@ -170,6 +193,8 @@
     display:flex;align-items:flex-start;justify-content:space-around;
     padding:14px 12px 0;
     position:relative;
+    /* the bar lifts off the surface as its own plane */
+    box-shadow:0 -1px 0 rgba(255,255,255,.7), 0 -14px 30px -18px rgba(60,48,36,.30);
   }
   .tab{display:flex;flex-direction:column;align-items:center;gap:6px;width:52px;}
   .tab .ic{width:22px;height:22px;position:relative;color:var(--ink3);}
@@ -206,28 +231,45 @@
   .today .content{display:flex;flex-direction:column;}
   .today .hero{
     position:relative;
-    height:500px;flex:0 0 500px;
+    height:494px;flex:0 0 494px;
     background:
       radial-gradient(120% 80% at 50% 30%, #F3EDE3 0%, #ECE4D8 60%, #E4DBCD 100%);
     overflow:hidden;
   }
-  .today .hero .overline{position:absolute;top:24px;left:var(--gut);}
-  .today .hero .ground{
-    position:absolute;left:50%;bottom:150px;width:180px;height:34px;transform:translateX(-50%);
-    background:radial-gradient(ellipse at center, rgba(58,44,30,.20), rgba(58,44,30,0) 70%);
-    filter:blur(2px);
+  .today .hero .overline{position:absolute;top:24px;left:var(--gut);z-index:3;}
+  /* a raised circular pedestal card the garment rests on — tactile object on a plinth */
+  .today .hero .pedestal{
+    position:absolute;left:50%;top:150px;transform:translateX(-50%);
+    width:262px;height:262px;border-radius:50%;
+    background:radial-gradient(120% 120% at 50% 22%, #FFFFFF 0%, #F5EFE6 70%, #EFE7DA 100%);
+    box-shadow:var(--shadow-card-hi), inset 0 2px 0 rgba(255,255,255,.8);
+    border:1px solid rgba(255,255,255,.7);
   }
-  .today .hero .g{position:absolute;left:50%;top:120px;transform:translateX(-50%) scale(1.42);--gc:#C6B49A;}
-  .today .hero .caption{position:absolute;left:var(--gut);right:var(--gut);bottom:32px;}
+  .today .hero .ground{
+    position:absolute;left:50%;bottom:150px;width:180px;height:26px;transform:translateX(-50%);
+    background:radial-gradient(ellipse at center, rgba(58,44,30,.16), rgba(58,44,30,0) 70%);
+    filter:blur(2px);z-index:2;
+  }
+  .today .hero .g{position:absolute;left:50%;top:118px;transform:translateX(-50%) scale(1.38);--gc:#C6B49A;z-index:2;
+    filter:drop-shadow(0 18px 20px rgba(60,48,36,.26));}
+  .today .hero .caption{position:absolute;left:var(--gut);right:var(--gut);bottom:32px;z-index:3;}
   .today .hero .caption h2{font-family:var(--serif);font-weight:400;font-size:38px;color:var(--ink);line-height:1.04;}
   .today .hero .caption .sub{font-size:15px;color:var(--ink2);margin-top:8px;}
   .today .hero::after{
-    content:"";position:absolute;left:0;right:0;bottom:0;height:200px;
-    background:linear-gradient(180deg,rgba(246,242,236,0),rgba(246,242,236,.9));
+    content:"";position:absolute;left:0;right:0;bottom:0;height:200px;z-index:1;
+    background:linear-gradient(180deg,rgba(244,239,231,0),rgba(244,239,231,.92));
   }
 
-  .today .actions{padding:24px var(--gut) 0;flex:1 1 auto;}
-  .today .actrow{display:flex;align-items:baseline;justify-content:space-between;margin-top:24px;}
+  /* the action row lifts into its own tactile card below the hero */
+  .today .actions{padding:20px var(--gut) 0;flex:1 1 auto;}
+  .today .actcard{
+    background:var(--white);
+    border-radius:var(--r-card);
+    padding:18px 20px;
+    box-shadow:var(--shadow-card);
+    border:1px solid rgba(255,255,255,.7);
+    display:flex;align-items:center;justify-content:space-between;
+  }
   .today .why{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);}
   .today .wore{
     font-size:13px;color:var(--crimson);font-weight:500;
@@ -237,7 +279,15 @@
   /* ============ SCREEN 3 — YOU ============ */
   .you .body{padding:16px var(--gut) 0;overflow:hidden;flex:1 1 auto;}
   .you h2.title{font-family:var(--serif);font-weight:400;font-size:34px;margin-top:6px;}
-  .you .sec{padding-top:24px;}
+  /* each section is a raised paper card; gaps replace hairline dividers */
+  .you .card{
+    background:var(--white);
+    border-radius:var(--r-card);
+    padding:18px 20px;
+    margin-top:16px;
+    box-shadow:var(--shadow-card);
+    border:1px solid rgba(255,255,255,.7);
+  }
   .you .lbl{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink3);}
   .you .val{font-size:16px;color:var(--ink);margin-top:9px;}
   .you .val.muted{color:var(--ink2);}
@@ -246,18 +296,17 @@
   .you .link.danger{color:var(--crimson);}
   .you .sectitle{font-family:var(--serif);font-size:22px;color:var(--ink);}
   .you .linkgroup{display:flex;gap:26px;margin-top:14px;}
-  .you .divider{margin:24px 0 0;}
   .swatches{display:flex;gap:12px;margin-top:16px;}
   .sw{width:34px;height:34px;border-radius:999px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08), 0 2px 5px rgba(60,48,36,.14);}
-  .foot{font-size:11px;color:var(--ink3);text-align:center;padding:26px 0 6px;letter-spacing:.5px;}
+  .foot{font-size:11px;color:var(--ink3);text-align:center;padding:24px 0 10px;letter-spacing:.5px;}
 </style>
 </head>
 <body>
 
   <div class="page-head">
     <div class="overline">Design Gallery</div>
-    <h1>Atelier — Baseline</h1>
-    <p>The current design, rendered faithfully — editorial restraint, one earned crimson action per screen.</p>
+    <h1>Atelier — Tactile Cards</h1>
+    <p>One step deeper: the same cream, serif and single crimson — but garments and sections lift off the surface as tactile paper cards.</p>
   </div>
 
   <div class="row">
@@ -296,8 +345,6 @@
             <div class="seg">In the wash</div>
             <div class="seg">Set aside</div>
           </div>
-
-          <div class="divider"></div>
 
           <div class="grid">
             <div class="tile">
@@ -378,6 +425,7 @@
         <div class="content">
           <div class="hero">
             <div class="overline">Today</div>
+            <div class="pedestal"></div>
             <div class="ground"></div>
             <div class="g g-coat">
               <div class="shape"></div>
@@ -394,10 +442,8 @@
             </div>
           </div>
 
-          <div class="divider" style="margin:0 var(--gut);"></div>
-
           <div class="actions">
-            <div class="actrow">
+            <div class="actcard">
               <span class="why">Why this?</span>
               <span class="wore">Wore this today</span>
             </div>
@@ -432,15 +478,13 @@
           <div class="overline">Your Account</div>
           <h2 class="title">You</h2>
 
-          <div class="sec">
+          <div class="card">
             <div class="lbl">Signed in as</div>
             <div class="val">tester@example.com</div>
             <div class="link">Sign out</div>
           </div>
 
-          <div class="divider"></div>
-
-          <div class="sec">
+          <div class="card">
             <div class="sectitle">Membership</div>
             <div class="val muted">Premium — every feature is unlocked.</div>
             <div class="linkgroup">
@@ -449,9 +493,7 @@
             </div>
           </div>
 
-          <div class="divider"></div>
-
-          <div class="sec">
+          <div class="card">
             <div class="lbl">Your colours</div>
             <div class="swatches">
               <span class="sw" style="background:#C9B7A0"></span>
@@ -463,16 +505,12 @@
             </div>
           </div>
 
-          <div class="divider"></div>
-
-          <div class="sec">
+          <div class="card">
             <div class="lbl">Your data</div>
             <div class="link">Export my data</div>
           </div>
 
-          <div class="divider"></div>
-
-          <div class="sec">
+          <div class="card">
             <div class="sectitle">Delete my account</div>
             <div class="link crimson">Delete my account</div>
           </div>

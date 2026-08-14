@@ -19,9 +19,9 @@
     --dot-wash:#9A7A38;
     --dot-set:#847E76;
     --hair:#E4DCD0;
-    --hair-onimg:rgba(255,255,255,0.28);
     --serif:Georgia,'Times New Roman',serif;
     --sans:system-ui,-apple-system,'Segoe UI',sans-serif;
+    --gutter:24px;
   }
 
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -89,7 +89,7 @@
 
   .frame-label{
     font-family:var(--serif);
-    font-size:15px;color:var(--ink-2);letter-spacing:0.2px;
+    font-size:15px;color:var(--ink-2);letter-spacing:0.2px;text-align:center;
   }
   .frame-label span{color:var(--ink-3);font-family:var(--sans);font-size:11px;
     text-transform:uppercase;letter-spacing:2px;display:block;margin-top:3px;}
@@ -98,9 +98,8 @@
   .statusbar{
     position:relative;z-index:5;
     height:52px;display:flex;align-items:flex-end;justify-content:space-between;
-    padding:0 26px 6px;font-size:14px;font-weight:600;color:var(--ink);
+    padding:0 var(--gutter) 6px;font-size:14px;font-weight:600;color:var(--ink);
   }
-  .statusbar.onimg{color:#fff;}
   .statusbar .time{letter-spacing:0.3px;}
   .statusbar .icons{display:flex;gap:6px;align-items:center;}
   .statusbar .bars{display:flex;gap:2px;align-items:flex-end;height:11px;}
@@ -109,7 +108,7 @@
   .statusbar .bars i:nth-child(2){height:6px;}
   .statusbar .bars i:nth-child(3){height:8px;}
   .statusbar .bars i:nth-child(4){height:11px;}
-  .statusbar .batt{width:22px;height:11px;border:1.5px solid currentColor;border-radius:3px;position:relative;}
+  .statusbar .batt{width:22px;height:11px;border:1.5px solid currentColor;border-radius:3px;position:relative;opacity:0.9;}
   .statusbar .batt::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;background:currentColor;border-radius:0 1px 1px 0;}
   .statusbar .batt i{position:absolute;inset:1.5px;width:70%;background:currentColor;border-radius:1px;}
 
@@ -117,19 +116,18 @@
   .overline{
     font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-3);
   }
-  .overline.light{color:rgba(255,255,255,0.82);}
 
   /* ---------- tab bar ---------- */
   .tabbar{
-    position:absolute;left:6px;right:6px;bottom:6px;height:92px;
-    background:rgba(255,255,255,0.82);
+    position:absolute;left:6px;right:6px;bottom:6px;height:88px;
+    background:rgba(255,255,255,0.86);
     backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     border-top:1px solid var(--hair);
     border-radius:0 0 38px 38px;
     display:flex;align-items:flex-start;justify-content:space-around;
-    padding:14px 18px 0;z-index:20;
+    padding:13px 16px 0;z-index:20;
   }
-  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;width:56px;color:var(--ink-3);}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:6px;width:52px;color:var(--ink-3);}
   .tab .ic{width:22px;height:22px;position:relative;}
   .tab .lbl{font-size:10px;letter-spacing:0.4px;}
   .tab.active{color:var(--ink);}
@@ -148,10 +146,10 @@
 
   .fab{
     width:56px;height:56px;border-radius:50%;
-    background:var(--crimson);
-    margin-top:-22px;
+    background:radial-gradient(120% 120% at 30% 25%, #C4416A 0%, var(--crimson) 60%, #A62850 100%);
+    margin-top:-20px;
     display:flex;align-items:center;justify-content:center;
-    box-shadow:0 10px 22px -6px rgba(182,46,88,0.55);
+    box-shadow:0 10px 22px -6px rgba(182,46,88,0.55), 0 0 0 4px rgba(255,255,255,0.9);
     position:relative;
   }
   .fab::before,.fab::after{content:"";position:absolute;background:#fff;border-radius:2px;}
@@ -159,21 +157,25 @@
   .fab::after{width:2.5px;height:20px;}
 
   /* ================= SCREEN 1 — CLOSET ================= */
-  .s1-head{padding:6px 26px 14px;}
-  .s1-titlerow{display:flex;align-items:baseline;justify-content:space-between;margin-top:6px;}
+  .s1-head{padding:6px var(--gutter) 16px;}
+  .s1-titlerow{display:flex;align-items:baseline;justify-content:space-between;margin-top:8px;}
   .s1-titlerow h1{font-family:var(--serif);font-weight:400;font-size:36px;letter-spacing:-0.5px;}
   .s1-count{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-3);}
 
-  .chips{display:flex;gap:8px;padding:2px 26px 12px;overflow:hidden;}
+  .chips{
+    display:flex;gap:8px;padding:0 var(--gutter) 14px;overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 86%,transparent 100%);
+            mask-image:linear-gradient(90deg,#000 0,#000 86%,transparent 100%);
+  }
   .chip{
-    font-size:13px;color:var(--ink-2);
-    padding:8px 15px;border-radius:999px;
+    font-size:12.5px;color:var(--ink-2);
+    padding:7px 13px;border-radius:999px;
     border:1px solid var(--hair);background:var(--surface);white-space:nowrap;
   }
   .chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
 
-  .segs{display:flex;gap:22px;padding:2px 26px 16px;border-bottom:1px solid var(--hair);}
-  .seg{font-size:13px;color:var(--ink-3);padding-bottom:9px;position:relative;}
+  .segs{display:flex;gap:22px;padding:0 var(--gutter) 14px;border-bottom:1px solid var(--hair);}
+  .seg{font-size:13px;color:var(--ink-3);padding-bottom:11px;position:relative;}
   .seg.on{color:var(--ink);font-weight:600;}
   .seg.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--crimson);border-radius:2px;}
 
@@ -183,21 +185,25 @@
     background:var(--hair);
   }
   .looktile{
-    position:relative;height:236px;overflow:hidden;
+    position:relative;height:248px;overflow:hidden;
     background:linear-gradient(160deg,#F1EBE1 0%, #E7DECF 100%);
     display:flex;align-items:center;justify-content:center;
   }
-  .looktile.tone-white{background:linear-gradient(160deg,#FBF9F5 0%, #ECE5D9 100%);}
-  .looktile.tone-black{background:linear-gradient(160deg,#EDE7DC 0%, #DED4C4 100%);}
-  .looktile.tone-camel{background:linear-gradient(160deg,#F2E9D9 0%, #E7D6BB 100%);}
-  .looktile.tone-rose{background:linear-gradient(160deg,#F6EBE9 0%, #EBD7D6 100%);}
+  .looktile.tone-white{background:radial-gradient(120% 100% at 50% 34%, #FDFBF7 0%, #ECE4D7 100%);}
+  .looktile.tone-black{background:radial-gradient(120% 100% at 50% 34%, #F0EADF 0%, #DED4C4 100%);}
+  .looktile.tone-camel{background:radial-gradient(120% 100% at 50% 34%, #F4ECDC 0%, #E7D6BB 100%);}
+  .looktile.tone-rose{background:radial-gradient(120% 100% at 50% 34%, #F8EEEC 0%, #ECD8D7 100%);}
 
+  .looktile .grad{
+    position:absolute;inset:0;z-index:2;
+    background:linear-gradient(to top, rgba(246,242,236,0.9) 0%, rgba(246,242,236,0) 44%);
+  }
   .looktile .caption{
-    position:absolute;left:14px;right:14px;bottom:12px;z-index:3;
+    position:absolute;left:16px;right:16px;bottom:14px;z-index:3;
     display:flex;align-items:flex-end;justify-content:space-between;
   }
   .looktile .caption .nm{
-    font-family:var(--serif);font-size:20px;color:var(--ink);
+    font-family:var(--serif);font-size:21px;color:var(--ink);
     text-transform:lowercase;letter-spacing:0.2px;line-height:1;
   }
   .looktile .caption .state{
@@ -209,114 +215,142 @@
   .dot.set{background:var(--dot-set);}
   /* number tag magazine-style */
   .looktile .no{
-    position:absolute;left:14px;top:12px;z-index:3;
-    font-family:var(--serif);font-size:12px;color:var(--ink-2);letter-spacing:1px;
-  }
-  .looktile .grad{
-    position:absolute;inset:0;z-index:2;
-    background:linear-gradient(to top, rgba(237,230,219,0.9) 0%, rgba(237,230,219,0) 42%);
+    position:absolute;left:16px;top:14px;z-index:3;
+    font-family:var(--serif);font-size:12px;color:var(--ink-3);letter-spacing:1px;
   }
 
-  /* ---------- CSS garments ---------- */
-  .garment{position:relative;z-index:1;filter:drop-shadow(0 14px 20px rgba(58,44,30,0.14));}
+  /* ---------- CSS garments (consistent soft warm ground-shadow) ---------- */
+  .garment{position:relative;z-index:1;filter:drop-shadow(0 16px 22px rgba(58,44,30,0.16));}
 
-  /* top / blouse */
-  .g-top{width:150px;height:150px;}
-  .g-top .body{position:absolute;left:32px;right:32px;top:34px;bottom:6px;background:#FCFBF8;border-radius:8px 8px 12px 12px;box-shadow:inset 0 -18px 26px -20px rgba(0,0,0,0.18);}
-  .g-top .sh-l,.g-top .sh-r{position:absolute;top:22px;width:44px;height:52px;background:#FCFBF8;border-radius:14px;}
-  .g-top .sh-l{left:6px;transform:rotate(18deg);}
-  .g-top .sh-r{right:6px;transform:rotate(-18deg);}
-  .g-top .collar{position:absolute;left:50%;top:26px;width:34px;height:20px;background:linear-gradient(180deg,#F1EBE1,#F1EBE1);transform:translateX(-50%);clip-path:polygon(0 0,100% 0,50% 100%);}
-  .g-top .placket{position:absolute;left:50%;top:40px;width:2px;height:96px;background:#E7DECF;transform:translateX(-50%);}
+  /* top / silk blouse (white) */
+  .g-top{width:150px;height:152px;}
+  .g-top .body{position:absolute;left:33px;right:33px;top:44px;bottom:6px;
+    background:linear-gradient(160deg,#FDFCF9 0%,#F1EBE0 100%);border-radius:12px 12px 18px 18px;}
+  .g-top .sh-l,.g-top .sh-r{position:absolute;top:30px;width:40px;height:62px;
+    background:linear-gradient(160deg,#FDFCF9,#F0E9DE);}
+  .g-top .sh-l{left:7px;border-radius:22px 8px 12px 24px;transform:rotate(11deg);}
+  .g-top .sh-r{right:7px;border-radius:8px 22px 24px 12px;transform:rotate(-11deg);}
+  .g-top .collar{position:absolute;left:50%;top:42px;width:30px;height:19px;
+    transform:translateX(-50%);background:#E7DFD2;clip-path:polygon(0 0,100% 0,50% 100%);}
+  .g-top .placket{position:absolute;left:50%;top:60px;width:2px;height:80px;
+    background:#EBE3D6;transform:translateX(-50%);}
+  .g-top .bt{position:absolute;left:50%;width:4px;height:4px;border-radius:50%;
+    background:#E0D6C7;transform:translateX(-50%);}
+  .g-top .bt1{top:80px;} .g-top .bt2{top:104px;} .g-top .bt3{top:128px;}
 
-  /* shoe (loafer/pump) */
-  .g-shoe{width:170px;height:130px;}
-  .g-shoe .sole{position:absolute;left:14px;right:18px;bottom:34px;height:46px;background:#1E1B18;border-radius:40px 40px 26px 40px;transform:rotate(-4deg);box-shadow:inset 0 -8px 14px -8px rgba(255,255,255,0.15);}
-  .g-shoe .vamp{position:absolute;left:78px;bottom:52px;width:74px;height:60px;background:#1E1B18;border-radius:60px 70px 8px 40px;transform:rotate(-8deg);}
-  .g-shoe .heel{position:absolute;right:22px;bottom:8px;width:12px;height:34px;background:#1E1B18;border-radius:0 0 3px 3px;transform:rotate(4deg);}
-  .g-shoe .shine{position:absolute;left:44px;bottom:60px;width:26px;height:10px;background:rgba(255,255,255,0.16);border-radius:10px;transform:rotate(-10deg);}
+  /* shoe — rose pump (side profile, toe left / heel right) */
+  .g-shoe{width:172px;height:118px;}
+  .g-shoe .pump{
+    position:absolute;inset:0;
+    background:linear-gradient(155deg,#CE8B9D 0%, #BC7488 55%, #A5607A 100%);
+    clip-path:polygon(
+      1% 55%, 15% 36%, 33% 29%, 64% 26%, 90% 26%, 97% 30%,
+      96% 84%, 87% 87%, 82% 60%, 64% 67%, 8% 64%);
+  }
+  .g-shoe .heeltab{position:absolute;right:3%;top:26%;bottom:14%;width:16%;
+    background:linear-gradient(180deg,#A5607A,#8F5069);}
+  .g-shoe .topline{position:absolute;left:24%;right:14%;top:26%;height:8px;
+    background:rgba(255,255,255,0.20);border-radius:8px;transform:rotate(-2deg);}
+  .g-shoe .shine{position:absolute;left:20%;top:44%;width:34px;height:9px;
+    background:rgba(255,255,255,0.22);border-radius:9px;transform:rotate(-12deg);}
 
-  /* coat / outerwear */
-  .g-coat{width:150px;height:172px;}
-  .g-coat .body{position:absolute;left:34px;right:34px;top:36px;bottom:0;background:#CBA36A;border-radius:10px 10px 6px 6px;box-shadow:inset 0 -22px 30px -22px rgba(0,0,0,0.22);}
-  .g-coat .sh-l,.g-coat .sh-r{position:absolute;top:26px;width:40px;height:120px;background:#CBA36A;border-radius:18px 8px 8px 8px;}
-  .g-coat .sh-l{left:8px;transform:rotate(6deg);}
-  .g-coat .sh-r{right:8px;transform:rotate(-6deg);border-radius:8px 18px 8px 8px;}
-  .g-coat .lapel-l,.g-coat .lapel-r{position:absolute;top:34px;width:26px;height:74px;background:#BE9358;}
-  .g-coat .lapel-l{left:44px;clip-path:polygon(0 0,100% 8%,60% 100%);}
-  .g-coat .lapel-r{right:44px;clip-path:polygon(0 8%,100% 0,40% 100%);}
-  .g-coat .belt{position:absolute;left:34px;right:34px;top:104px;height:9px;background:#B98D50;}
-  .g-coat .btn{position:absolute;left:50%;width:5px;height:5px;border-radius:50%;background:#8f6d3c;transform:translateX(-50%);}
-  .g-coat .b1{top:64px;} .g-coat .b2{top:86px;}
+  /* coat / outerwear (camel) */
+  .g-coat{width:152px;height:176px;}
+  .g-coat .body{position:absolute;left:34px;right:34px;top:38px;bottom:2px;
+    background:linear-gradient(160deg,#CDA469 0%,#BB8F51 100%);border-radius:12px 12px 8px 8px;}
+  .g-coat .sh-l,.g-coat .sh-r{position:absolute;top:28px;width:38px;height:124px;
+    background:linear-gradient(160deg,#CDA469,#B98D50);}
+  .g-coat .sh-l{left:8px;border-radius:20px 8px 8px 10px;transform:rotate(6deg);}
+  .g-coat .sh-r{right:8px;border-radius:8px 20px 10px 8px;transform:rotate(-6deg);}
+  .g-coat .collar{position:absolute;left:50%;top:34px;width:36px;height:16px;
+    transform:translateX(-50%);background:#B58A50;clip-path:polygon(0 0,100% 0,50% 100%);}
+  .g-coat .lapel-l,.g-coat .lapel-r{position:absolute;top:38px;width:24px;height:72px;background:#B58A50;}
+  .g-coat .lapel-l{left:46px;clip-path:polygon(0 0,100% 8%,55% 100%);}
+  .g-coat .lapel-r{right:46px;clip-path:polygon(0 8%,100% 0,45% 100%);}
+  .g-coat .belt{position:absolute;left:34px;right:34px;top:108px;height:9px;background:#AE8248;}
+  .g-coat .btn{position:absolute;left:50%;width:5px;height:5px;border-radius:50%;background:#7E5F34;transform:translateX(-50%);}
+  .g-coat .b1{top:66px;} .g-coat .b2{top:88px;}
 
-  /* dress */
-  .g-dress{width:140px;height:170px;}
-  .g-dress .bod{position:absolute;left:52px;right:52px;top:30px;height:60px;background:#E9C6CE;border-radius:6px 6px 0 0;}
-  .g-dress .skirt{position:absolute;left:50%;top:84px;width:120px;height:82px;background:#E9C6CE;transform:translateX(-50%);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%);border-radius:0 0 14px 14px;box-shadow:inset 0 -18px 26px -20px rgba(0,0,0,0.16);}
-  .g-dress .strap-l,.g-dress .strap-r{position:absolute;top:16px;width:6px;height:30px;background:#E9C6CE;border-radius:3px;}
-  .g-dress .strap-l{left:60px;transform:rotate(10deg);}
-  .g-dress .strap-r{right:60px;transform:rotate(-10deg);}
-  .g-dress .waist{position:absolute;left:52px;right:52px;top:82px;height:5px;background:#dcb1ba;}
+  /* dress — black slip (near-black satin with side sheen) */
+  .g-dress{width:140px;height:176px;}
+  .g-dress .bod{position:absolute;left:50px;right:50px;top:30px;height:56px;
+    background:linear-gradient(150deg,#332F2A 0%,#211E1A 100%);border-radius:8px 8px 2px 2px;}
+  .g-dress .strap-l,.g-dress .strap-r{position:absolute;top:16px;width:5px;height:30px;
+    background:#2B2823;border-radius:3px;}
+  .g-dress .strap-l{left:58px;transform:rotate(11deg);}
+  .g-dress .strap-r{right:58px;transform:rotate(-11deg);}
+  .g-dress .waist{position:absolute;left:50px;right:50px;top:82px;height:4px;background:#171512;}
+  .g-dress .skirt{position:absolute;left:50%;top:84px;width:120px;height:88px;
+    background:linear-gradient(150deg,#302C27 0%,#1E1B17 100%);transform:translateX(-50%);
+    clip-path:polygon(20% 0,80% 0,100% 100%,0 100%);border-radius:0 0 16px 16px;}
+  .g-dress .sheen{position:absolute;left:50%;top:88px;width:8px;height:78px;
+    background:linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0));
+    transform:translateX(-14px) rotate(6deg);border-radius:8px;}
 
   /* ================= SCREEN 2 — TODAY (cover) ================= */
   .cover{position:absolute;inset:0;overflow:hidden;
     background:
-      radial-gradient(90% 60% at 50% 34%, #F3ECDF 0%, #E9DFCE 60%, #DCCFB8 100%);
+      radial-gradient(90% 60% at 50% 30%, #F4EDE0 0%, #E9DFCE 58%, #DBCEB6 100%);
   }
-  .cover .band{
-    position:absolute;left:0;right:0;top:30%;height:180px;
-    background:linear-gradient(180deg, rgba(255,255,255,0.32), rgba(255,255,255,0));
+  .cover .spotlight{
+    position:absolute;left:50%;top:34%;width:340px;height:340px;transform:translate(-50%,-50%);
+    background:radial-gradient(closest-side, rgba(255,255,255,0.55), rgba(255,255,255,0) 72%);
+    z-index:1;
   }
   .cover .hero-garment{
-    position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) scale(1.9);
+    position:absolute;left:50%;top:34%;transform:translate(-50%,-50%) scale(1.85);
+    z-index:2;
+  }
+  .cover .vignette{
+    position:absolute;inset:0;z-index:3;pointer-events:none;
+    background:linear-gradient(to top, rgba(210,196,172,0.35) 0%, rgba(210,196,172,0) 34%);
   }
   .cover .top-meta{
-    position:absolute;left:26px;top:60px;z-index:6;
+    position:absolute;left:var(--gutter);top:60px;z-index:6;
   }
   /* magazine cover line */
   .cover .coverline{
-    position:absolute;left:26px;right:26px;bottom:214px;z-index:6;
+    position:absolute;left:var(--gutter);right:var(--gutter);bottom:200px;z-index:6;
   }
   .cover .coverline .kick{
-    font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px;
+    font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--ink-3);margin-bottom:12px;
   }
   .cover .coverline h1{
     font-family:var(--serif);font-weight:400;font-size:52px;line-height:0.94;
     letter-spacing:-1px;color:var(--ink);
   }
   .cover .coverline .sub{
-    font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink-2);margin-top:8px;
+    font-family:var(--serif);font-style:italic;font-size:22px;color:var(--ink-2);margin-top:10px;
   }
   .cover .actions{
-    position:absolute;left:26px;right:26px;bottom:132px;z-index:6;
+    position:absolute;left:var(--gutter);right:var(--gutter);bottom:116px;z-index:6;
     padding-top:20px;border-top:1px solid var(--hair);
     display:flex;align-items:center;justify-content:space-between;
   }
   .cover .actions .why{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-3);}
   .cover .actions .wore{
     font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--crimson);
-    padding-bottom:5px;border-bottom:2px solid var(--crimson);
+    padding-bottom:6px;border-bottom:2px solid var(--crimson);
   }
-  /* big hero coat scaled */
-  .hero-garment .g-coat{width:150px;height:172px;}
 
   /* ================= SCREEN 3 — YOU ================= */
-  .s3{position:absolute;inset:0;overflow-y:hidden;}
-  .s3-scroll{padding:6px 26px 120px;}
+  .s3{position:absolute;inset:0;overflow:hidden;}
+  .s3-scroll{padding:6px var(--gutter) 120px;}
   .s3 h1{font-family:var(--serif);font-weight:400;font-size:36px;letter-spacing:-0.5px;margin-top:6px;}
   .s3 .block{padding:22px 0;border-bottom:1px solid var(--hair);}
   .s3 .block:last-child{border-bottom:none;}
   .s3 .block h2{font-family:var(--serif);font-weight:400;font-size:21px;margin-bottom:10px;}
-  .s3 .row-line{display:flex;align-items:baseline;justify-content:space-between;margin-top:8px;}
+  .s3 .row-line{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-top:8px;}
   .s3 .val{font-size:15px;color:var(--ink);}
   .s3 .muted{font-size:14px;color:var(--ink-2);line-height:1.5;}
   .link{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--crimson);white-space:nowrap;}
   .link.plain{color:var(--ink-3);}
   .link.danger{color:var(--crimson);}
-  .s3 .links-row{display:flex;gap:26px;margin-top:14px;}
+  .s3 .links-row{display:flex;gap:26px;margin-top:16px;}
 
   .swatches{display:flex;gap:12px;margin-top:16px;}
-  .swatch{width:40px;height:40px;border-radius:12px;box-shadow:0 4px 10px -6px rgba(58,44,30,0.4),0 0 0 1px rgba(0,0,0,0.04) inset;}
+  .swatch{width:40px;height:40px;border-radius:50%;
+    box-shadow:0 4px 10px -6px rgba(58,44,30,0.4),0 0 0 1px rgba(0,0,0,0.05) inset;}
   .sw1{background:#C9B7A2;} .sw2{background:#9C6F63;} .sw3{background:#6E7A6B;}
   .sw4{background:#B8697F;} .sw5{background:#5C5A66;} .sw6{background:#D9C36B;}
 
@@ -330,7 +364,7 @@
   <div class="gallery-head">
     <div class="kicker">closet-app · design exploration</div>
     <h1>Lookbook — imagery-forward</h1>
-    <p>The Atelier palette held (cream, serif, one crimson action) but the layout language shifts from “app” to a printed lookbook: edge-to-edge tiles, type overlaid on imagery, and a full-screen magazine cover for Today.</p>
+    <p>The Atelier palette held (cream, serif, one crimson action) but the layout language shifts from “app” to a printed lookbook: edge-to-edge tiles, type set over imagery, and a full-screen magazine cover for Today.</p>
   </div>
 
   <div class="row">
@@ -375,6 +409,7 @@
               <div class="sh-l"></div><div class="sh-r"></div>
               <div class="body"></div>
               <div class="collar"></div><div class="placket"></div>
+              <div class="bt bt1"></div><div class="bt bt2"></div><div class="bt bt3"></div>
             </div>
             <div class="grad"></div>
             <div class="caption">
@@ -387,7 +422,8 @@
             <span class="no">02</span>
             <div class="garment g-dress">
               <div class="strap-l"></div><div class="strap-r"></div>
-              <div class="bod"></div><div class="waist"></div><div class="skirt"></div>
+              <div class="bod"></div><div class="waist"></div>
+              <div class="skirt"></div><div class="sheen"></div>
             </div>
             <div class="grad"></div>
             <div class="caption">
@@ -401,6 +437,7 @@
             <div class="garment g-coat">
               <div class="sh-l"></div><div class="sh-r"></div>
               <div class="body"></div>
+              <div class="collar"></div>
               <div class="lapel-l"></div><div class="lapel-r"></div>
               <div class="btn b1"></div><div class="btn b2"></div>
               <div class="belt"></div>
@@ -415,8 +452,10 @@
           <div class="looktile tone-rose">
             <span class="no">04</span>
             <div class="garment g-shoe">
-              <div class="sole"></div><div class="vamp"></div>
-              <div class="heel"></div><div class="shine"></div>
+              <div class="pump"></div>
+              <div class="heeltab"></div>
+              <div class="topline"></div>
+              <div class="shine"></div>
             </div>
             <div class="grad"></div>
             <div class="caption">
@@ -442,16 +481,18 @@
     <div class="frameblock">
       <div class="phone"><div class="screen">
         <div class="cover">
-          <div class="band"></div>
+          <div class="spotlight"></div>
           <div class="hero-garment">
             <div class="garment g-coat">
               <div class="sh-l"></div><div class="sh-r"></div>
               <div class="body"></div>
+              <div class="collar"></div>
               <div class="lapel-l"></div><div class="lapel-r"></div>
               <div class="btn b1"></div><div class="btn b2"></div>
               <div class="belt"></div>
             </div>
           </div>
+          <div class="vignette"></div>
 
           <div class="statusbar" style="position:absolute;left:0;right:0;top:0;">
             <span class="time">9:41</span>

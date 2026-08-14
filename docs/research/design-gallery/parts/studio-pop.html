@@ -6,7 +6,7 @@
 <title>Studio Pop — closet-app design exploration</title>
 <style>
   :root{
-    /* Studio Pop palette — bold color-blocking, confident saturated hues */
+    /* Studio Pop palette — bold colour-blocking, confident saturated hues */
     --ink:#161215;            /* near-black plum ink */
     --ink-soft:#4A4048;
     --paper:#FFF8F0;          /* warm off-white */
@@ -37,10 +37,7 @@
     padding:56px 28px 72px;
     min-height:100%;
   }
-  .page-head{
-    text-align:center;
-    margin-bottom:44px;
-  }
+  .page-head{text-align:center;margin-bottom:44px;}
   .page-head .kick{
     font-size:11px;letter-spacing:3px;text-transform:uppercase;
     color:var(--pop-grape);font-weight:800;
@@ -92,14 +89,14 @@
     padding:0 28px;font-size:15px;font-weight:700;color:var(--ink);
     position:relative;z-index:5;
   }
-  .statusbar .dots{display:flex;gap:5px;align-items:center;}
+  .statusbar .dots{display:flex;gap:6px;align-items:center;}
   .statusbar .sig{display:flex;gap:2px;align-items:flex-end;height:11px;}
   .statusbar .sig i{width:3px;background:var(--ink);border-radius:1px;display:block;}
   .statusbar .sig i:nth-child(1){height:4px;}
   .statusbar .sig i:nth-child(2){height:6px;}
   .statusbar .sig i:nth-child(3){height:8px;}
   .statusbar .sig i:nth-child(4){height:11px;}
-  .statusbar .batt{width:22px;height:11px;border:1.6px solid var(--ink);border-radius:3px;position:relative;}
+  .statusbar .batt{width:23px;height:11px;border:1.6px solid var(--ink);border-radius:3px;position:relative;}
   .statusbar .batt::after{content:"";position:absolute;right:-3px;top:3px;width:2px;height:5px;background:var(--ink);border-radius:0 1px 1px 0;}
   .statusbar .batt i{position:absolute;inset:1.5px;width:70%;background:var(--ink);border-radius:1px;}
 
@@ -107,12 +104,71 @@
   .overline{
     font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:800;
   }
-
-  /* ---------- content scaffold ---------- */
   .body{flex:1 1 auto;overflow:hidden;position:relative;}
 
+  /* =========================================================
+     CSS-DRAWN GARMENTS — single clip-path silhouette + tonal
+     detail overlays. Consistent construction across all four.
+     ========================================================= */
+  .gm{position:relative;filter:drop-shadow(0 12px 16px rgba(22,18,21,0.20));}
+  .gm .sil{position:absolute;inset:0;}
+  .gm .dtl{position:absolute;} /* tonal detail, sits above sil */
+
+  /* top / tee — shoulders out, small V-neck carved into silhouette */
+  .gm-top{width:120px;height:116px;}
+  .gm-top .sil{
+    clip-path:polygon(
+      33% 3%, 43% 3%, 50% 15%, 57% 3%, 67% 3%,
+      100% 25%, 81% 47%,
+      81% 100%, 19% 100%,
+      19% 47%, 0% 25%
+    );
+  }
+  /* subtle hem + placket shading for the white tee so it isn't a flat blob */
+  .gm-top .seam{left:50%;top:20%;width:1.5px;height:66%;transform:translateX(-50%);background:rgba(22,18,21,0.07);}
+
+  /* dress — sleeveless A-line, straps + V-neck, flared hem */
+  .gm-dress{width:102px;height:150px;}
+  .gm-dress .sil{
+    clip-path:polygon(
+      35% 4%, 44% 4%, 50% 14%, 56% 4%, 65% 4%,
+      70% 20%, 58% 31%,
+      92% 100%, 8% 100%,
+      42% 31%, 30% 20%
+    );
+  }
+  .gm-dress .waist{left:30%;right:30%;top:30%;height:1.5px;background:rgba(255,255,255,0.16);}
+
+  /* coat / outerwear — wide shoulders, centre placket, belt, notch collar */
+  .gm-coat{width:122px;height:150px;}
+  .gm-coat .sil{
+    clip-path:polygon(
+      30% 2%, 44% 9%, 56% 9%, 70% 2%,
+      100% 23%, 83% 33%,
+      86% 100%, 14% 100%,
+      17% 33%, 0% 23%
+    );
+  }
+  .gm-coat .collar{left:50%;top:5%;width:26px;height:16px;transform:translateX(-50%);
+    background:rgba(22,18,21,0.14);clip-path:polygon(0 0,100% 0,50% 100%);}
+  .gm-coat .placket{left:50%;top:15%;bottom:0;width:2px;transform:translateX(-50%);background:rgba(22,18,21,0.16);}
+  .gm-coat .belt{left:20%;right:20%;top:57%;height:9px;background:rgba(22,18,21,0.18);border-radius:2px;}
+  .gm-coat .buckle{left:50%;top:56.5%;width:11px;height:11px;transform:translateX(-50%);
+    background:rgba(255,255,255,0.55);border-radius:2px;}
+
+  /* shoe (pump/heel) — profile silhouette + tapered stiletto heel */
+  .gm-shoe{width:134px;height:90px;}
+  .gm-shoe .sil{
+    clip-path:polygon(
+      3% 32%, 16% 22%, 50% 40%, 95% 60%, 99% 74%, 3% 74%
+    );
+  }
+  .gm-shoe .heel{left:6%;top:73%;width:11px;height:23px;
+    clip-path:polygon(0 0,100% 0,66% 100%,30% 100%);transform:skewX(-6deg);}
+  .gm-shoe .topline{left:14%;top:29%;width:34%;height:1.5px;transform:rotate(11deg);background:rgba(255,255,255,0.22);}
+
   /* ===== SCREEN 1 — CLOSET ===== */
-  .closet .head{padding:6px 26px 0;display:flex;justify-content:space-between;align-items:flex-end;}
+  .closet .head{padding:8px 26px 0;display:flex;justify-content:space-between;align-items:flex-end;}
   .closet .head .overline{color:var(--pop-grape);}
   .closet h2{
     font-family:var(--serif);font-size:44px;font-style:italic;font-weight:400;
@@ -122,22 +178,22 @@
     font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:800;
     color:#fff;background:var(--pop-tangerine);
     padding:7px 12px;border-radius:999px;white-space:nowrap;
+    box-shadow:0 6px 14px -6px rgba(255,90,43,0.7);
   }
-  .chips{
-    display:flex;gap:9px;padding:20px 26px 4px;overflow:hidden;
+  .chips-wrap{
+    padding:20px 0 4px 26px;
+    -webkit-mask-image:linear-gradient(90deg,#000 84%,transparent 100%);
+    mask-image:linear-gradient(90deg,#000 84%,transparent 100%);
   }
+  .chips{display:flex;gap:8px;}
   .chip{
-    font-size:13px;font-weight:700;padding:9px 16px;border-radius:999px;
+    font-size:13px;font-weight:700;padding:9px 15px;border-radius:999px;
     background:#fff;color:var(--ink);white-space:nowrap;
     box-shadow:0 1px 2px rgba(22,18,21,0.06),inset 0 0 0 1.5px var(--line);
   }
   .chip.on{background:var(--pop-grape);color:#fff;box-shadow:0 6px 14px -6px rgba(91,43,224,0.7);}
-  .subchips{
-    display:flex;gap:20px;padding:16px 26px 6px;
-  }
-  .subchip{
-    font-size:13px;font-weight:700;color:var(--ink-soft);padding-bottom:6px;position:relative;
-  }
+  .subchips{display:flex;gap:22px;padding:16px 26px 6px;}
+  .subchip{font-size:13px;font-weight:700;color:var(--ink-soft);padding-bottom:6px;position:relative;}
   .subchip.sel{color:var(--ink);}
   .subchip.sel::after{
     content:"";position:absolute;left:0;right:0;bottom:0;height:3px;border-radius:3px;
@@ -148,133 +204,94 @@
     padding:16px 26px 20px;
   }
   .tile .well{
-    border-radius:26px;height:190px;position:relative;overflow:hidden;
+    border-radius:24px;height:168px;position:relative;overflow:hidden;
     display:flex;align-items:center;justify-content:center;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.4);
   }
-  .tile .well.w-tangerine{background:linear-gradient(160deg,#FFDCCF,#FFC3AE);}
-  .tile .well.w-grape{background:linear-gradient(160deg,#E9DEFF,#D2BEFF);}
-  .tile .well.w-lime{background:linear-gradient(160deg,#EEFBCB,#DAF59A);}
-  .tile .well.w-sky{background:linear-gradient(160deg,#D3EEFF,#B4E0FF);}
-  .tile .meta{padding:11px 4px 0;}
+  .tile .well.w-tangerine{background:linear-gradient(158deg,#FFDCCF,#FFC3AE);}
+  .tile .well.w-grape{background:linear-gradient(158deg,#E9DEFF,#D2BEFF);}
+  .tile .well.w-lime{background:linear-gradient(158deg,#EEFBCB,#DAF59A);}
+  .tile .well.w-sky{background:linear-gradient(158deg,#D3EEFF,#B4E0FF);}
+  .tile .meta{padding:11px 2px 0;}
   .tile .name{font-family:var(--serif);font-style:italic;font-size:21px;letter-spacing:-0.3px;}
   .tile .state{display:flex;align-items:center;gap:6px;margin-top:5px;}
   .tile .state .dot{width:8px;height:8px;border-radius:50%;}
   .tile .state .lab{font-size:9.5px;letter-spacing:1.6px;text-transform:uppercase;font-weight:800;color:var(--ink-soft);}
 
-  /* CSS-drawn garments (shared) */
-  .gm{position:relative;}
-  /* top / tee */
-  .gm-top{width:118px;height:112px;}
-  .gm-top .torso{position:absolute;left:24px;right:24px;top:26px;bottom:0;border-radius:14px 14px 16px 16px;}
-  .gm-top .slv-l,.gm-top .slv-r{position:absolute;top:20px;width:34px;height:44px;border-radius:14px;}
-  .gm-top .slv-l{left:-2px;transform:rotate(14deg);}
-  .gm-top .slv-r{right:-2px;transform:rotate(-14deg);}
-  .gm-top .neck{position:absolute;left:50%;top:18px;transform:translateX(-50%);width:34px;height:18px;border-radius:0 0 18px 18px;background:rgba(255,255,255,0.55);}
-  /* dress */
-  .gm-dress{width:104px;height:150px;}
-  .gm-dress .bod{position:absolute;left:34px;right:34px;top:22px;height:44px;border-radius:10px;}
-  .gm-dress .skirt{position:absolute;left:14px;right:14px;top:56px;bottom:6px;border-radius:8px 8px 40px 40px;clip-path:polygon(24% 0,76% 0,100% 100%,0 100%);}
-  .gm-dress .slv-l,.gm-dress .slv-r{position:absolute;top:18px;width:26px;height:30px;border-radius:12px;}
-  .gm-dress .slv-l{left:12px;transform:rotate(18deg);}
-  .gm-dress .slv-r{right:12px;transform:rotate(-18deg);}
-  /* coat / outerwear */
-  .gm-coat{width:120px;height:148px;}
-  .gm-coat .body{position:absolute;left:26px;right:26px;top:22px;bottom:4px;border-radius:14px 14px 10px 10px;}
-  .gm-coat .lapel-l,.gm-coat .lapel-r{position:absolute;top:22px;width:0;height:0;border-style:solid;}
-  .gm-coat .lapel-l{left:26px;border-width:0 0 46px 24px;border-color:transparent transparent rgba(255,255,255,0.5) transparent;}
-  .gm-coat .lapel-r{right:26px;border-width:0 24px 46px 0;border-color:transparent transparent rgba(255,255,255,0.5) transparent;}
-  .gm-coat .slv-l,.gm-coat .slv-r{position:absolute;top:24px;width:24px;height:88px;border-radius:12px;}
-  .gm-coat .slv-l{left:6px;}
-  .gm-coat .slv-r{right:6px;}
-  .gm-coat .belt{position:absolute;left:26px;right:26px;top:88px;height:9px;background:rgba(22,18,21,0.16);}
-  /* shoe (heel) */
-  .gm-shoe{width:130px;height:96px;}
-  .gm-shoe .sole{position:absolute;left:8px;bottom:20px;width:104px;height:16px;border-radius:0 0 6px 20px;}
-  .gm-shoe .upper{position:absolute;left:8px;bottom:28px;width:70px;height:44px;border-radius:40px 46px 4px 4px;clip-path:polygon(0 100%,0 40%,60% 0,100% 60%,100% 100%);}
-  .gm-shoe .heel{position:absolute;left:96px;bottom:0;width:12px;height:38px;border-radius:0 0 3px 3px;transform:skewX(-8deg);}
-
   /* ===== SCREEN 2 — TODAY ===== */
   .today .hero{
-    height:520px;position:relative;overflow:hidden;
-    background:
-      radial-gradient(120% 90% at 50% 8%, #FF7A4D 0%, #FF5A2B 42%, #EB3F79 100%);
+    height:512px;position:relative;overflow:hidden;
+    background:radial-gradient(120% 90% at 50% 8%, #FF7A4D 0%, #FF5A2B 42%, #EB3F79 100%);
   }
   .today .hero .blob{
-    position:absolute;border-radius:50%;filter:blur(2px);mix-blend-mode:screen;opacity:0.55;
+    position:absolute;border-radius:50%;filter:blur(2px);mix-blend-mode:screen;opacity:0.5;
     animation:float 9s ease-in-out infinite;
   }
-  .today .hero .b1{width:230px;height:230px;background:#FFD84A;left:-60px;top:40px;}
+  .today .hero .b1{width:230px;height:230px;background:#FFD84A;left:-60px;top:36px;}
   .today .hero .b2{width:180px;height:180px;background:#FF8FB1;right:-40px;top:150px;animation-delay:-3s;}
   .today .hero .b3{width:140px;height:140px;background:#5B2BE0;left:120px;top:300px;opacity:0.4;animation-delay:-6s;}
   @keyframes float{0%,100%{transform:translateY(0) scale(1);}50%{transform:translateY(-16px) scale(1.05);}}
-  .today .hero .over{
-    position:absolute;top:20px;left:26px;color:#fff;
-    letter-spacing:3px;
-  }
+  /* legibility scrim so the serif title reads crisply over the gradient */
+  .today .hero .scrim{position:absolute;left:0;right:0;bottom:0;height:52%;
+    background:linear-gradient(180deg,rgba(22,18,21,0) 0%,rgba(22,18,21,0.32) 100%);}
+  .today .hero .over{position:absolute;top:20px;left:26px;color:#fff;letter-spacing:3px;z-index:2;}
   .today .band{
-    position:absolute;left:50%;top:190px;transform:translateX(-50%);
-    width:210px;height:210px;border-radius:50%;
-    background:rgba(255,255,255,0.16);
+    position:absolute;left:50%;top:118px;transform:translateX(-50%);
+    width:216px;height:216px;border-radius:50%;
+    background:rgba(255,255,255,0.14);
     box-shadow:inset 0 0 0 2px rgba(255,255,255,0.35);
     display:flex;align-items:center;justify-content:center;
-    animation:pulse 6s ease-in-out infinite;
+    animation:pulse 6s ease-in-out infinite;z-index:1;
   }
   @keyframes pulse{0%,100%{transform:translateX(-50%) scale(1);}50%{transform:translateX(-50%) scale(1.03);}}
-  .today .hero .caption{
-    position:absolute;left:26px;bottom:26px;right:26px;color:#fff;
-  }
+  .today .hero .caption{position:absolute;left:26px;bottom:26px;right:26px;color:#fff;z-index:2;}
   .today .hero .caption h2{
     font-family:var(--serif);font-style:italic;font-weight:400;
     font-size:44px;line-height:0.98;letter-spacing:-1.5px;
-    text-shadow:0 2px 20px rgba(0,0,0,0.18);
+    text-shadow:0 2px 22px rgba(0,0,0,0.28);
   }
-  .today .hero .caption .sub{
-    margin-top:8px;font-size:16px;font-weight:600;opacity:0.92;
-  }
-  .today .actions{
-    padding:26px;display:flex;flex-direction:column;gap:20px;flex:1;
-  }
+  .today .hero .caption .sub{margin-top:8px;font-size:16px;font-weight:600;opacity:0.94;}
+  .today .actions{padding:26px;display:flex;flex-direction:column;gap:16px;flex:1;}
+  .today .actions .divider{height:1.5px;background:var(--line);margin:0 -26px;}
   .today .actions .why{
     font-size:12px;letter-spacing:3px;text-transform:uppercase;font-weight:800;
     color:var(--pop-grape);
   }
+  .today .actions .hint{color:var(--ink-soft);font-size:14px;line-height:1.5;}
   .today .actions .wore{
     font-family:var(--serif);font-style:italic;font-size:26px;
-    align-self:flex-start;color:var(--ink);padding-bottom:5px;position:relative;
+    align-self:flex-start;color:var(--ink);padding-bottom:5px;position:relative;margin-top:auto;
   }
   .today .actions .wore::after{
     content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:var(--pop-tangerine);
   }
-  .today .actions .hint{color:var(--ink-soft);font-size:14px;line-height:1.5;margin-top:auto;}
 
   /* ===== SCREEN 3 — YOU ===== */
-  .you .scroll{padding:6px 26px 20px;overflow:hidden;}
+  .you .scroll{padding:8px 26px 20px;overflow:hidden;}
   .you .overline{color:var(--pop-grape);}
   .you h2{
     font-family:var(--serif);font-size:44px;font-style:italic;font-weight:400;
     letter-spacing:-1.5px;margin-top:6px;
   }
-  .you .card{
-    border-radius:24px;padding:20px;margin-top:18px;position:relative;overflow:hidden;
-  }
+  .you .card{border-radius:22px;padding:18px;margin-top:14px;position:relative;overflow:hidden;}
   .you .card.signed{background:var(--pop-grape);color:#fff;}
   .you .card.member{background:var(--pop-lime);color:var(--ink);}
   .you .card .clabel{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;font-weight:800;opacity:0.85;}
-  .you .card .cmain{font-family:var(--serif);font-style:italic;font-size:24px;margin-top:6px;letter-spacing:-0.4px;}
+  .you .card .cmain{font-family:var(--serif);font-style:italic;font-size:23px;margin-top:6px;letter-spacing:-0.4px;}
   .you .card .cnote{font-size:13.5px;margin-top:6px;opacity:0.9;line-height:1.45;}
   .you .card .clinks{display:flex;gap:18px;margin-top:14px;flex-wrap:wrap;}
   .you .card .clink{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;font-weight:800;}
   .signed .clink{color:var(--pop-lime);}
   .member .clink{color:var(--pop-grape);}
   .you .plan-pill{
-    position:absolute;right:18px;top:18px;background:var(--ink);color:var(--pop-lime);
+    position:absolute;right:16px;top:16px;background:var(--ink);color:var(--pop-lime);
     font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:800;
     padding:6px 11px;border-radius:999px;
   }
-  .you .sect{margin-top:24px;}
+  .you .sect{margin-top:20px;}
   .you .sect .stitle{font-family:var(--serif);font-style:italic;font-size:22px;letter-spacing:-0.3px;}
   .you .swatches{display:flex;gap:10px;margin-top:14px;}
-  .you .swatches .sw{width:44px;height:44px;border-radius:14px;box-shadow:inset 0 0 0 3px rgba(255,255,255,0.6),0 3px 8px -3px rgba(22,18,21,0.3);}
+  .you .swatches .sw{width:44px;height:44px;border-radius:12px;box-shadow:inset 0 0 0 2px rgba(255,255,255,0.7),0 3px 8px -3px rgba(22,18,21,0.3);}
   .you .datarow{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:14px;border-top:1.5px solid var(--line);}
   .you .datarow .k{font-size:14px;color:var(--ink-soft);}
   .you .link{font-size:11px;letter-spacing:1.6px;text-transform:uppercase;font-weight:800;color:var(--pop-grape);}
@@ -284,29 +301,28 @@
     font-size:11px;letter-spacing:1.6px;text-transform:uppercase;font-weight:800;
     color:#fff;background:var(--pop-tangerine);padding:9px 15px;border-radius:999px;
   }
-  .you .ver{text-align:center;color:var(--ink-soft);font-size:11px;letter-spacing:1px;margin-top:26px;opacity:0.7;}
+  .you .ver{text-align:center;color:var(--ink-soft);font-size:11px;letter-spacing:1px;margin-top:22px;opacity:0.7;}
 
   /* ---------- tab bar ---------- */
   .tabbar{
-    flex:0 0 92px;height:92px;
+    flex:0 0 88px;height:88px;
     background:rgba(255,248,240,0.92);
     backdrop-filter:blur(12px);
     border-top:1.5px solid var(--line);
     display:flex;align-items:flex-start;justify-content:space-between;
-    padding:12px 24px 0;position:relative;
+    padding:12px 26px 0;position:relative;
   }
-  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;width:52px;padding-top:2px;}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;width:50px;padding-top:2px;}
   .tab .ic{width:24px;height:24px;position:relative;}
   .tab .tl{font-size:10px;font-weight:700;color:var(--ink-soft);letter-spacing:0.3px;}
   .tab.active .tl{color:var(--pop-grape);}
-  .tab.active .ic *{stroke:var(--pop-grape) !important;fill:var(--pop-grape);}
   .tab .ic svg{width:24px;height:24px;display:block;}
   .fab{
-    width:60px;height:60px;border-radius:50%;
+    width:58px;height:58px;border-radius:50%;
     background:linear-gradient(150deg,#FF7A4D,#EB3F79);
     box-shadow:0 12px 24px -8px rgba(235,63,121,0.8);
     display:flex;align-items:center;justify-content:center;
-    margin-top:-18px;position:relative;
+    margin-top:-16px;position:relative;flex:0 0 auto;
   }
   .fab::before,.fab::after{content:"";position:absolute;background:#fff;border-radius:2px;}
   .fab::before{width:22px;height:3px;}
@@ -317,7 +333,7 @@
   <div class="page-head">
     <div class="kick">closet-app · design exploration · distance: wild</div>
     <h1>Studio <span class="pop">Pop</span></h1>
-    <p>A joyful boutique departure — confident color-blocking, oversized italic display type, and rounder friendlier shapes, still composed with premium restraint.</p>
+    <p>A joyful boutique departure — confident colour-blocking, oversized italic display type, and rounder friendlier shapes, still composed with premium restraint.</p>
   </div>
 
   <div class="row">
@@ -341,12 +357,14 @@
             <span class="count">6 Pieces</span>
           </div>
 
-          <div class="chips">
-            <span class="chip on">Tops</span>
-            <span class="chip">Bottoms</span>
-            <span class="chip">Dresses</span>
-            <span class="chip">Outerwear</span>
-            <span class="chip">Shoes</span>
+          <div class="chips-wrap">
+            <div class="chips">
+              <span class="chip on">Tops</span>
+              <span class="chip">Bottoms</span>
+              <span class="chip">Dresses</span>
+              <span class="chip">Outerwear</span>
+              <span class="chip">Shoes</span>
+            </div>
           </div>
 
           <div class="subchips">
@@ -360,10 +378,8 @@
             <div class="tile">
               <div class="well w-tangerine">
                 <div class="gm gm-top">
-                  <span class="neck"></span>
-                  <span class="slv-l" style="background:#fff;"></span>
-                  <span class="slv-r" style="background:#fff;"></span>
-                  <span class="torso" style="background:#fff;box-shadow:0 8px 18px -8px rgba(22,18,21,0.25);"></span>
+                  <span class="sil" style="background:#fff;"></span>
+                  <span class="dtl seam"></span>
                 </div>
               </div>
               <div class="meta">
@@ -375,10 +391,8 @@
             <div class="tile">
               <div class="well w-grape">
                 <div class="gm gm-dress">
-                  <span class="slv-l" style="background:var(--ink);"></span>
-                  <span class="slv-r" style="background:var(--ink);"></span>
-                  <span class="bod" style="background:var(--ink);"></span>
-                  <span class="skirt" style="background:var(--ink);"></span>
+                  <span class="sil" style="background:var(--ink);"></span>
+                  <span class="dtl waist"></span>
                 </div>
               </div>
               <div class="meta">
@@ -390,12 +404,11 @@
             <div class="tile">
               <div class="well w-lime">
                 <div class="gm gm-coat">
-                  <span class="slv-l" style="background:#C99A5B;"></span>
-                  <span class="slv-r" style="background:#C99A5B;"></span>
-                  <span class="body" style="background:#D8A863;box-shadow:0 8px 18px -8px rgba(22,18,21,0.25);"></span>
-                  <span class="lapel-l"></span>
-                  <span class="lapel-r"></span>
-                  <span class="belt"></span>
+                  <span class="sil" style="background:linear-gradient(158deg,#D8A863,#C99A5B);"></span>
+                  <span class="dtl collar"></span>
+                  <span class="dtl placket"></span>
+                  <span class="dtl belt"></span>
+                  <span class="dtl buckle"></span>
                 </div>
               </div>
               <div class="meta">
@@ -407,9 +420,9 @@
             <div class="tile">
               <div class="well w-sky">
                 <div class="gm gm-shoe">
-                  <span class="upper" style="background:var(--pop-bubble);"></span>
-                  <span class="sole" style="background:#E86A92;"></span>
-                  <span class="heel" style="background:#E86A92;"></span>
+                  <span class="sil" style="background:linear-gradient(158deg,#F2799B,#E86A92);"></span>
+                  <span class="dtl heel" style="background:#E86A92;"></span>
+                  <span class="dtl topline"></span>
                 </div>
               </div>
               <div class="meta">
@@ -422,7 +435,7 @@
 
         <div class="tabbar">
           <div class="tab active">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9l8-5 8 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9z" stroke="#161215" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9l8-5 8 5v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9z" stroke="#5B2BE0" stroke-width="1.8" stroke-linejoin="round" fill="#5B2BE0" fill-opacity="0.12"/></svg></span>
             <span class="tl">Closet</span>
           </div>
           <div class="tab">
@@ -458,17 +471,17 @@
             <div class="blob b1"></div>
             <div class="blob b2"></div>
             <div class="blob b3"></div>
-            <div class="over overline">Today</div>
             <div class="band">
-              <div class="gm gm-coat" style="transform:scale(1.35);">
-                <span class="slv-l" style="background:#C99A5B;"></span>
-                <span class="slv-r" style="background:#C99A5B;"></span>
-                <span class="body" style="background:#D8A863;box-shadow:0 14px 30px -12px rgba(0,0,0,0.35);"></span>
-                <span class="lapel-l"></span>
-                <span class="lapel-r"></span>
-                <span class="belt"></span>
+              <div class="gm gm-coat" style="transform:scale(1.35);filter:drop-shadow(0 18px 26px rgba(0,0,0,0.35));">
+                <span class="sil" style="background:linear-gradient(158deg,#D8A863,#C99A5B);"></span>
+                <span class="dtl collar"></span>
+                <span class="dtl placket"></span>
+                <span class="dtl belt"></span>
+                <span class="dtl buckle"></span>
               </div>
             </div>
+            <div class="scrim"></div>
+            <div class="over overline">Today</div>
             <div class="caption">
               <h2>Camel<br>outerwear</h2>
               <div class="sub">with black</div>
@@ -476,8 +489,9 @@
           </div>
           <div class="actions">
             <div class="why">Why this?</div>
-            <div class="wore">Wore this today</div>
             <div class="hint">Your pick, styled for today's cool grey light and the pieces already ready to wear.</div>
+            <div class="divider"></div>
+            <div class="wore">Wore this today</div>
           </div>
         </div>
 
@@ -487,7 +501,7 @@
             <span class="tl">Closet</span>
           </div>
           <div class="tab active">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#161215" stroke-width="1.8"/><path d="M12 7v5l3 2" stroke="#161215" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="#5B2BE0" stroke-width="1.8" fill="#5B2BE0" fill-opacity="0.12"/><path d="M12 7v5l3 2" stroke="#5B2BE0" stroke-width="1.8" stroke-linecap="round"/></svg></span>
             <span class="tl">Today</span>
           </div>
           <div class="fab"></div>
@@ -580,7 +594,7 @@
             <span class="tl">Outfits</span>
           </div>
           <div class="tab active">
-            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#161215" stroke-width="1.8"/><path d="M5 20c0-4 3.5-6 7-6s7 2 7 6" stroke="#161215" stroke-width="1.8" stroke-linecap="round"/></svg></span>
+            <span class="ic"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="4" stroke="#5B2BE0" stroke-width="1.8" fill="#5B2BE0" fill-opacity="0.12"/><path d="M5 20c0-4 3.5-6 7-6s7 2 7 6" stroke="#5B2BE0" stroke-width="1.8" stroke-linecap="round"/></svg></span>
             <span class="tl">You</span>
           </div>
         </div>

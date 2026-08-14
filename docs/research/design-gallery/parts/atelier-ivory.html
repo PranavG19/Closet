@@ -116,22 +116,22 @@
   .pad{padding:0 26px}
 
   .closet-head{
-    display:flex;justify-content:space-between;align-items:flex-end;
-    margin-top:14px;
+    display:flex;justify-content:space-between;align-items:baseline;
+    margin-top:8px;
   }
-  .closet-head .display{font-size:38px}
-  .closet-head .count{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-3);padding-bottom:7px}
+  .closet-head .display{font-size:36px}
+  .closet-head .count{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-3)}
 
   .chips{
-    display:flex;gap:22px;margin-top:26px;overflow:hidden;
+    display:flex;gap:22px;margin-top:24px;overflow:hidden;
     font-size:14px;color:var(--ink-2);
   }
   .chips span{white-space:nowrap}
   .chips .active{color:var(--ink);font-weight:600}
 
   .subrow{
-    display:flex;gap:24px;margin-top:20px;font-size:12px;color:var(--ink-3);
-    padding-bottom:16px;border-bottom:1px solid var(--hair);
+    display:flex;gap:24px;margin-top:16px;font-size:12px;color:var(--ink-3);
+    padding-bottom:14px;border-bottom:1px solid var(--hair);
   }
   .subrow span{padding-bottom:8px;white-space:nowrap}
   .subrow .sel{
@@ -142,122 +142,105 @@
   }
 
   .grid{
-    display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:26px;
+    display:grid;grid-template-columns:1fr 1fr;gap:20px 20px;margin-top:24px;
   }
   .tile .well{
-    background:var(--well);border-radius:6px;height:186px;
+    background:
+      radial-gradient(120% 90% at 50% 22%, #F4EFE6 0%, var(--well) 70%);
+    border-radius:6px;height:180px;
     display:flex;align-items:center;justify-content:center;
-    box-shadow:inset 0 1px 3px rgba(90,75,55,.06);
+    box-shadow:inset 0 1px 3px rgba(90,75,55,.07), inset 0 0 0 1px rgba(90,75,55,.03);
     position:relative;
   }
-  .tile .meta{margin-top:12px}
+  .tile .meta{margin-top:10px}
   .tile .name{font-family:var(--serif);font-size:19px;color:var(--ink)}
-  .tile .state{display:flex;align-items:center;gap:6px;margin-top:6px}
+  .tile .state{display:flex;align-items:center;gap:6px;margin-top:5px}
   .tile .state .dot{width:6px;height:6px;border-radius:50%}
   .tile .state .lbl{font-size:9px;letter-spacing:1.6px;text-transform:uppercase;color:var(--ink-3)}
   .dot-ready{background:var(--dot-ready)}
   .dot-wash{background:var(--dot-wash)}
   .dot-aside{background:var(--dot-aside)}
 
-  /* CSS-drawn garments */
+  /* ---------- CSS-drawn garments (single clip-path silhouettes) ---------- */
   .garment{position:relative}
+  .silh{position:absolute;inset:0;filter:drop-shadow(0 5px 8px rgba(70,55,40,.14))}
+  .detail{position:absolute;pointer-events:none}
 
-  /* Top / blouse */
-  .g-top{width:104px;height:118px}
-  .g-top .body{
-    position:absolute;left:18px;right:18px;top:22px;bottom:0;
-    border-radius:8px 8px 14px 14px;
+  /* Blouse / top */
+  .g-top{width:116px;height:128px}
+  .g-top .silh{
+    clip-path:polygon(
+      42% 4%, 30% 8%, 6% 20%, 3% 34%, 22% 31%,
+      22% 97%, 78% 97%, 78% 31%, 97% 34%, 94% 20%,
+      70% 8%, 58% 4%, 50% 15%);
   }
-  .g-top .sleeve{position:absolute;top:22px;width:30px;height:60px;border-radius:10px}
-  .g-top .sl-l{left:-2px;transform:rotate(14deg)}
-  .g-top .sl-r{right:-2px;transform:rotate(-14deg)}
-  .g-top .collar{
-    position:absolute;left:50%;top:14px;transform:translateX(-50%);
-    width:30px;height:22px;border-radius:0 0 20px 20px;background:var(--well);
-    z-index:3;box-shadow:inset 0 -1px 2px rgba(90,75,55,.10);
-  }
+  .g-top .placket{left:50%;top:17%;width:1.5px;height:74%;margin-left:-.75px;background:rgba(90,75,55,.18)}
+  .g-top .tbtn{left:50%;width:3px;height:3px;margin-left:-1.5px;border-radius:50%;background:rgba(90,75,55,.32)}
 
-  /* Dress */
-  .g-dress{width:96px;height:140px}
-  .g-dress .bod{
-    position:absolute;left:50%;transform:translateX(-50%);top:16px;
-    width:0;height:0;
-    border-left:48px solid transparent;border-right:48px solid transparent;
+  /* Dress (sleeveless, A-line) */
+  .g-dress{width:110px;height:148px}
+  .g-dress .silh{
+    clip-path:polygon(
+      41% 4%, 30% 6%, 35% 17%, 33% 40%,
+      11% 97%, 89% 97%, 67% 40%, 65% 17%,
+      70% 6%, 59% 4%, 50% 13%);
   }
-  .g-dress .torso{
-    position:absolute;left:50%;transform:translateX(-50%);top:12px;
-    width:44px;height:36px;border-radius:8px 8px 0 0;
-  }
-  .g-dress .skirt{
-    position:absolute;left:50%;transform:translateX(-50%);top:42px;
-    width:86px;height:96px;
-    clip-path:polygon(28% 0,72% 0,100% 100%,0 100%);
-    border-radius:0 0 12px 12px;
-  }
-  .g-dress .sh-l,.g-dress .sh-r{position:absolute;top:12px;width:16px;height:18px}
-  .g-dress .sh-l{left:6px;transform:skewX(-6deg)}
-  .g-dress .sh-r{right:6px;transform:skewX(6deg)}
-  .g-dress .neck{
-    position:absolute;left:50%;top:12px;transform:translateX(-50%);
-    width:22px;height:14px;background:var(--well);border-radius:0 0 16px 16px;z-index:3;
-  }
+  .g-dress .waist{left:33%;right:33%;top:39%;height:1.5px;background:rgba(255,255,255,.16)}
 
-  /* Coat / outerwear */
-  .g-coat{width:110px;height:132px}
-  .g-coat .body{position:absolute;left:22px;right:22px;top:20px;bottom:0;border-radius:6px 6px 10px 10px}
-  .g-coat .sleeve{position:absolute;top:22px;width:26px;height:96px;border-radius:8px}
-  .g-coat .sl-l{left:0}
-  .g-coat .sl-r{right:0}
-  .g-coat .lapel-l,.g-coat .lapel-r{
-    position:absolute;top:20px;width:0;height:0;z-index:3;
-    border-top:44px solid var(--well);
+  /* Coat / outerwear (tailored, belted) */
+  .g-coat{width:124px;height:140px}
+  .g-coat .silh{
+    clip-path:polygon(
+      44% 5%, 25% 10%, 14% 16%, 12% 96%,
+      88% 96%, 86% 16%, 75% 10%, 56% 5%, 50% 16%);
   }
-  .g-coat .lapel-l{left:38px;border-right:14px solid transparent}
-  .g-coat .lapel-r{right:38px;border-left:14px solid transparent}
-  .g-coat .placket{position:absolute;left:50%;transform:translateX(-50%);top:24px;width:2px;bottom:6px;background:rgba(255,255,255,.5)}
-  .g-coat .btn{position:absolute;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.7)}
+  .g-coat .lapel{top:16%;width:2px;height:34%;margin-left:-1px;background:rgba(60,42,20,.24);transform-origin:bottom center}
+  .g-coat .lp-l{left:50%;transform:rotate(-15deg)}
+  .g-coat .lp-r{left:50%;transform:rotate(15deg)}
+  .g-coat .placket{left:50%;top:50%;width:2px;height:44%;margin-left:-1px;background:rgba(60,42,20,.22)}
+  .g-coat .belt{left:16%;right:16%;top:52%;height:4px;background:rgba(60,42,20,.20);border-radius:1px}
+  .g-coat .cbtn{left:50%;width:4px;height:4px;margin-left:-2px;border-radius:50%;background:rgba(60,42,20,.42)}
 
-  /* Shoe (heel) */
-  .g-shoe{width:118px;height:82px}
-  .g-shoe .sole{
-    position:absolute;left:6px;bottom:8px;width:100px;height:20px;
-    border-radius:4px 40px 30px 8px;
+  /* Shoe (court heel, profile) */
+  .g-shoe{width:126px;height:84px}
+  .g-shoe .silh{
+    clip-path:polygon(
+      3% 60%, 15% 46%, 38% 39%, 58% 30%, 70% 33%,
+      74% 50%, 72% 68%, 40% 71%, 8% 68%);
   }
-  .g-shoe .upper{
-    position:absolute;left:6px;bottom:20px;width:64px;height:40px;
-    border-radius:30px 34px 4px 30px;
-  }
+  .g-shoe .sole{left:6%;right:26%;bottom:15%;height:5px;border-radius:3px;background:rgba(0,0,0,.16)}
   .g-shoe .heel{
-    position:absolute;right:14px;bottom:-6px;width:9px;height:34px;
-    border-radius:0 0 3px 3px;transform:rotate(6deg);
+    right:19%;bottom:-9%;width:7px;height:30%;
+    background:currentColor;border-radius:0 0 2px 2px;
+    transform:rotate(7deg);transform-origin:top;
   }
-
-  /* garment fills (per screen set below) */
 
   /* ---------- Screen 2: Today ---------- */
   .today-hero{
     height:520px;flex:0 0 520px;position:relative;
-    background:linear-gradient(180deg,#FBF8F3 0%, #F1EBE1 100%);
+    background:
+      radial-gradient(420px 380px at 50% 40%, #FEFCF8 0%, rgba(254,252,248,0) 70%),
+      linear-gradient(180deg,#FBF8F3 0%, #F1EBE1 100%);
     overflow:hidden;
   }
-  .today-hero .band{
-    position:absolute;left:0;right:0;top:150px;height:230px;
-    background:linear-gradient(180deg,rgba(239,234,225,0) 0%,rgba(233,227,217,.85) 45%,rgba(239,234,225,0) 100%);
+  .today-hero .scrim{
+    position:absolute;left:0;right:0;bottom:0;height:220px;
+    background:linear-gradient(180deg,rgba(241,235,225,0) 0%,rgba(240,233,222,.55) 55%,rgba(238,231,220,.92) 100%);
   }
-  .today-hero .overline{position:absolute;top:22px;left:26px}
+  .today-hero .overline{position:absolute;top:24px;left:26px}
   .today-hero .hero-garment{
-    position:absolute;left:50%;top:172px;transform:translateX(-50%) scale(1.55);
+    position:absolute;left:50%;top:150px;transform:translateX(-50%) scale(1.9);
   }
   .today-hero .titleblock{
-    position:absolute;left:26px;right:26px;bottom:26px;
+    position:absolute;left:26px;right:26px;bottom:28px;
   }
-  .today-hero .titleblock .display{font-size:36px;line-height:1.02}
+  .today-hero .titleblock .display{font-size:36px;line-height:1.04}
   .today-hero .titleblock .sub{
     font-family:var(--serif);font-size:19px;font-style:italic;color:var(--ink-2);margin-top:6px;
   }
 
   .today-actions{
-    padding:26px;
+    padding:24px 26px;
   }
   .today-actions .divider{height:1px;background:var(--hair);margin-bottom:24px}
   .today-actions .why{
@@ -265,7 +248,7 @@
     display:inline-block;
   }
   .today-actions .wore{
-    margin-top:34px;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;
+    margin-top:32px;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;
     color:var(--accent);display:inline-block;position:relative;font-weight:600;
   }
   .today-actions .wore::after{
@@ -273,11 +256,11 @@
   }
 
   /* ---------- Screen 3: You ---------- */
-  .you-head{margin-top:14px}
-  .you-head .display{font-size:38px;margin-top:6px}
+  .you-head{margin-top:8px}
+  .you-head .display{font-size:36px;margin-top:6px}
 
-  .section{margin-top:34px}
-  .section .label{margin-bottom:10px}
+  .section{margin-top:32px}
+  .section .label{margin-bottom:8px}
   .section .value{font-size:16px;color:var(--ink);line-height:1.5}
   .section .link{
     font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--ink-2);
@@ -286,12 +269,12 @@
   .section .link.accent{color:var(--accent);font-weight:600}
   .section .sect-title{font-family:var(--serif);font-size:22px;color:var(--ink);margin-bottom:8px}
   .section .body{font-size:15px;color:var(--ink-2);line-height:1.5}
-  .links-inline{display:flex;gap:26px;margin-top:14px}
+  .links-inline{display:flex;gap:26px;margin-top:12px}
 
   .swatches{display:flex;gap:12px;margin-top:14px}
-  .swatches .sw{width:34px;height:34px;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(90,75,55,.08)}
+  .swatches .sw{width:34px;height:34px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(90,75,55,.12),0 1px 2px rgba(90,75,55,.10)}
 
-  .hair-sep{height:1px;background:var(--hair);margin:30px 0}
+  .hair-sep{height:1px;background:var(--hair);margin:28px 0}
 
   .version{
     position:absolute;left:26px;right:26px;bottom:20px;text-align:center;
@@ -305,7 +288,7 @@
     display:flex;align-items:flex-start;justify-content:space-around;
     padding:12px 18px 0;position:relative;
   }
-  .tab{display:flex;flex-direction:column;align-items:center;gap:5px;width:52px;color:var(--ink-3)}
+  .tab{display:flex;flex-direction:column;align-items:center;gap:6px;width:52px;color:var(--ink-3)}
   .tab .ic{width:22px;height:22px;position:relative}
   .tab .tl{font-size:10px;letter-spacing:.4px}
   .tab.active{color:var(--ink)}
@@ -324,13 +307,13 @@
 
   .fab-wrap{width:52px;display:flex;justify-content:center}
   .fab{
-    width:56px;height:56px;border-radius:50%;background:var(--accent);
-    margin-top:-20px;position:relative;
+    width:54px;height:54px;border-radius:50%;background:var(--accent);
+    margin-top:-18px;position:relative;
     box-shadow:0 8px 20px -6px rgba(182,46,88,.55),0 2px 4px rgba(182,46,88,.3);
   }
   .fab::before,.fab::after{content:"";position:absolute;left:50%;top:50%;background:#fff;border-radius:2px}
-  .fab::before{width:20px;height:2.4px;transform:translate(-50%,-50%)}
-  .fab::after{width:2.4px;height:20px;transform:translate(-50%,-50%)}
+  .fab::before{width:19px;height:2.4px;transform:translate(-50%,-50%)}
+  .fab::after{width:2.4px;height:19px;transform:translate(-50%,-50%)}
 
   .home-indicator{
     position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
@@ -387,10 +370,11 @@
                 <div class="tile">
                   <div class="well">
                     <div class="garment g-top">
-                      <span class="collar"></span>
-                      <span class="sleeve sl-l" style="background:#FBFAF7"></span>
-                      <span class="sleeve sl-r" style="background:#FBFAF7"></span>
-                      <span class="body" style="background:#FDFCFA;box-shadow:inset 0 0 0 1px rgba(90,75,55,.06)"></span>
+                      <span class="silh" style="background:#FDFCFA"></span>
+                      <span class="detail placket"></span>
+                      <span class="detail tbtn" style="top:26%"></span>
+                      <span class="detail tbtn" style="top:42%"></span>
+                      <span class="detail tbtn" style="top:58%"></span>
                     </div>
                   </div>
                   <div class="meta">
@@ -403,11 +387,8 @@
                 <div class="tile">
                   <div class="well">
                     <div class="garment g-dress">
-                      <span class="neck"></span>
-                      <span class="sh-l" style="background:#2B2723;border-radius:6px"></span>
-                      <span class="sh-r" style="background:#2B2723;border-radius:6px"></span>
-                      <span class="torso" style="background:#2B2723"></span>
-                      <span class="skirt" style="background:#2B2723"></span>
+                      <span class="silh" style="background:#2B2723"></span>
+                      <span class="detail waist"></span>
                     </div>
                   </div>
                   <div class="meta">
@@ -420,15 +401,13 @@
                 <div class="tile">
                   <div class="well">
                     <div class="garment g-coat">
-                      <span class="sleeve sl-l" style="background:#C39A6B"></span>
-                      <span class="sleeve sl-r" style="background:#C39A6B"></span>
-                      <span class="body" style="background:#C9A473"></span>
-                      <span class="lapel-l"></span>
-                      <span class="lapel-r"></span>
-                      <span class="placket"></span>
-                      <span class="btn" style="top:60px"></span>
-                      <span class="btn" style="top:84px"></span>
-                      <span class="btn" style="top:108px"></span>
+                      <span class="silh" style="background:#C9A473"></span>
+                      <span class="detail lapel lp-l"></span>
+                      <span class="detail lapel lp-r"></span>
+                      <span class="detail placket"></span>
+                      <span class="detail belt"></span>
+                      <span class="detail cbtn" style="top:63%"></span>
+                      <span class="detail cbtn" style="top:75%"></span>
                     </div>
                   </div>
                   <div class="meta">
@@ -440,10 +419,10 @@
                 <!-- tile 4: shoe / rose -->
                 <div class="tile">
                   <div class="well">
-                    <div class="garment g-shoe">
-                      <span class="upper" style="background:#C97E93"></span>
-                      <span class="sole" style="background:#B96C82"></span>
-                      <span class="heel" style="background:#B96C82"></span>
+                    <div class="garment g-shoe" style="color:#B96C82">
+                      <span class="silh" style="background:#C97E93"></span>
+                      <span class="detail sole"></span>
+                      <span class="detail heel"></span>
                     </div>
                   </div>
                   <div class="meta">
@@ -483,20 +462,18 @@
           <div class="content">
             <div class="today-hero">
               <div class="overline">Today</div>
-              <div class="band"></div>
               <div class="hero-garment">
                 <div class="garment g-coat">
-                  <span class="sleeve sl-l" style="background:#C39A6B"></span>
-                  <span class="sleeve sl-r" style="background:#C39A6B"></span>
-                  <span class="body" style="background:#C9A473"></span>
-                  <span class="lapel-l"></span>
-                  <span class="lapel-r"></span>
-                  <span class="placket"></span>
-                  <span class="btn" style="top:60px"></span>
-                  <span class="btn" style="top:84px"></span>
-                  <span class="btn" style="top:108px"></span>
+                  <span class="silh" style="background:#C9A473"></span>
+                  <span class="detail lapel lp-l"></span>
+                  <span class="detail lapel lp-r"></span>
+                  <span class="detail placket"></span>
+                  <span class="detail belt"></span>
+                  <span class="detail cbtn" style="top:63%"></span>
+                  <span class="detail cbtn" style="top:75%"></span>
                 </div>
               </div>
+              <div class="scrim"></div>
               <div class="titleblock">
                 <div class="display">Camel outerwear</div>
                 <div class="sub">with black</div>
