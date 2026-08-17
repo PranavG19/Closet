@@ -61,6 +61,11 @@ export interface ListWardrobeParams {
   readonly limit?: number;
 }
 
+// Hard stop on the cursor-following loop in listAllWardrobe. The server clamps a page
+// at 100 rows, so this is 10k garments — orders of magnitude past a real wardrobe. It
+// exists so a cursor bug cannot spin forever, not as a product limit.
+const MAX_WARDROBE_PAGES = 100;
+
 // A dedupe keep-one request (defined in @closet/functions, mirrored here — mobile
 // cannot import functions). keep_id/discard_id must differ (server also refuses).
 export interface DedupeResolveParams {
@@ -164,12 +169,45 @@ export class ApiClient {
   }
 
   // --- wardrobe ------------------------------------------------------------
+  // ONE page. The server pages at 50 and clamps at 100, so this is a partial closet
+  // whenever next_cursor is non-null — prefer listAllWardrobe for anything a user reads.
   listWardrobe(params: ListWardrobeParams = {}): Promise<WardrobeListResult> {
     return this.request(
       'listWardrobe',
       (body) => parseBoundary(WardrobeListResult, body, 'listWardrobe'),
       { query: this.queryString(params) },
     );
+  }
+
+  // EVERY page, following the server's keyset cursor until it is null.
+  //
+  // The single-page read was the whole wardrobe surface: a 120-garment closet rendered
+  // exactly 50 tiles with no spinner, no "load more" and no error, and the remaining 70
+  // were unreachable anywhere in the app. Laundry truncated the same way, and Suggestions
+  // ran its heuristic over a truncated first page, so the "best" look was picked from a
+  // biased sample. Nothing read next_cursor.
+  //
+  // Fetch-all rather than an infinite query because the consumers are a grid, a laundry
+  // list and an on-device heuristic that all need the WHOLE closet to be correct — the
+  // heuristic in particular cannot rank what it has not been given. A personal wardrobe is
+  // a few hundred rows, so this is a couple of requests, not a feed.
+  async listAllWardrobe(params: ListWardrobeParams = {}): Promise<WardrobeListResult> {
+    const items: WardrobeItemRow[] = [];
+    let cursor: string | undefined;
+    // Bounded because the loop's exit condition is SERVER data: a cursor that failed to
+    // advance would otherwise spin forever issuing requests. 100 pages x the 100-row
+    // server clamp is far past any real closet, so hitting this means a broken cursor,
+    // and stopping with a partial list beats hanging the screen.
+    for (let page = 0; page < MAX_WARDROBE_PAGES; page += 1) {
+      const result = await this.listWardrobe({
+        ...params,
+        ...(cursor !== undefined ? { cursor } : {}),
+      });
+      items.push(...result.items);
+      if (result.next_cursor === null) return { items, next_cursor: null };
+      cursor = result.next_cursor;
+    }
+    return { items, next_cursor: null };
   }
 
   toggleAvailability(request: UpdateAvailabilityRequest): Promise<WardrobeItemRow> {
@@ -219,9 +257,18 @@ export class ApiClient {
   // client_id is a REQUIRED argument minted by the caller at tap time (idempotency
   // key). It is intentionally NOT minted here — minting inside would make a retry
   // produce a fresh id and duplicate the row past the partial UNIQUE index.
-  logWear(request: LogWearRequest): Promise<WearLogRow> {
+  //
+  // `flipToDirty` rides the QUERY STRING, not the body: LogWearRequest is frozen and
+  // .strict() in @closet/shared, so a body key would be rejected. The server reads it
+  // as `?flip=dirty` (packages/functions/src/wear-log/log-wear.ts). Default OFF —
+  // logging a past wear must not surprise-dirty an item.
+  logWear(request: LogWearRequest, options?: { flipToDirty?: boolean }): Promise<WearLogRow> {
     const body = parseBoundary(LogWearRequest, request, 'logWear.request');
-    return this.request('logWear', (res) => parseBoundary(WearLogRow, res, 'logWear'), { body });
+    const query = options?.flipToDirty === true ? '?flip=dirty' : undefined;
+    return this.request('logWear', (res) => parseBoundary(WearLogRow, res, 'logWear'), {
+      body,
+      ...(query !== undefined ? { query } : {}),
+    });
   }
 
   listWear(limit?: number): Promise<WearLogListResponse> {
@@ -285,3 +332,11 @@ export class ApiClient {
     );
   }
 }
+
+// There is deliberately NO module-level default client. A `getApiClient(getToken)`
+// singleton used to live here with zero callers (App.tsx and ApiProvider both
+// construct `new ApiClient` directly), and its `defaultClient ??= ...` silently
+// DISCARDED the getToken of every call after the first — so after the
+// account-delete + signOut flow, the next user on the device would have been served
+// by a client still bound to the previous user's token source, with no throw and no
+// warning. ApiProvider is the single seam; keep it that way.

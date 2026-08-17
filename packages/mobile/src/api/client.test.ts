@@ -76,6 +76,83 @@ describe('ApiClient — bearer + routing', () => {
   });
 });
 
+describe('ApiClient — wardrobe pagination is followed, not truncated', () => {
+  // The server pages at DEFAULT_PAGE_SIZE = 50 and mints a next_cursor whenever a full
+  // page comes back (packages/functions/src/wardrobe/list.ts). Before this, mobile
+  // parsed next_cursor and then ignored it: a 120-garment closet showed exactly 50
+  // items with no spinner, no "load more" and no error, and the other 70 were
+  // unreachable anywhere in the app.
+  //
+  // A multi-page fetch stub. The oracle is the set of item ids the SERVER holds,
+  // assembled here independently of what the client returns.
+  function stubPagedFetch(pages: { items: unknown[]; next_cursor: string | null }[]): {
+    fetchFn: typeof fetch;
+    calls: { url: string }[];
+  } {
+    const calls: { url: string }[] = [];
+    let next = 0;
+    const fetchFn = vi.fn(async (url: string | URL | Request) => {
+      calls.push({ url: String(url) });
+      const page = pages[next++]!;
+      return new Response(JSON.stringify(page), { status: 200 });
+    }) as unknown as typeof fetch;
+    return { fetchFn, calls };
+  }
+
+  // A minimal real WardrobeItemRow — every field WardrobeItemRow requires, so the rows
+  // survive parseBoundary rather than being waved through.
+  const itemAt = (n: number): unknown => ({
+    id: `b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2${String(n).padStart(2, '0')}`,
+    user_id: USER,
+    category: 'top',
+    color: 'ivory',
+    pattern: null,
+    attributes: null,
+    availability: 'clean',
+    cutout_path: null,
+    parse_job_id: null,
+    phash: null,
+    created_at: TS,
+    updated_at: TS,
+  });
+
+  it('follows next_cursor until it is null and returns EVERY item, not just the first page', async () => {
+    const first = [itemAt(1), itemAt(2)];
+    const second = [itemAt(3)];
+    const { fetchFn, calls } = stubPagedFetch([
+      { items: first, next_cursor: 'cursor-page-2' },
+      { items: second, next_cursor: null },
+    ]);
+    const result = await makeClient(fetchFn).listAllWardrobe();
+
+    // Independent oracle: the ids the two server pages held, in server order.
+    const idsOnTheWire = [...first, ...second].map((item) => (item as { id: string }).id);
+    expect(result.items.map((item) => item.id)).toEqual(idsOnTheWire);
+    // The second request must carry the cursor the first response minted.
+    expect(new URL(calls[1]!.url).searchParams.get('cursor')).toBe('cursor-page-2');
+  });
+
+  it('preserves the caller filters on every page, not just the first', async () => {
+    const { fetchFn, calls } = stubPagedFetch([
+      { items: [itemAt(1)], next_cursor: 'c2' },
+      { items: [itemAt(2)], next_cursor: null },
+    ]);
+    await makeClient(fetchFn).listAllWardrobe({ availability: 'dirty' });
+    // A follow-up page that dropped the filter would silently mix clean items into the
+    // Laundry list.
+    for (const call of calls) {
+      expect(new URL(call.url).searchParams.get('availability')).toBe('dirty');
+    }
+  });
+
+  it('stops at one request when the first page is the last', async () => {
+    const { fetchFn, calls } = stubPagedFetch([{ items: [itemAt(1)], next_cursor: null }]);
+    const result = await makeClient(fetchFn).listAllWardrobe();
+    expect(calls).toHaveLength(1);
+    expect(result.items).toHaveLength(1);
+  });
+});
+
 describe('ApiClient — parse-don\'t-cast on the response', () => {
   it('returns the typed value when the body matches the schema', async () => {
     const { fetchFn } = stubFetch(wearRow);
@@ -119,6 +196,35 @@ describe('ApiClient — client_id passthrough (idempotency invariant)', () => {
       // @ts-expect-error — intentionally omitting the required client_id
       makeClient(fetchFn).logWear({ item_id: ITEM }),
     ).toThrow();
+  });
+});
+
+describe('ApiClient — the wear-log flip channel', () => {
+  // The oracle is the SERVER's own reader, not this client's intent:
+  // packages/functions/src/wear-log/log-wear.ts does
+  // `url.searchParams.get('flip') === 'dirty'`. So the assertion is that the exact
+  // string that predicate accepts appears on the wire — anything else is a wear that
+  // silently never dirties the garment, which leaves Laundry empty forever and makes
+  // Suggestions re-offer what she just told the app she wore.
+  const flipIsSetOnWire = (url: string): boolean =>
+    new URL(url).searchParams.get('flip') === 'dirty';
+
+  it('sends ?flip=dirty when the caller asks for the flip', async () => {
+    const { fetchFn, calls } = stubFetch(wearRow);
+    await makeClient(fetchFn).logWear({ item_id: ITEM, client_id: 'k' }, { flipToDirty: true });
+    expect(flipIsSetOnWire(calls[0]!.url)).toBe(true);
+  });
+
+  it('omits the flip by default — logging a PAST wear must not surprise-dirty an item', async () => {
+    const { fetchFn, calls } = stubFetch(wearRow);
+    await makeClient(fetchFn).logWear({ item_id: ITEM, client_id: 'k' });
+    expect(new URL(calls[0]!.url).searchParams.has('flip')).toBe(false);
+  });
+
+  it('omits the flip when explicitly declined', async () => {
+    const { fetchFn, calls } = stubFetch(wearRow);
+    await makeClient(fetchFn).logWear({ item_id: ITEM, client_id: 'k' }, { flipToDirty: false });
+    expect(new URL(calls[0]!.url).searchParams.has('flip')).toBe(false);
   });
 });
 

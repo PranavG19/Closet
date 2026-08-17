@@ -27,11 +27,16 @@ import { Screen, Hero, Text, Button, Divider, Entrance, LoadingState, EmptyState
 // selection is still real, and every warmth ordering and monotonicity property holds.
 const ASSUMED_TEMP_C = 18;
 
-// client_id is minted by the CALLER at tap time (idempotency); a retry of the same tap reuses
-// this id so the wear row dedups. Uses expo-crypto, NOT `globalThis.crypto.randomUUID()` — the
-// RN/Hermes runtime has no global `crypto`, so the global form throws at tap time (proven on the
-// simulator via the outfit-builder save, which had the identical bug). expo-crypto is already a
-// declared dependency used for the Apple-auth nonce.
+// client_id is minted by the CALLER at tap time (idempotency); a retry of the same tap
+// reuses this id so the wear row dedups.
+//
+// expo-crypto's MODULE form, not `globalThis.crypto.randomUUID()`. Hermes ships no
+// crypto global and nothing in the dependency tree installs one — react-native 0.86's
+// setUpDefaultReactNativeEnvironment does not, and expo's winter runtime installs
+// TextDecoder/URL/DOMException/structuredClone/fetch and not crypto. The global read
+// typechecked only because mobile/tsconfig.json includes "DOM" in `lib`, which declares
+// `var crypto`; on device it was a TypeError thrown BEFORE mutate(), so the one-tap
+// wear-log never recorded. src/session/nativeProviders.ts already uses this form.
 function mintClientId(): string {
   return Crypto.randomUUID();
 }
@@ -45,7 +50,11 @@ export function SuggestionsScreen(): React.JSX.Element {
   // first, with no later branch re-admitting an excluded item), so fetching everything moves
   // no trust and lets the empty state tell the truth.
   const query = useWardrobe({});
-  const logWear = useLogWear();
+  // flipToDirty: this button says "I wore this" about TODAY, so the garment goes in the
+  // hamper — that is the laundry loop F7/F8 describe (docs/01 §F8: "optionally moves worn
+  // items toward dirty"). Without it the app had exactly one availability write (Laundry's
+  // "Mark clean") and nothing that ever set 'dirty'.
+  const logWear = useLogWear({ flipToDirty: true });
   // Her self-identified palette (B1). Absent → { hues: [] }, so no colour signal. Its
   // loading/error is NOT gated on: the suggestion runs immediately without a palette and
   // gains the tie-break once the read arrives, rather than blocking today's look on it.
