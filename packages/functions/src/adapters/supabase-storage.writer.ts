@@ -93,7 +93,10 @@ export function makeSupabaseStorageWriter(deps: SupabaseStorageWriterDeps): Cuto
     }
 
     const objectPath = cutoutObjectPath(scope);
-    const response = await requestWithRetry(
+    // The drain is passed INTO requestWithRetry so it runs inside the per-call timeout
+    // (http.ts): Storage acking the headers and then stalling the response body must
+    // not hang the parse with the job row stuck at 'processing'.
+    await requestWithRetry(
       `${supabaseUrl.replace(/\/+$/, '')}/storage/v1/object/${CUTOUTS_BUCKET}/${objectPath}`,
       {
         method: 'POST',
@@ -109,10 +112,10 @@ export function makeSupabaseStorageWriter(deps: SupabaseStorageWriterDeps): Cuto
         body: cutout.bytes,
       },
       transport,
+      // Drain the body so the connection is not left pending; the payload is vendor
+      // metadata we neither trust nor log — the path we composed is the return value.
+      (response) => response.arrayBuffer(),
     );
-    // Drain the body so the connection is not left pending; the payload is vendor
-    // metadata we neither trust nor log — the path we composed is the return value.
-    await response.arrayBuffer();
 
     return { imageUrl: objectPath, hasAlpha: header.hasAlpha, width: header.width, height: header.height };
   };

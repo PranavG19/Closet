@@ -100,7 +100,9 @@ export function makeSupabaseSignedUrlReader(deps: SupabaseStorageReaderDeps): So
     const supabaseUrl = (deps.supabaseUrl ?? requireEnv('SUPABASE_URL')).replace(/\/+$/, '');
     const anonKey = deps.anonKey ?? requireEnv('SUPABASE_ANON_KEY');
 
-    const response = await requestWithRetry(
+    // The body read runs inside the per-call timeout (http.ts) — Storage sending
+    // headers then stalling must not hang the parse.
+    const vendorBody: unknown = await requestWithRetry(
       `${supabaseUrl}/storage/v1/object/sign/${ORIGINALS_BUCKET}/${key}`,
       {
         method: 'POST',
@@ -112,9 +114,9 @@ export function makeSupabaseSignedUrlReader(deps: SupabaseStorageReaderDeps): So
         body: JSON.stringify({ expiresIn: deps.ttlSeconds ?? SIGNED_URL_TTL_SECONDS }),
       },
       transport,
+      (response) => response.json(),
     );
 
-    const vendorBody: unknown = await response.json();
     const { signedURL } = parseBoundary(SignResponse, vendorBody, 'storage.sign.result');
     // Supabase returns a path relative to /storage/v1. Anything else (notably an
     // absolute URL to a host we did not choose) fails CLOSED rather than becoming the

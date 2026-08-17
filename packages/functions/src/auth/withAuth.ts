@@ -8,12 +8,12 @@
 // the caller. A handler receives only `{ userId, exec, correlationId }` and can
 // physically not act as another tenant: it has no pool, no role, no way to set the
 // claim, and no body-sourced identity.
-import { createRemoteJWKSet, jwtVerify } from 'jose';
+import { createRemoteJWKSet, jwtVerify, type JWTVerifyOptions } from 'jose';
 import { Uuid, parseBoundary } from '@closet/shared';
 import type { QueryExecutor } from '@closet/db';
 import { requireEnv } from './env.js';
-import { makePgExecutor, type Sql } from './executor.js';
 import { logger } from './logger.js';
+import { makePgExecutor, type Sql } from './executor.js';
 
 export interface AuthContext {
   // The verified JWT sub, parsed as a uuid. The ONLY source of tenant identity.
@@ -55,13 +55,29 @@ function bearerToken(req: Request): string | null {
   return match?.[1] ?? null;
 }
 
-// Production verifier: asymmetric JWKS, cached and rotated by jose. Requires
-// JWKS_URL; the expected issuer/audience are optional additional checks.
+// Production verifier: asymmetric JWKS, cached and rotated by jose.
+//
+// The signature is NOT sufficient on its own. The JWKS is per-PROJECT, so every token
+// type the project signs — including one minted for a different audience or service —
+// validates against the same keys; and jose only checks `exp` if the claim is PRESENT,
+// so a token with no `exp` at all verifies forever and a stolen one never goes stale
+// (which would also defeat the spend limiter, whose threat model is exactly "an
+// entitled user with a stolen token", rate-limit.ts). This verifier used to pass NO
+// options and accepted all three. So the claim set is REQUIRED, not optional:
+// issuer + audience pin the token to our own auth server and our own audience, and
+// `requiredClaims: ['exp']` makes a token without an expiry unrepresentable rather
+// than eternal. requireEnv on both so a deploy that forgot them fails loudly at
+// startup instead of degrading back to accept-anything.
 export function makeJwksVerifier(): TokenVerifier {
   const jwks = createRemoteJWKSet(new URL(requireEnv('JWKS_URL')));
+  const claims: JWTVerifyOptions = {
+    issuer: requireEnv('JWT_ISSUER'),
+    audience: requireEnv('JWT_AUDIENCE'),
+    requiredClaims: ['exp'],
+  };
   return {
     async verify(token: string): Promise<{ sub: string }> {
-      const { payload } = await jwtVerify(token, jwks);
+      const { payload } = await jwtVerify(token, jwks, claims);
       const sub = payload.sub;
       if (typeof sub !== 'string' || sub.length === 0) {
         throw new Error('token has no sub');
@@ -147,7 +163,19 @@ export function withAuth(handler: AuthedHandler, deps: WithAuthDeps): (req: Requ
     try {
       const { sub } = await deps.verifier.verify(token);
       userId = parseBoundary(Uuid, sub, 'jwt.sub');
-    } catch {
+    } catch (thrown) {
+      // Fail closed, but not silently. A JWKS outage or a key rotation throws here on
+      // EVERY request to all 11 authed routes — indistinguishable from ordinary expired
+      // tokens if the only signal is the 401 rate, so the app is entirely down while
+      // looking like normal traffic. The error's NAME separates the operator page
+      // (JWKSNoMatchingKey / JWKSTimeout / a fetch failure) from routine rejection
+      // (JWTExpired / JWSSignatureVerificationFailed). The name only — never the
+      // message, which can carry the token or the claim values (PII rule).
+      logger.warn({
+        correlationId,
+        event: 'auth.verify_failed',
+        reason: thrown instanceof Error ? thrown.name : 'unknown',
+      });
       return finish(unauthorized());
     }
     const exec = deps.makeExecutor(userId);

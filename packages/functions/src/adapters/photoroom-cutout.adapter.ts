@@ -68,7 +68,11 @@ export function makePhotoroomCutoutAdapter(deps?: PhotoroomCutoutDeps): CutoutPo
       // Photoroom's segment API accepts a source image URL and returns cutout bytes.
       const params = new URLSearchParams({ image_url: input.imageUrl, format: 'png' });
 
-      const response = await requestWithRetry(
+      // The byte read is passed INTO requestWithRetry so it runs inside the per-call
+      // timeout — a vendor that sends headers then stalls the body must not hang the
+      // parse (http.ts). The content-type is read in the same callback because it is
+      // only meaningful alongside the bytes it describes.
+      const { contentType, bytes } = await requestWithRetry(
         `${baseUrl}/segment`,
         {
           method: 'POST',
@@ -80,10 +84,12 @@ export function makePhotoroomCutoutAdapter(deps?: PhotoroomCutoutDeps): CutoutPo
           body: params.toString(),
         },
         transport,
+        async (response) => ({
+          contentType: response.headers.get('content-type'),
+          bytes: await response.arrayBuffer(),
+        }),
       );
 
-      const contentType = response.headers.get('content-type');
-      const bytes = await response.arrayBuffer();
       if (bytes.byteLength === 0) {
         throw new ProviderRequestError('empty cutout response');
       }

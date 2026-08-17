@@ -26,10 +26,15 @@ export function errorResponse(status: number, code: string, message: string): Re
 
 // Map a thrown value to a safe response. A boundary parse failure is the caller's
 // fault → 400 with a generic message (the Zod issues are NOT echoed to the wire).
-// Anything else is an unexpected server fault → 500 with no detail. Neither path
-// puts the raw error text on the wire.
+// A SyntaxError is `await req.json()` on an absent, truncated, or non-JSON body —
+// equally the caller's fault, and it used to reach here as a 500 internal_error, which
+// tells the client "the server is broken, retry with backoff" for a request that can
+// never succeed and buries client noise in the server error rate. It is handled here
+// rather than in one handler because EVERY handler calls req.json(). Anything else is
+// an unexpected server fault → 500 with no detail. No path puts the raw error text on
+// the wire.
 export function errorFromThrown(thrown: unknown): Response {
-  if (thrown instanceof BoundaryParseError) {
+  if (thrown instanceof BoundaryParseError || thrown instanceof SyntaxError) {
     return errorResponse(400, 'invalid_request', 'Request failed validation.');
   }
   return errorResponse(500, 'internal_error', 'An unexpected error occurred.');

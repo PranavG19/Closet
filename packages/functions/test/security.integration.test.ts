@@ -102,8 +102,16 @@ function poolAsSql(pool: Pool): Sql {
   };
 }
 
-// A verifier over a LOCAL JWKS enforcing signature + exp + expected issuer —
-// exactly the production makeJwksVerifier contract (issuer is its optional check).
+// A verifier over a LOCAL JWKS enforcing signature + exp + expected issuer. It is a
+// STAND-IN, not the production verifier: withAuth takes an injected TokenVerifier, and
+// what this suite tests is that withAuth refuses a rejected token and writes zero rows
+// — the rejecting is the stand-in's job here.
+//
+// This comment used to claim it was "exactly the production makeJwksVerifier contract",
+// which was false and dangerous: production passed NO options at all, so the wrong-
+// issuer attempt below passed against a check the shipped code did not have. The real
+// verifier's own claim set (issuer + audience + a required exp) is now proven directly
+// against makeJwksVerifier in src/auth/withAuth.test.ts — the only place it can be.
 function jwksVerifier(trusted: JWK): TokenVerifier {
   const jwks = createLocalJWKSet({ keys: [trusted] });
   const opts: JWTVerifyOptions = { issuer: EXPECTED_ISS };
